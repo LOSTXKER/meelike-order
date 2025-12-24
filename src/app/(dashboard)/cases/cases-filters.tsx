@@ -32,7 +32,10 @@ import {
   Package,
   Settings,
   FileText,
-  Tag
+  Tag,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from "lucide-react";
 import { useCallback, useState, useTransition, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -73,6 +76,15 @@ const categoryOptions = [
   { value: "PROVIDER", label: "Provider", icon: Building2 },
   { value: "TECHNICAL", label: "เทคนิค", icon: Wrench },
   { value: "OTHER", label: "อื่นๆ", icon: FileText },
+];
+
+// Sort options
+const sortOptions = [
+  { value: "createdAt-desc", label: "ใหม่สุด", icon: ArrowDown },
+  { value: "createdAt-asc", label: "เก่าสุด", icon: ArrowUp },
+  { value: "severity-asc", label: "ความรุนแรง (สูง→ต่ำ)", icon: AlertCircle },
+  { value: "slaDeadline-asc", label: "SLA ใกล้หมด", icon: Clock },
+  { value: "status-asc", label: "สถานะ", icon: Clipboard },
 ];
 
 // Labels for display
@@ -155,6 +167,12 @@ export function CasesFilters() {
     });
   };
 
+  const handleSortChange = (value: string) => {
+    startTransition(() => {
+      router.push(`/cases?${createQueryString({ sort: value })}`);
+    });
+  };
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     startTransition(() => {
@@ -175,6 +193,7 @@ export function CasesFilters() {
   const category = searchParams.get("category");
   const caseType = searchParams.get("caseType");
   const search = searchParams.get("search");
+  const sort = searchParams.get("sort");
   const hasActiveFilters = status || severity || category || caseType || search;
 
   // Show first 5 statuses by default, all when expanded
@@ -187,7 +206,7 @@ export function CasesFilters() {
 
   return (
     <div className="space-y-4">
-      {/* Row 1: Search + Clear All */}
+      {/* Row 1: Search + Sort + Clear All */}
       <div className="flex items-center gap-3">
         <form onSubmit={handleSearch} className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -199,6 +218,32 @@ export function CasesFilters() {
             disabled={isPending}
           />
         </form>
+        
+        {/* Sort */}
+        <Select
+          value={sort || "createdAt-desc"}
+          onValueChange={handleSortChange}
+          disabled={isPending}
+        >
+          <SelectTrigger className="w-[180px]">
+            <ArrowUpDown className="mr-2 h-4 w-4" />
+            <SelectValue placeholder="เรียงตาม" />
+          </SelectTrigger>
+          <SelectContent>
+            {sortOptions.map((opt) => {
+              const IconComponent = opt.icon;
+              return (
+                <SelectItem key={opt.value} value={opt.value}>
+                  <span className="flex items-center gap-1.5">
+                    <IconComponent className="h-3.5 w-3.5" />
+                    <span>{opt.label}</span>
+                  </span>
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
+
         {hasActiveFilters && (
           <Button
             variant="ghost"

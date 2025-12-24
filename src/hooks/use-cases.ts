@@ -9,6 +9,7 @@ interface CaseFilters {
   category?: string;
   caseTypeId?: string;
   search?: string;
+  sort?: string;
   page?: number;
   limit?: number;
 }
@@ -49,6 +50,7 @@ async function fetchCases(filters: CaseFilters): Promise<CasesResponse> {
   if (filters.category) params.set("category", filters.category);
   if (filters.caseTypeId) params.set("caseType", filters.caseTypeId);
   if (filters.search) params.set("search", filters.search);
+  if (filters.sort) params.set("sort", filters.sort);
   if (filters.page) params.set("page", filters.page.toString());
   if (filters.limit) params.set("limit", filters.limit.toString());
 

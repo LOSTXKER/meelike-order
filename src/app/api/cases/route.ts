@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get("category");
     const caseTypeId = searchParams.get("caseType");
     const search = searchParams.get("search");
+    const sortParam = searchParams.get("sort") || "createdAt-desc";
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");
 
@@ -50,6 +51,27 @@ export async function GET(request: NextRequest) {
       ];
     }
 
+    // Parse sort parameter
+    const [sortField, sortOrder] = sortParam.split("-");
+    const orderBy: Prisma.CaseOrderByWithRelationInput[] = [];
+    
+    if (sortField === "createdAt") {
+      orderBy.push({ createdAt: sortOrder as "asc" | "desc" });
+    } else if (sortField === "severity") {
+      orderBy.push({ severity: "asc" }); // CRITICAL, HIGH, NORMAL, LOW
+      orderBy.push({ createdAt: "desc" });
+    } else if (sortField === "slaDeadline") {
+      orderBy.push({ slaDeadline: "asc" }); // ใกล้หมดก่อน
+      orderBy.push({ createdAt: "desc" });
+    } else if (sortField === "status") {
+      orderBy.push({ status: "asc" });
+      orderBy.push({ createdAt: "desc" });
+    } else {
+      // Default
+      orderBy.push({ severity: "asc" });
+      orderBy.push({ createdAt: "desc" });
+    }
+
     const [cases, total] = await Promise.all([
       prisma.case.findMany({
         where,
@@ -64,10 +86,7 @@ export async function GET(request: NextRequest) {
             select: { id: true, name: true },
           },
         },
-        orderBy: [
-          { severity: "asc" }, // Critical first
-          { createdAt: "desc" },
-        ],
+        orderBy,
         skip: (page - 1) * limit,
         take: limit,
       }),
