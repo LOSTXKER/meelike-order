@@ -2,6 +2,8 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -9,13 +11,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, X } from "lucide-react";
 import { useCallback, useState, useTransition, useEffect } from "react";
 
 interface CaseType {
   id: string;
   name: string;
 }
+
+// Labels for display
+const statusLabels: Record<string, string> = {
+  NEW: "ใหม่",
+  INVESTIGATING: "กำลังตรวจสอบ",
+  WAITING_CUSTOMER: "รอลูกค้า",
+  WAITING_PROVIDER: "รอ Provider",
+  FIXING: "กำลังแก้ไข",
+  RESOLVED: "แก้ไขแล้ว",
+  CLOSED: "ปิดเคส",
+};
+
+const severityLabels: Record<string, string> = {
+  CRITICAL: "วิกฤต",
+  HIGH: "สูง",
+  NORMAL: "ปกติ",
+  LOW: "ต่ำ",
+};
 
 export function CasesFilters() {
   const router = useRouter();
@@ -75,6 +95,35 @@ export function CasesFilters() {
     startTransition(() => {
       router.push(`/cases?${createQueryString({ search: searchValue || null })}`);
     });
+  };
+
+  const clearFilter = (filterKey: string) => {
+    startTransition(() => {
+      router.push(`/cases?${createQueryString({ [filterKey]: null })}`);
+    });
+    if (filterKey === "search") {
+      setSearchValue("");
+    }
+  };
+
+  const clearAllFilters = () => {
+    startTransition(() => {
+      router.push("/cases");
+    });
+    setSearchValue("");
+  };
+
+  // Check if any filters are active
+  const status = searchParams.get("status");
+  const severity = searchParams.get("severity");
+  const caseType = searchParams.get("caseType");
+  const search = searchParams.get("search");
+  const hasActiveFilters = status || severity || caseType || search;
+
+  // Get case type name from id
+  const getCaseTypeName = (id: string) => {
+    const found = caseTypes.find((t) => t.id === id);
+    return found?.name || id;
   };
 
   return (
@@ -142,6 +191,138 @@ export function CasesFilters() {
           ))}
         </SelectContent>
       </Select>
+    </div>
+  );
+}
+
+// Active Filter Tags Component
+export function ActiveFilterTags() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
+  const [caseTypes, setCaseTypes] = useState<CaseType[]>([]);
+
+  useEffect(() => {
+    fetch("/api/case-types")
+      .then((res) => res.json())
+      .then((data) => setCaseTypes(data))
+      .catch(() => {});
+  }, []);
+
+  const status = searchParams.get("status");
+  const severity = searchParams.get("severity");
+  const caseType = searchParams.get("caseType");
+  const search = searchParams.get("search");
+  const hasActiveFilters = status || severity || caseType || search;
+
+  const getCaseTypeName = (id: string) => {
+    const found = caseTypes.find((t) => t.id === id);
+    return found?.name || id;
+  };
+
+  const createQueryString = useCallback(
+    (params: Record<string, string | null>) => {
+      const current = new URLSearchParams(searchParams.toString());
+      Object.entries(params).forEach(([key, value]) => {
+        if (value === null) {
+          current.delete(key);
+        } else {
+          current.set(key, value);
+        }
+      });
+      current.delete("page");
+      return current.toString();
+    },
+    [searchParams]
+  );
+
+  const clearFilter = (filterKey: string) => {
+    startTransition(() => {
+      router.push(`/cases?${createQueryString({ [filterKey]: null })}`);
+    });
+  };
+
+  const clearAllFilters = () => {
+    startTransition(() => {
+      router.push("/cases");
+    });
+  };
+
+  if (!hasActiveFilters) return null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-sm text-muted-foreground">ตัวกรองที่ใช้:</span>
+      
+      {status && (
+        <Badge variant="secondary" className="gap-1 pr-1">
+          สถานะ: {statusLabels[status] || status}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-4 w-4 ml-1 hover:bg-destructive/20"
+            onClick={() => clearFilter("status")}
+            disabled={isPending}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </Badge>
+      )}
+      
+      {severity && (
+        <Badge variant="secondary" className="gap-1 pr-1">
+          ความรุนแรง: {severityLabels[severity] || severity}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-4 w-4 ml-1 hover:bg-destructive/20"
+            onClick={() => clearFilter("severity")}
+            disabled={isPending}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </Badge>
+      )}
+      
+      {caseType && (
+        <Badge variant="secondary" className="gap-1 pr-1">
+          ประเภท: {getCaseTypeName(caseType)}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-4 w-4 ml-1 hover:bg-destructive/20"
+            onClick={() => clearFilter("caseType")}
+            disabled={isPending}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </Badge>
+      )}
+      
+      {search && (
+        <Badge variant="secondary" className="gap-1 pr-1">
+          ค้นหา: &quot;{search}&quot;
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-4 w-4 ml-1 hover:bg-destructive/20"
+            onClick={() => clearFilter("search")}
+            disabled={isPending}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </Badge>
+      )}
+      
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={clearAllFilters}
+        disabled={isPending}
+        className="text-destructive hover:text-destructive"
+      >
+        ล้างทั้งหมด
+      </Button>
     </div>
   );
 }

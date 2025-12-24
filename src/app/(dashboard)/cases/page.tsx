@@ -20,7 +20,7 @@ import Link from "next/link";
 import { useCases } from "@/hooks";
 import { formatDistanceToNow, differenceInMinutes } from "date-fns";
 import { th } from "date-fns/locale";
-import { CasesFilters } from "./cases-filters";
+import { CasesFilters, ActiveFilterTags } from "./cases-filters";
 import { useSearchParams } from "next/navigation";
 
 const statusLabels: Record<string, { label: string; className: string }> = {
@@ -122,6 +122,9 @@ export default function CasesPage() {
             </Link>
           </div>
         </div>
+
+        {/* Active Filter Tags */}
+        <ActiveFilterTags />
 
         {/* Cases Table */}
         <Card>

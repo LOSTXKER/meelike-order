@@ -26,6 +26,7 @@ import { th } from "date-fns/locale";
 import { CaseActions } from "./case-actions";
 import { AddNoteForm } from "./add-note-form";
 import { FileAttachments } from "./file-attachments";
+import { StatusFlowGuide } from "@/components/case/status-flow-guide";
 import { useParams } from "next/navigation";
 
 const statusLabels: Record<string, { label: string; className: string }> = {
@@ -149,6 +150,9 @@ export default function CaseDetailPage() {
             <CaseActions caseId={caseDetail.id} currentStatus={caseDetail.status} />
           </div>
         </div>
+
+        {/* Status Flow Guide */}
+        <StatusFlowGuide currentStatus={caseDetail.status} />
 
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Main content */}

@@ -13,11 +13,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Info, Clock } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface CaseType {
   id: string;
@@ -26,6 +32,8 @@ interface CaseType {
   defaultSeverity: string;
   requireProvider: boolean;
   requireOrderId: boolean;
+  description: string | null;
+  defaultSlaMinutes: number;
 }
 
 interface Provider {
@@ -33,8 +41,19 @@ interface Provider {
   name: string;
 }
 
+// Quick Create mapping
+const quickCreateMapping: Record<string, { category: string; caseTypeName: string }> = {
+  "deposit-issue": { category: "PAYMENT", caseTypeName: "เติมเงินไม่เข้า" },
+  "topup": { category: "PAYMENT", caseTypeName: "ขอเติมยอด" },
+  "incomplete": { category: "ORDER", caseTypeName: "ยอดไม่ครบ" },
+  "system": { category: "SYSTEM", caseTypeName: "ปัญหาเว็บไซต์/ข้อเสนอ" },
+};
+
 export default function NewCasePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const quickType = searchParams.get("type");
+  
   const [isLoading, setIsLoading] = useState(false);
   const [caseTypes, setCaseTypes] = useState<CaseType[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
@@ -72,8 +91,22 @@ export default function NewCasePage() {
     ]).then(([types, provs]) => {
       setCaseTypes(types);
       setProviders(provs.filter((p: Provider & { isActive: boolean }) => p.isActive));
+      
+      // Quick Create: Auto-fill category and case type from URL params
+      if (quickType && quickCreateMapping[quickType]) {
+        const mapping = quickCreateMapping[quickType];
+        setCategory(mapping.category);
+        
+        // Find and set case type after a small delay to ensure state is updated
+        setTimeout(() => {
+          const matchedType = types.find((t: CaseType) => t.name === mapping.caseTypeName);
+          if (matchedType) {
+            setCaseTypeId(matchedType.id);
+          }
+        }, 100);
+      }
     });
-  }, []);
+  }, [quickType]);
 
   // Auto-set severity when case type changes
   useEffect(() => {
@@ -259,13 +292,58 @@ export default function NewCasePage() {
                     <SelectContent>
                       {filteredCaseTypes.map((type) => (
                         <SelectItem key={type.id} value={type.id}>
-                          {type.name}
+                          <div className="flex items-center gap-2">
+                            <span>{type.name}</span>
+                            {type.description && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Info className="h-3 w-3 text-muted-foreground" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="max-w-xs">{type.description}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
+
+              {/* Selected Case Type Info */}
+              {selectedCaseType && (
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900/50 dark:bg-blue-950/30">
+                  <div className="flex items-start gap-3">
+                    <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                    <div className="flex-1">
+                      <h4 className="font-medium text-blue-900 dark:text-blue-100">
+                        {selectedCaseType.name}
+                      </h4>
+                      {selectedCaseType.description && (
+                        <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                          {selectedCaseType.description}
+                        </p>
+                      )}
+                      <div className="flex flex-wrap gap-3 mt-2 text-xs">
+                        <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+                          <Clock className="h-3 w-3" />
+                          <span>SLA: {selectedCaseType.defaultSlaMinutes} นาที</span>
+                        </div>
+                        {selectedCaseType.requireProvider && (
+                          <span className="text-orange-600 dark:text-orange-400">• ต้องระบุ Provider</span>
+                        )}
+                        {selectedCaseType.requireOrderId && (
+                          <span className="text-orange-600 dark:text-orange-400">• ต้องระบุ Order ID</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">

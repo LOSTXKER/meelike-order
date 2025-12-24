@@ -13,6 +13,11 @@ import {
   Clock,
   ArrowUpRight,
   Plus,
+  Zap,
+  CreditCard,
+  Package,
+  Settings,
+  Timer,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -46,6 +51,14 @@ interface ProviderWithIssues {
   _count: { cases: number };
 }
 
+interface UrgentSlaCase {
+  id: string;
+  caseNumber: string;
+  title: string;
+  slaDeadline: string;
+  minutesRemaining: number;
+}
+
 interface DashboardData {
   totalCases: number;
   newCases: number;
@@ -55,7 +68,36 @@ interface DashboardData {
   recentCases: RecentCase[];
   criticalCases: CriticalCase[];
   providersWithIssues: ProviderWithIssues[];
+  urgentSlaCases?: UrgentSlaCase[];
 }
+
+// Quick Create options - ประเภทเคสที่ใช้บ่อย
+const quickCreateOptions = [
+  {
+    name: "เติมเงินไม่เข้า",
+    icon: CreditCard,
+    color: "bg-red-500/10 text-red-600 hover:bg-red-500/20",
+    params: "?type=deposit-issue",
+  },
+  {
+    name: "ขอเติมยอด",
+    icon: Plus,
+    color: "bg-green-500/10 text-green-600 hover:bg-green-500/20",
+    params: "?type=topup",
+  },
+  {
+    name: "ยอดไม่ครบ",
+    icon: Package,
+    color: "bg-orange-500/10 text-orange-600 hover:bg-orange-500/20",
+    params: "?type=incomplete",
+  },
+  {
+    name: "ปัญหาระบบ",
+    icon: Settings,
+    color: "bg-purple-500/10 text-purple-600 hover:bg-purple-500/20",
+    params: "?type=system",
+  },
+];
 
 const statusLabels: Record<string, { label: string; className: string }> = {
   NEW: { label: "ใหม่", className: "bg-blue-500/10 text-blue-500 border-blue-500/20" },
@@ -135,6 +177,62 @@ export default function DashboardPage() {
             </Link>
           </div>
         </div>
+
+        {/* SLA Alert Banner - แสดงเมื่อมีเคสที่ใกล้หมดเวลา */}
+        {dashboardData.slaMissed > 0 && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900/50 dark:bg-red-950/30">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/20">
+                <Timer className="h-5 w-5 text-red-600 dark:text-red-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-red-800 dark:text-red-200">
+                  ⚠️ มี {dashboardData.slaMissed} เคสที่ SLA เกินกำหนด!
+                </h3>
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  กรุณาดำเนินการโดยเร็วที่สุด
+                </p>
+              </div>
+              <Link href="/cases?status=SLA_BREACH">
+                <Button variant="destructive" size="sm" className="gap-1">
+                  ดูเคสทั้งหมด
+                  <ArrowUpRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* Quick Create - สร้างเคสด่วน */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+              <Zap className="h-5 w-5 text-amber-500" />
+              สร้างเคสด่วน
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              คลิกเพื่อสร้างเคสประเภทที่ใช้บ่อยได้ทันที
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {quickCreateOptions.map((option) => (
+                <Link key={option.name} href={`/cases/new${option.params}`}>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "h-auto w-full flex-col items-center gap-2 p-4 transition-all",
+                      option.color
+                    )}
+                  >
+                    <option.icon className="h-6 w-6" />
+                    <span className="text-sm font-medium">{option.name}</span>
+                  </Button>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Stats Grid */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
