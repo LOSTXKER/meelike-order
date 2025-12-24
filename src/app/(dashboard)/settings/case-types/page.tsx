@@ -29,7 +29,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -66,6 +66,7 @@ export default function CaseTypesPage() {
   const [caseTypes, setCaseTypes] = useState<CaseType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingType, setEditingType] = useState<CaseType | null>(null);
 
   // Form state
   const [name, setName] = useState("");
@@ -76,6 +77,7 @@ export default function CaseTypesPage() {
   const [requireOrderId, setRequireOrderId] = useState(false);
   const [lineNotification, setLineNotification] = useState(false);
   const [description, setDescription] = useState("");
+  const [isActive, setIsActive] = useState(true);
 
   useEffect(() => {
     loadCaseTypes();
@@ -90,45 +92,95 @@ export default function CaseTypesPage() {
       });
   };
 
+  const resetForm = () => {
+    setName("");
+    setCategory("OTHER");
+    setDefaultSeverity("NORMAL");
+    setDefaultSlaMinutes("120");
+    setRequireProvider(false);
+    setRequireOrderId(false);
+    setLineNotification(false);
+    setDescription("");
+    setIsActive(true);
+    setEditingType(null);
+  };
+
+  const openEditDialog = (caseType: CaseType) => {
+    setEditingType(caseType);
+    setName(caseType.name);
+    setCategory(caseType.category);
+    setDefaultSeverity(caseType.defaultSeverity);
+    setDefaultSlaMinutes(caseType.defaultSlaMinutes.toString());
+    setRequireProvider(caseType.requireProvider);
+    setRequireOrderId(caseType.requireOrderId);
+    setLineNotification(caseType.lineNotification);
+    setDescription(caseType.description || "");
+    setIsActive(caseType.isActive);
+    setIsDialogOpen(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    try {
-      const res = await fetch("/api/case-types", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          category,
-          defaultSeverity,
-          defaultSlaMinutes: parseInt(defaultSlaMinutes),
-          requireProvider,
-          requireOrderId,
-          lineNotification,
-          description: description || undefined,
-        }),
-      });
+    const payload = {
+      name,
+      category,
+      defaultSeverity,
+      defaultSlaMinutes: parseInt(defaultSlaMinutes),
+      requireProvider,
+      requireOrderId,
+      lineNotification,
+      description: description || undefined,
+      isActive,
+    };
 
-      if (!res.ok) {
-        throw new Error("Failed to create case type");
+    try {
+      let res;
+      if (editingType) {
+        // Update existing
+        res = await fetch(`/api/case-types/${editingType.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        // Create new
+        res = await fetch("/api/case-types", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
       }
 
-      toast.success("สร้างประเภทเคสเรียบร้อย");
+      if (!res.ok) {
+        throw new Error("Failed");
+      }
+
+      toast.success(editingType ? "อัพเดทประเภทเคสเรียบร้อย" : "สร้างประเภทเคสเรียบร้อย");
       setIsDialogOpen(false);
       loadCaseTypes();
-      
-      // Reset form
-      setName("");
-      setCategory("OTHER");
-      setDefaultSeverity("NORMAL");
-      setDefaultSlaMinutes("120");
-      setRequireProvider(false);
-      setRequireOrderId(false);
-      setLineNotification(false);
-      setDescription("");
+      resetForm();
     } catch (error) {
       console.error(error);
-      toast.error("ไม่สามารถสร้างประเภทเคสได้");
+      toast.error(editingType ? "ไม่สามารถอัพเดทประเภทเคสได้" : "ไม่สามารถสร้างประเภทเคสได้");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("ต้องการลบประเภทเคสนี้หรือไม่?")) return;
+
+    try {
+      const res = await fetch(`/api/case-types/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) throw new Error("Failed");
+
+      toast.success("ลบประเภทเคสเรียบร้อย");
+      loadCaseTypes();
+    } catch (error) {
+      console.error(error);
+      toast.error("ไม่สามารถลบประเภทเคสได้");
     }
   };
 
@@ -156,7 +208,10 @@ export default function CaseTypesPage() {
               จัดการประเภทเคสและการตั้งค่า SLA
             </p>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) resetForm();
+          }}>
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Plus className="h-4 w-4" />
@@ -165,7 +220,9 @@ export default function CaseTypesPage() {
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>เพิ่มประเภทเคสใหม่</DialogTitle>
+                <DialogTitle>
+                  {editingType ? "แก้ไขประเภทเคส" : "เพิ่มประเภทเคสใหม่"}
+                </DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -276,17 +333,37 @@ export default function CaseTypesPage() {
                       ส่งการแจ้งเตือน Line
                     </Label>
                   </div>
+
+                  {editingType && (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="isActive"
+                        checked={isActive}
+                        onChange={(e) => setIsActive(e.target.checked)}
+                        className="rounded"
+                      />
+                      <Label htmlFor="isActive" className="cursor-pointer">
+                        เปิดใช้งาน
+                      </Label>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-end gap-3 pt-4">
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setIsDialogOpen(false)}
+                    onClick={() => {
+                      setIsDialogOpen(false);
+                      resetForm();
+                    }}
                   >
                     ยกเลิก
                   </Button>
-                  <Button type="submit">สร้างประเภทเคส</Button>
+                  <Button type="submit">
+                    {editingType ? "บันทึกการแก้ไข" : "สร้างประเภทเคส"}
+                  </Button>
                 </div>
               </form>
             </DialogContent>
@@ -304,7 +381,7 @@ export default function CaseTypesPage() {
                 <TableHead className="w-[100px] text-right">SLA</TableHead>
                 <TableHead className="w-[200px]">การตั้งค่า</TableHead>
                 <TableHead className="w-[80px]">สถานะ</TableHead>
-                <TableHead className="w-[80px]"></TableHead>
+                <TableHead className="w-[100px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -367,9 +444,24 @@ export default function CaseTypesPage() {
                       )} />
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Pencil className="h-4 w-4" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => openEditDialog(type)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive"
+                          onClick={() => handleDelete(type.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))

@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Pencil, Send, MessageSquare } from "lucide-react";
+import { Plus, Pencil, Send, MessageSquare, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -72,17 +72,21 @@ export default function NotificationsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [isChannelDialogOpen, setIsChannelDialogOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<NotificationTemplate | null>(null);
+  const [editingChannel, setEditingChannel] = useState<LineChannel | null>(null);
 
   // Template form state
   const [templateName, setTemplateName] = useState("");
   const [templateEvent, setTemplateEvent] = useState("");
   const [templateText, setTemplateText] = useState("");
+  const [templateIsActive, setTemplateIsActive] = useState(true);
 
   // Channel form state
   const [channelName, setChannelName] = useState("");
   const [channelToken, setChannelToken] = useState("");
   const [channelGroupId, setChannelGroupId] = useState("");
   const [channelEvents, setChannelEvents] = useState<string[]>([]);
+  const [channelIsActive, setChannelIsActive] = useState(true);
 
   useEffect(() => {
     loadTemplates();
@@ -106,65 +110,148 @@ export default function NotificationsPage() {
       });
   };
 
-  const handleCreateTemplate = async (e: React.FormEvent) => {
+  const resetTemplateForm = () => {
+    setTemplateName("");
+    setTemplateEvent("");
+    setTemplateText("");
+    setTemplateIsActive(true);
+    setEditingTemplate(null);
+  };
+
+  const resetChannelForm = () => {
+    setChannelName("");
+    setChannelToken("");
+    setChannelGroupId("");
+    setChannelEvents([]);
+    setChannelIsActive(true);
+    setEditingChannel(null);
+  };
+
+  const openEditTemplateDialog = (template: NotificationTemplate) => {
+    setEditingTemplate(template);
+    setTemplateName(template.name);
+    setTemplateEvent(template.event);
+    setTemplateText(template.template);
+    setTemplateIsActive(template.isActive);
+    setIsTemplateDialogOpen(true);
+  };
+
+  const openEditChannelDialog = (channel: LineChannel) => {
+    setEditingChannel(channel);
+    setChannelName(channel.name);
+    setChannelToken(channel.accessToken);
+    setChannelGroupId(channel.defaultGroupId || "");
+    setChannelEvents(channel.enabledEvents);
+    setChannelIsActive(channel.isActive);
+    setIsChannelDialogOpen(true);
+  };
+
+  const handleSubmitTemplate = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const payload = {
+      name: templateName,
+      event: templateEvent,
+      template: templateText,
+      isActive: templateIsActive,
+    };
+
     try {
-      const res = await fetch("/api/notifications/templates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: templateName,
-          event: templateEvent,
-          template: templateText,
-        }),
-      });
+      let res;
+      if (editingTemplate) {
+        res = await fetch(`/api/notifications/templates/${editingTemplate.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        res = await fetch("/api/notifications/templates", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      }
 
-      if (!res.ok) throw new Error("Failed to create template");
+      if (!res.ok) throw new Error("Failed");
 
-      toast.success("สร้าง Template เรียบร้อย");
+      toast.success(editingTemplate ? "อัพเดท Template เรียบร้อย" : "สร้าง Template เรียบร้อย");
       setIsTemplateDialogOpen(false);
       loadTemplates();
-
-      // Reset form
-      setTemplateName("");
-      setTemplateEvent("");
-      setTemplateText("");
+      resetTemplateForm();
     } catch (error) {
       console.error(error);
-      toast.error("ไม่สามารถสร้าง Template ได้");
+      toast.error(editingTemplate ? "ไม่สามารถอัพเดท Template ได้" : "ไม่สามารถสร้าง Template ได้");
     }
   };
 
-  const handleCreateChannel = async (e: React.FormEvent) => {
+  const handleSubmitChannel = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const payload = {
+      name: channelName,
+      accessToken: channelToken,
+      defaultGroupId: channelGroupId || null,
+      enabledEvents: channelEvents,
+      isActive: channelIsActive,
+    };
+
     try {
-      const res = await fetch("/api/notifications/channels", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: channelName,
-          accessToken: channelToken,
-          defaultGroupId: channelGroupId || null,
-          enabledEvents: channelEvents,
-        }),
-      });
+      let res;
+      if (editingChannel) {
+        res = await fetch(`/api/notifications/channels/${editingChannel.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        res = await fetch("/api/notifications/channels", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      }
 
-      if (!res.ok) throw new Error("Failed to create channel");
+      if (!res.ok) throw new Error("Failed");
 
-      toast.success("เพิ่ม Line Channel เรียบร้อย");
+      toast.success(editingChannel ? "อัพเดท Channel เรียบร้อย" : "เพิ่ม Channel เรียบร้อย");
       setIsChannelDialogOpen(false);
       loadChannels();
-
-      // Reset form
-      setChannelName("");
-      setChannelToken("");
-      setChannelGroupId("");
-      setChannelEvents([]);
+      resetChannelForm();
     } catch (error) {
       console.error(error);
-      toast.error("ไม่สามารถเพิ่ม Channel ได้");
+      toast.error(editingChannel ? "ไม่สามารถอัพเดท Channel ได้" : "ไม่สามารถเพิ่ม Channel ได้");
+    }
+  };
+
+  const handleDeleteTemplate = async (id: string) => {
+    if (!confirm("ต้องการลบ Template นี้หรือไม่?")) return;
+
+    try {
+      const res = await fetch(`/api/notifications/templates/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed");
+      toast.success("ลบ Template เรียบร้อย");
+      loadTemplates();
+    } catch (error) {
+      console.error(error);
+      toast.error("ไม่สามารถลบ Template ได้");
+    }
+  };
+
+  const handleDeleteChannel = async (id: string) => {
+    if (!confirm("ต้องการลบ Channel นี้หรือไม่?")) return;
+
+    try {
+      const res = await fetch(`/api/notifications/channels/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed");
+      toast.success("ลบ Channel เรียบร้อย");
+      loadChannels();
+    } catch (error) {
+      console.error(error);
+      toast.error("ไม่สามารถลบ Channel ได้");
     }
   };
 
@@ -210,7 +297,10 @@ export default function NotificationsPage() {
           {/* Templates Tab */}
           <TabsContent value="templates" className="space-y-4">
             <div className="flex items-center justify-end">
-              <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
+              <Dialog open={isTemplateDialogOpen} onOpenChange={(open) => {
+                setIsTemplateDialogOpen(open);
+                if (!open) resetTemplateForm();
+              }}>
                 <DialogTrigger asChild>
                   <Button className="gap-2">
                     <Plus className="h-4 w-4" />
@@ -219,9 +309,11 @@ export default function NotificationsPage() {
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl">
                   <DialogHeader>
-                    <DialogTitle>เพิ่ม Notification Template</DialogTitle>
+                    <DialogTitle>
+                      {editingTemplate ? "แก้ไข Template" : "เพิ่ม Notification Template"}
+                    </DialogTitle>
                   </DialogHeader>
-                  <form onSubmit={handleCreateTemplate} className="space-y-4">
+                  <form onSubmit={handleSubmitTemplate} className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="template-name">ชื่อ Template *</Label>
                       <Input
@@ -273,15 +365,35 @@ export default function NotificationsPage() {
                       </div>
                     </div>
 
+                    {editingTemplate && (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="template-active"
+                          checked={templateIsActive}
+                          onChange={(e) => setTemplateIsActive(e.target.checked)}
+                          className="rounded"
+                        />
+                        <Label htmlFor="template-active" className="cursor-pointer">
+                          เปิดใช้งาน
+                        </Label>
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-end gap-3 pt-4">
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => setIsTemplateDialogOpen(false)}
+                        onClick={() => {
+                          setIsTemplateDialogOpen(false);
+                          resetTemplateForm();
+                        }}
                       >
                         ยกเลิก
                       </Button>
-                      <Button type="submit">สร้าง Template</Button>
+                      <Button type="submit">
+                        {editingTemplate ? "บันทึกการแก้ไข" : "สร้าง Template"}
+                      </Button>
                     </div>
                   </form>
                 </DialogContent>
@@ -296,7 +408,7 @@ export default function NotificationsPage() {
                     <TableHead className="w-[150px]">Event</TableHead>
                     <TableHead>Template</TableHead>
                     <TableHead className="w-[80px]">สถานะ</TableHead>
-                    <TableHead className="w-[80px]"></TableHead>
+                    <TableHead className="w-[100px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -327,9 +439,24 @@ export default function NotificationsPage() {
                           )} />
                         </TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <Pencil className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => openEditTemplateDialog(template)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => handleDeleteTemplate(template.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
@@ -342,7 +469,10 @@ export default function NotificationsPage() {
           {/* Channels Tab */}
           <TabsContent value="channels" className="space-y-4">
             <div className="flex items-center justify-end">
-              <Dialog open={isChannelDialogOpen} onOpenChange={setIsChannelDialogOpen}>
+              <Dialog open={isChannelDialogOpen} onOpenChange={(open) => {
+                setIsChannelDialogOpen(open);
+                if (!open) resetChannelForm();
+              }}>
                 <DialogTrigger asChild>
                   <Button className="gap-2">
                     <Plus className="h-4 w-4" />
@@ -351,9 +481,11 @@ export default function NotificationsPage() {
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl">
                   <DialogHeader>
-                    <DialogTitle>เพิ่ม Line Channel</DialogTitle>
+                    <DialogTitle>
+                      {editingChannel ? "แก้ไข Line Channel" : "เพิ่ม Line Channel"}
+                    </DialogTitle>
                   </DialogHeader>
-                  <form onSubmit={handleCreateChannel} className="space-y-4">
+                  <form onSubmit={handleSubmitChannel} className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="channel-name">ชื่อ Channel *</Label>
                       <Input
@@ -413,15 +545,35 @@ export default function NotificationsPage() {
                       </div>
                     </div>
 
+                    {editingChannel && (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="channel-active"
+                          checked={channelIsActive}
+                          onChange={(e) => setChannelIsActive(e.target.checked)}
+                          className="rounded"
+                        />
+                        <Label htmlFor="channel-active" className="cursor-pointer">
+                          เปิดใช้งาน
+                        </Label>
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-end gap-3 pt-4">
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => setIsChannelDialogOpen(false)}
+                        onClick={() => {
+                          setIsChannelDialogOpen(false);
+                          resetChannelForm();
+                        }}
                       >
                         ยกเลิก
                       </Button>
-                      <Button type="submit">เพิ่ม Channel</Button>
+                      <Button type="submit">
+                        {editingChannel ? "บันทึกการแก้ไข" : "เพิ่ม Channel"}
+                      </Button>
                     </div>
                   </form>
                 </DialogContent>
@@ -470,10 +622,25 @@ export default function NotificationsPage() {
                           ))}
                         </div>
                       </div>
-                      <Button variant="outline" size="sm" className="w-full">
-                        <Pencil className="h-3 w-3 mr-2" />
-                        แก้ไข
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => openEditChannelDialog(channel)}
+                        >
+                          <Pencil className="h-3 w-3 mr-2" />
+                          แก้ไข
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive"
+                          onClick={() => handleDeleteChannel(channel.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 ))
