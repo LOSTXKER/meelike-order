@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 interface CaseFilters {
   status?: string;
   severity?: string;
+  category?: string;
   caseTypeId?: string;
   search?: string;
   page?: number;
@@ -45,6 +46,7 @@ async function fetchCases(filters: CaseFilters): Promise<CasesResponse> {
   const params = new URLSearchParams();
   if (filters.status) params.set("status", filters.status);
   if (filters.severity) params.set("severity", filters.severity);
+  if (filters.category) params.set("category", filters.category);
   if (filters.caseTypeId) params.set("caseType", filters.caseTypeId);
   if (filters.search) params.set("search", filters.search);
   if (filters.page) params.set("page", filters.page.toString());

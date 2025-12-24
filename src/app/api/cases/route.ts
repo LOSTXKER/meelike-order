@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get("status");
     const severity = searchParams.get("severity");
+    const category = searchParams.get("category");
     const caseTypeId = searchParams.get("caseType");
     const search = searchParams.get("search");
     const page = parseInt(searchParams.get("page") || "1");
@@ -29,6 +30,12 @@ export async function GET(request: NextRequest) {
 
     if (severity && severity !== "all") {
       where.severity = severity as Prisma.EnumSeverityFilter["equals"];
+    }
+
+    if (category && category !== "all") {
+      where.caseType = {
+        category: category as Prisma.EnumCaseCategoryFilter["equals"],
+      };
     }
 
     if (caseTypeId && caseTypeId !== "all") {
