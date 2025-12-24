@@ -25,6 +25,7 @@ import { formatDistanceToNow, differenceInMinutes, format } from "date-fns";
 import { th } from "date-fns/locale";
 import { CaseActions } from "./case-actions";
 import { AddNoteForm } from "./add-note-form";
+import { FileAttachments } from "./file-attachments";
 import { useParams } from "next/navigation";
 
 const statusLabels: Record<string, { label: string; className: string }> = {
@@ -103,7 +104,7 @@ export default function CaseDetailPage() {
   const params = useParams();
   const id = params.id as string;
   
-  const { data: caseDetail, isLoading } = useCase(id);
+  const { data: caseDetail, isLoading, refetch } = useCase(id);
 
   if (isLoading || !caseDetail) {
     return <LoadingScreen variant="dots" />;
@@ -195,6 +196,12 @@ export default function CaseDetailPage() {
                 </CardContent>
               </Card>
             )}
+
+            {/* File Attachments */}
+            <FileAttachments 
+              caseId={caseDetail.id} 
+              onUploadSuccess={() => refetch()} 
+            />
 
             {/* Timeline */}
             <Card>

@@ -18,10 +18,11 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { TrendingUp, TrendingDown, Clock, CheckCircle2, RefreshCw } from "lucide-react";
+import { TrendingUp, TrendingDown, Clock, CheckCircle2, RefreshCw, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useReports } from "@/hooks/use-reports";
 import { LoadingScreen } from "@/components/ui/loading-screen";
+import { toast } from "sonner";
 
 const COLORS = {
   primary: "#2563eb",
@@ -51,6 +52,81 @@ const SEVERITY_COLORS: Record<string, string> = {
 
 export default function ReportsPage() {
   const { data, isLoading, refetch, isFetching } = useReports();
+
+  const exportToCSV = () => {
+    if (!data) return;
+
+    try {
+      // Prepare CSV data
+      const csvData = [];
+      
+      // Header
+      csvData.push(["Meelike Reports Export", new Date().toISOString()]);
+      csvData.push([]);
+      
+      // Summary Stats
+      csvData.push(["สรุปภาพรวม"]);
+      csvData.push(["เวลาแก้ไขเฉลี่ย", `${data.avgResolutionTime} นาที`]);
+      csvData.push(["SLA Compliance", `${data.slaCompliance}%`]);
+      csvData.push(["Growth", `${data.growth}%`]);
+      csvData.push([]);
+      
+      // Monthly Trend
+      csvData.push(["แนวโน้มรายเดือน"]);
+      csvData.push(["เดือน", "ทั้งหมด", "แก้ไขแล้ว"]);
+      data.monthlyTrend.forEach((item: { month: string; total: number; resolved: number }) => {
+        csvData.push([item.month, item.total, item.resolved]);
+      });
+      csvData.push([]);
+      
+      // Cases by Status
+      csvData.push(["จำนวนเคสตามสถานะ"]);
+      csvData.push(["สถานะ", "จำนวน"]);
+      Object.entries(data.casesByStatus).forEach(([status, count]) => {
+        csvData.push([status, count]);
+      });
+      csvData.push([]);
+      
+      // Cases by Severity
+      csvData.push(["จำนวนเคสตามความรุนแรง"]);
+      csvData.push(["ความรุนแรง", "จำนวน"]);
+      Object.entries(data.casesBySeverity).forEach(([severity, count]) => {
+        csvData.push([severity, count]);
+      });
+      csvData.push([]);
+      
+      // Top Providers
+      csvData.push(["Top Providers"]);
+      csvData.push(["Provider", "เคสทั้งหมด", "แก้ไขแล้ว", "% แก้ไข"]);
+      data.topProviders.forEach((provider: { name: string; totalCases: number; resolvedCases: number }) => {
+        const resolvedPct = provider.totalCases > 0 
+          ? ((provider.resolvedCases / provider.totalCases) * 100).toFixed(1) 
+          : "0";
+        csvData.push([provider.name, provider.totalCases, provider.resolvedCases, `${resolvedPct}%`]);
+      });
+      
+      // Convert to CSV string
+      const csvString = csvData.map(row => row.join(",")).join("\n");
+      
+      // Create blob and download
+      const blob = new Blob(["\ufeff" + csvString], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute("href", url);
+      link.setAttribute("download", `meelike-reports-${new Date().toISOString().split("T")[0]}.csv`);
+      link.style.visibility = "hidden";
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success("ส่งออกรายงานสำเร็จ");
+    } catch (error) {
+      console.error("Error exporting CSV:", error);
+      toast.error("เกิดข้อผิดพลาดในการส่งออก");
+    }
+  };
 
   if (isLoading) {
     return <LoadingScreen title="กำลังโหลดรายงาน" variant="default" />;
@@ -82,8 +158,16 @@ export default function ReportsPage() {
       <Header title="รายงานและสถิติ" />
 
       <div className="p-6 space-y-6">
-        {/* Refresh Button */}
+        {/* Action Buttons */}
         <div className="flex justify-end items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportToCSV}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
           <Button
             variant="outline"
             size="sm"
