@@ -260,40 +260,57 @@ async function main() {
 
   console.log("✅ Case Types created");
 
-  // Create Providers
-  const truemoney = await prisma.provider.upsert({
-    where: { name: "TrueMoney" },
-    update: {},
-    create: {
-      name: "TrueMoney",
-      type: "API",
-      defaultSlaMinutes: 15,
-      contactChannel: "Line: @truemoney",
-      notificationPreference: "LINE",
-    },
-  });
+  // ลบ Providers เดิมทั้งหมด
+  console.log("🗑️  Deleting old providers...");
+  await prisma.provider.deleteMany({});
+  console.log("✅ Old providers deleted");
 
-  const promptpay = await prisma.provider.upsert({
-    where: { name: "PromptPay" },
-    update: {},
-    create: {
-      name: "PromptPay",
+  // Create Providers ใหม่ตามภาพ
+  await prisma.provider.create({
+    data: {
+      name: "Super",
       type: "API",
       defaultSlaMinutes: 30,
-      contactChannel: "Support: 1234",
-      notificationPreference: "EMAIL",
+      contactChannel: "Line: @super",
+      notificationPreference: "LINE",
+      riskLevel: "LOW",
+      isActive: true,
     },
   });
 
-  const kbank = await prisma.provider.upsert({
-    where: { name: "K-BANK" },
-    update: {},
-    create: {
-      name: "K-BANK",
-      type: "MANUAL",
-      defaultSlaMinutes: 60,
-      contactChannel: "Phone: 02-xxx-xxxx",
-      notificationPreference: "EMAIL",
+  await prisma.provider.create({
+    data: {
+      name: "Dragon",
+      type: "API",
+      defaultSlaMinutes: 30,
+      contactChannel: "Line: @dragon",
+      notificationPreference: "LINE",
+      riskLevel: "LOW",
+      isActive: true,
+    },
+  });
+
+  await prisma.provider.create({
+    data: {
+      name: "ARSD",
+      type: "API",
+      defaultSlaMinutes: 30,
+      contactChannel: "Line: @arsd",
+      notificationPreference: "LINE",
+      riskLevel: "LOW",
+      isActive: true,
+    },
+  });
+
+  await prisma.provider.create({
+    data: {
+      name: "JAP",
+      type: "API",
+      defaultSlaMinutes: 30,
+      contactChannel: "Line: @jap",
+      notificationPreference: "LINE",
+      riskLevel: "LOW",
+      isActive: true,
     },
   });
 
