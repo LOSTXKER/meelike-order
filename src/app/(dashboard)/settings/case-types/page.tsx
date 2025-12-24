@@ -50,10 +50,11 @@ interface CaseType {
 }
 
 const categoryLabels: Record<string, { label: string; className: string }> = {
-  PAYMENT: { label: "การเงิน", className: "bg-green-500/10 text-green-600 dark:text-green-400" },
+  PAYMENT: { label: "การชำระเงิน", className: "bg-green-500/10 text-green-600 dark:text-green-400" },
   ORDER: { label: "ออเดอร์", className: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
   SYSTEM: { label: "ระบบ", className: "bg-purple-500/10 text-purple-600 dark:text-purple-400" },
   PROVIDER: { label: "Provider", className: "bg-orange-500/10 text-orange-600 dark:text-orange-400" },
+  TECHNICAL: { label: "เทคนิค", className: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400" },
   OTHER: { label: "อื่นๆ", className: "bg-gray-500/10 text-gray-600 dark:text-gray-400" },
 };
 
@@ -69,6 +70,10 @@ export default function CaseTypesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingType, setEditingType] = useState<CaseType | null>(null);
 
+  // Filter state
+  const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+
   // Form state
   const [name, setName] = useState("");
   const [category, setCategory] = useState("OTHER");
@@ -79,6 +84,14 @@ export default function CaseTypesPage() {
   const [lineNotification, setLineNotification] = useState(false);
   const [description, setDescription] = useState("");
   const [isActive, setIsActive] = useState(true);
+
+  // Filter case types
+  const filteredCaseTypes = caseTypes.filter((type) => {
+    if (filterCategory !== "all" && type.category !== filterCategory) return false;
+    if (filterStatus === "active" && !type.isActive) return false;
+    if (filterStatus === "inactive" && type.isActive) return false;
+    return true;
+  });
 
   // Removed useEffect and loadCaseTypes - using React Query hook now
 
@@ -188,19 +201,28 @@ export default function CaseTypesPage() {
           <div>
             <h2 className="text-2xl font-semibold">ประเภทเคส</h2>
             <p className="text-muted-foreground">
-              จัดการประเภทเคสและการตั้งค่า SLA
+              จัดการประเภทเคสและการตั้งค่า SLA ({filteredCaseTypes.length} รายการ)
             </p>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={(open) => {
-            setIsDialogOpen(open);
-            if (!open) resetForm();
-          }}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                เพิ่มประเภทเคส
-              </Button>
-            </DialogTrigger>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => refetch()}
+              disabled={isFetching}
+            >
+              <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
+            </Button>
+            <Dialog open={isDialogOpen} onOpenChange={(open) => {
+              setIsDialogOpen(open);
+              if (!open) resetForm();
+            }}>
+              <DialogTrigger asChild>
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  เพิ่มประเภทเคส
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>
@@ -227,10 +249,11 @@ export default function CaseTypesPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="PAYMENT">การเงิน</SelectItem>
+                        <SelectItem value="PAYMENT">การชำระเงิน</SelectItem>
                         <SelectItem value="ORDER">ออเดอร์</SelectItem>
                         <SelectItem value="SYSTEM">ระบบ</SelectItem>
                         <SelectItem value="PROVIDER">Provider</SelectItem>
+                        <SelectItem value="TECHNICAL">เทคนิค</SelectItem>
                         <SelectItem value="OTHER">อื่นๆ</SelectItem>
                       </SelectContent>
                     </Select>
@@ -351,7 +374,56 @@ export default function CaseTypesPage() {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
+
+        {/* Filters */}
+        <Card className="p-4">
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <Label className="text-sm font-medium mb-2 block">กรองตามหมวดหมู่</Label>
+              <Select value={filterCategory} onValueChange={setFilterCategory}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทั้งหมด</SelectItem>
+                  <SelectItem value="PAYMENT">การชำระเงิน</SelectItem>
+                  <SelectItem value="ORDER">ออเดอร์</SelectItem>
+                  <SelectItem value="SYSTEM">ระบบ</SelectItem>
+                  <SelectItem value="PROVIDER">Provider</SelectItem>
+                  <SelectItem value="TECHNICAL">เทคนิค</SelectItem>
+                  <SelectItem value="OTHER">อื่นๆ</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <Label className="text-sm font-medium mb-2 block">กรองตามสถานะ</Label>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทั้งหมด</SelectItem>
+                  <SelectItem value="active">เปิดใช้งาน</SelectItem>
+                  <SelectItem value="inactive">ปิดใช้งาน</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {(filterCategory !== "all" || filterStatus !== "all") && (
+              <Button
+                variant="ghost"
+                className="self-end"
+                onClick={() => {
+                  setFilterCategory("all");
+                  setFilterStatus("all");
+                }}
+              >
+                ล้างตัวกรอง
+              </Button>
+            )}
+          </div>
+        </Card>
 
         {/* Case Types Table */}
         <Card>
@@ -368,14 +440,14 @@ export default function CaseTypesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {caseTypes.length === 0 ? (
+              {filteredCaseTypes.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
-                    ไม่พบประเภทเคส
+                    {caseTypes.length === 0 ? "ไม่พบประเภทเคส" : "ไม่พบประเภทเคสที่ตรงกับตัวกรอง"}
                   </TableCell>
                 </TableRow>
               ) : (
-                caseTypes.map((type) => (
+                filteredCaseTypes.map((type) => (
                   <TableRow key={type.id}>
                     <TableCell>
                       <div>
