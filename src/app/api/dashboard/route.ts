@@ -22,6 +22,9 @@ export async function GET() {
       // Order stats
       totalOrders,
       ordersByStatus,
+      // Cases awaiting customer notification (Admin needs to notify)
+      casesAwaitingNotification,
+      awaitingNotificationCases,
     ] = await Promise.all([
       // Total cases
       prisma.case.count(),
@@ -120,6 +123,26 @@ export async function GET() {
         by: ["status"],
         _count: { id: true },
       }),
+
+      // Count of cases awaiting customer notification (RESOLVED but not CLOSED)
+      prisma.case.count({
+        where: {
+          status: "RESOLVED",
+        },
+      }),
+
+      // List of cases awaiting customer notification
+      prisma.case.findMany({
+        where: {
+          status: "RESOLVED",
+        },
+        take: 10,
+        orderBy: { resolvedAt: "desc" },
+        include: {
+          caseType: { select: { name: true } },
+          owner: { select: { name: true } },
+        },
+      }),
     ]);
 
     // Transform data
@@ -158,6 +181,9 @@ export async function GET() {
       completedOrders: orderStatusCounts["COMPLETED"] || 0,
       refundedOrders: orderStatusCounts["REFUNDED"] || 0,
       failedOrders: orderStatusCounts["FAILED"] || 0,
+      // Cases awaiting customer notification (for Admin)
+      casesAwaitingNotification,
+      awaitingNotificationCases,
     });
   } catch (error) {
     console.error("Error fetching dashboard:", error);

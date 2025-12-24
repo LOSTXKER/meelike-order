@@ -21,6 +21,8 @@ import {
   Loader2,
   RefreshCcw,
   XCircle,
+  Bell,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -62,6 +64,17 @@ interface UrgentSlaCase {
   minutesRemaining: number;
 }
 
+interface AwaitingNotificationCase {
+  id: string;
+  caseNumber: string;
+  title: string;
+  customerName: string | null;
+  resolvedAt: string | null;
+  resolution: string | null;
+  caseType: { name: string };
+  owner: { name: string | null } | null;
+}
+
 interface DashboardData {
   totalCases: number;
   newCases: number;
@@ -79,6 +92,9 @@ interface DashboardData {
   completedOrders?: number;
   refundedOrders?: number;
   failedOrders?: number;
+  // Cases awaiting customer notification
+  casesAwaitingNotification?: number;
+  awaitingNotificationCases?: AwaitingNotificationCase[];
 }
 
 // Quick Create options - ประเภทเคสที่ใช้บ่อย
@@ -188,6 +204,31 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Awaiting Customer Notification Banner - For Admin */}
+        {(dashboardData.casesAwaitingNotification ?? 0) > 0 && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/50 dark:bg-amber-950/30">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/20">
+                <Bell className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-amber-800 dark:text-amber-200">
+                  มี {dashboardData.casesAwaitingNotification} เคสที่แก้แล้ว - รอแจ้งลูกค้า
+                </h3>
+                <p className="text-sm text-amber-600 dark:text-amber-400">
+                  เคสเหล่านี้แก้ไขเสร็จแล้ว กรุณาแจ้งลูกค้าและปิดเคส
+                </p>
+              </div>
+              <Link href="/cases?status=RESOLVED">
+                <Button variant="outline" size="sm" className="gap-1 border-amber-300 text-amber-700 hover:bg-amber-100">
+                  ดูเคสรอแจ้ง
+                  <ArrowUpRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* SLA Alert Banner - แสดงเมื่อมีเคสที่ใกล้หมดเวลา */}
         {dashboardData.slaMissed > 0 && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900/50 dark:bg-red-950/30">
@@ -197,7 +238,7 @@ export default function DashboardPage() {
               </div>
               <div className="flex-1">
                 <h3 className="font-semibold text-red-800 dark:text-red-200">
-                  ⚠️ มี {dashboardData.slaMissed} เคสที่ SLA เกินกำหนด!
+                  มี {dashboardData.slaMissed} เคสที่ SLA เกินกำหนด!
                 </h3>
                 <p className="text-sm text-red-600 dark:text-red-400">
                   กรุณาดำเนินการโดยเร็วที่สุด

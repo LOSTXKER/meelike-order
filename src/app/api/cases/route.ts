@@ -149,6 +149,38 @@ export async function POST(request: NextRequest) {
       Date.now() + caseType.defaultSlaMinutes * 60 * 1000
     );
 
+    // Auto-assign to Support user with least active cases (if no ownerId provided)
+    let autoAssignOwnerId: string | undefined;
+    if (!body.ownerId) {
+      const supportUsers = await prisma.user.findMany({
+        where: {
+          isActive: true,
+          role: { in: ["SUPPORT", "MANAGER"] }, // Support or Manager roles
+        },
+        select: {
+          id: true,
+          name: true,
+          _count: {
+            select: {
+              ownedCases: {
+                where: {
+                  status: { notIn: ["RESOLVED", "CLOSED"] },
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          ownedCases: { _count: "asc" }, // User with least cases first
+        },
+      });
+
+      if (supportUsers.length > 0) {
+        // Assign to user with least active cases
+        autoAssignOwnerId = supportUsers[0].id;
+      }
+    }
+
     // Handle orders - connect existing or create new
     const ordersConnect: { id: string }[] = [];
     const ordersCreate: { orderId: string; amount: number; providerId?: string; status: "PENDING" }[] = [];
@@ -178,6 +210,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create case with orders
+    const assignedOwnerId = body.ownerId || autoAssignOwnerId;
     const newCase = await prisma.case.create({
       data: {
         caseNumber,
@@ -190,6 +223,7 @@ export async function POST(request: NextRequest) {
         customerId: body.customerId,
         customerContact: body.customerContact,
         providerId: body.providerId,
+        ownerId: assignedOwnerId,
         slaDeadline,
         // Connect and create orders
         orders: {
@@ -212,6 +246,9 @@ export async function POST(request: NextRequest) {
       const orderIds = newCase.orders?.map((o) => o.orderId).join(", ") || "";
       activityDescription += `\nOrders (${orderCount} รายการ): ${orderIds}`;
     }
+    if (autoAssignOwnerId && newCase.owner) {
+      activityDescription += `\nมอบหมายอัตโนมัติให้ ${newCase.owner.name}`;
+    }
 
     // Create activity log
     await prisma.caseActivity.create({
@@ -223,6 +260,18 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // If auto-assigned, also create an ASSIGNED activity
+    if (autoAssignOwnerId && newCase.owner) {
+      await prisma.caseActivity.create({
+        data: {
+          caseId: newCase.id,
+          type: "ASSIGNED",
+          title: `มอบหมายอัตโนมัติให้ ${newCase.owner.name}`,
+          description: "ระบบมอบหมายให้ผู้ที่มีงานน้อยที่สุด",
+        },
+      });
+    }
+
     // Trigger webhook (async, non-blocking)
     triggerWebhook(WebhookEvent.CASE_CREATED, {
       caseId: newCase.id,
@@ -232,14 +281,15 @@ export async function POST(request: NextRequest) {
       severity: newCase.severity,
     }).catch(console.error);
 
-    // Send Line notification if enabled for this case type
-    if (caseType.lineNotification) {
+    // Send Line notification if enabled for this case type OR if auto-assigned
+    if (caseType.lineNotification || autoAssignOwnerId) {
       notifyOnCaseEvent("case_created", {
         caseNumber: newCase.caseNumber,
         title: newCase.title,
         status: newCase.status,
         severity: newCase.severity,
         customerName: newCase.customerName || undefined,
+        ownerName: newCase.owner?.name || undefined,
         providerName: newCase.provider?.name,
         slaDeadline: newCase.slaDeadline,
       }).catch(console.error);

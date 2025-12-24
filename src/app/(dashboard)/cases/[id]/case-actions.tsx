@@ -19,7 +19,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { UserPlus, Loader2, CheckCircle2 } from "lucide-react";
+import { UserPlus, Loader2, CheckCircle2, MessageSquare } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -140,9 +140,61 @@ export function CaseActions({ caseId, currentStatus, currentOwnerId }: CaseActio
     }
   };
 
+  // Handle "แจ้งลูกค้าแล้ว" - close case after notifying customer
+  const handleNotifyAndClose = async () => {
+    setIsUpdating(true);
+    
+    try {
+      const res = await fetch(`/api/cases/${caseId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          status: "CLOSED",
+          customerNotified: true, // Mark as customer notified
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to close case");
+      }
+
+      toast.success("ปิดเคสเรียบร้อย", {
+        description: "บันทึกว่าแจ้งลูกค้าแล้ว",
+      });
+      
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: [`case-${caseId}`] });
+      queryClient.invalidateQueries({ queryKey: ["cases"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      
+      setStatus("CLOSED");
+    } catch {
+      toast.error("ไม่สามารถปิดเคสได้");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   return (
     <>
       <div className="flex items-center gap-2">
+        {/* "แจ้งลูกค้าแล้ว" Button - Only show when RESOLVED */}
+        {currentStatus === "RESOLVED" && (
+          <Button
+            size="sm"
+            onClick={handleNotifyAndClose}
+            disabled={isUpdating}
+            className="bg-green-600 hover:bg-green-700 text-white"
+          >
+            {isUpdating ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <MessageSquare className="h-4 w-4 mr-1" />
+            )}
+            แจ้งลูกค้าแล้ว
+          </Button>
+        )}
+
         {/* Assign Button */}
         <Button
           variant="outline"

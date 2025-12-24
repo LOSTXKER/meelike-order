@@ -102,14 +102,27 @@ export async function PATCH(
         updates.closedAt = new Date();
       }
 
-      activities.push({
-        caseId: id,
-        type: "STATUS_CHANGED",
-        title: `เปลี่ยนสถานะเป็น ${getStatusLabel(body.status)}`,
-        oldValue: currentCase.status,
-        newValue: body.status,
-        userId,
-      });
+      // Check if closing from RESOLVED with customer notification
+      if (body.status === "CLOSED" && currentCase.status === "RESOLVED" && body.customerNotified) {
+        activities.push({
+          caseId: id,
+          type: "CLOSED",
+          title: "ปิดเคส - แจ้งลูกค้าแล้ว",
+          description: "Admin ได้แจ้งผลการแก้ไขให้ลูกค้าทราบแล้ว",
+          oldValue: currentCase.status,
+          newValue: body.status,
+          userId,
+        });
+      } else {
+        activities.push({
+          caseId: id,
+          type: "STATUS_CHANGED",
+          title: `เปลี่ยนสถานะเป็น ${getStatusLabel(body.status)}`,
+          oldValue: currentCase.status,
+          newValue: body.status,
+          userId,
+        });
+      }
     }
 
     // Owner assignment
