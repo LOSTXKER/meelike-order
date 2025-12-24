@@ -17,7 +17,6 @@ import {
   CheckCircle2,
   ChevronRight,
   AlertCircle,
-  Edit3,
   Package,
   History,
   Info,
@@ -34,7 +33,6 @@ import { useCase } from "@/hooks";
 import { formatDistanceToNow, differenceInMinutes, format } from "date-fns";
 import { th } from "date-fns/locale";
 import { CaseActions } from "./case-actions";
-import { AddNoteForm } from "./add-note-form";
 import { FileAttachments } from "./file-attachments";
 import { useParams } from "next/navigation";
 import { useState } from "react";
@@ -292,18 +290,6 @@ export default function CaseDetailPage() {
                 )}
 
                 <FileAttachments caseId={caseDetail.id} onUploadSuccess={() => refetch()} />
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base font-semibold flex items-center gap-2">
-                      <Edit3 className="h-4 w-4" />
-                      เพิ่มบันทึก
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <AddNoteForm caseId={caseDetail.id} />
-                  </CardContent>
-                </Card>
               </TabsContent>
 
               {/* TAB: Timeline */}
