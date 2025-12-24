@@ -9,16 +9,18 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            // Cache data for 5 minutes
-            staleTime: 5 * 60 * 1000,
-            // Keep unused data in cache for 10 minutes
-            gcTime: 10 * 60 * 1000,
+            // Aggressive caching - keep data fresh longer
+            staleTime: 10 * 60 * 1000, // 10 minutes (increased from 5)
+            // Keep unused data in cache for 30 minutes
+            gcTime: 30 * 60 * 1000, // 30 minutes (increased from 10)
             // Retry failed requests 2 times
             retry: 2,
             // Refetch on window focus
             refetchOnWindowFocus: true,
             // Don't refetch on reconnect by default
             refetchOnReconnect: false,
+            // Prefetch behavior - keep old data while fetching new
+            placeholderData: (previousData: unknown) => previousData,
           },
         },
       })

@@ -1,5 +1,6 @@
 import { Sidebar } from "@/components/layout/sidebar";
 import { requireAuth } from "@/lib/auth";
+import { PrefetchData } from "@/components/prefetch/prefetch-links";
 
 export default async function DashboardLayout({
   children,
@@ -15,6 +16,7 @@ export default async function DashboardLayout({
       <main className="pl-64 transition-all duration-200">
         {children}
       </main>
+      <PrefetchData />
     </div>
   );
 }
