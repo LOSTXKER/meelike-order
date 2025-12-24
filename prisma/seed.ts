@@ -17,6 +17,14 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   console.log("🌱 Starting seed...");
 
+  // ลบ Cases เดิมทั้งหมดก่อน
+  console.log("🗑️  Deleting old cases...");
+  await prisma.caseActivity.deleteMany({});
+  await prisma.attachment.deleteMany({});
+  await prisma.order.deleteMany({});
+  await prisma.case.deleteMany({});
+  console.log("✅ Old cases deleted");
+
   // Create Users
   const adminUser = await prisma.user.upsert({
     where: { email: "admin@meelike.com" },
@@ -64,8 +72,50 @@ async function main() {
 
   console.log("✅ Users created");
 
-  // Create Case Types
+  // Create Case Types ตามรูปภาพ
   const caseTypes = await Promise.all([
+    prisma.caseType.upsert({
+      where: { name: "ปัญหาเว็บไซต์/ข้อเสนอ" },
+      update: {},
+      create: {
+        name: "ปัญหาเว็บไซต์/ข้อเสนอ",
+        category: "SYSTEM",
+        defaultSeverity: "NORMAL",
+        defaultSlaMinutes: 120,
+        requireProvider: false,
+        requireOrderId: false,
+        lineNotification: true,
+        description: "แจ้งปัญหาเว็บไซต์หรือข้อเสนอแนะ",
+      },
+    }),
+    prisma.caseType.upsert({
+      where: { name: "ปัญหารหัส/User" },
+      update: {},
+      create: {
+        name: "ปัญหารหัส/User",
+        category: "SYSTEM",
+        defaultSeverity: "HIGH",
+        defaultSlaMinutes: 30,
+        requireProvider: false,
+        requireOrderId: false,
+        lineNotification: true,
+        description: "ปัญหาเกี่ยวกับรหัสผ่านหรือบัญชีผู้ใช้",
+      },
+    }),
+    prisma.caseType.upsert({
+      where: { name: "ขอเติมยอด" },
+      update: {},
+      create: {
+        name: "ขอเติมยอด",
+        category: "PAYMENT",
+        defaultSeverity: "NORMAL",
+        defaultSlaMinutes: 15,
+        requireProvider: true,
+        requireOrderId: false,
+        lineNotification: true,
+        description: "ขอเติมเงินเข้าบัญชี",
+      },
+    }),
     prisma.caseType.upsert({
       where: { name: "เติมเงินไม่เข้า" },
       update: {},
@@ -81,73 +131,31 @@ async function main() {
       },
     }),
     prisma.caseType.upsert({
-      where: { name: "ออเดอร์มีปัญหา" },
+      where: { name: "ขอยกเลิก" },
       update: {},
       create: {
-        name: "ออเดอร์มีปัญหา",
+        name: "ขอยกเลิก",
+        category: "ORDER",
+        defaultSeverity: "NORMAL",
+        defaultSlaMinutes: 30,
+        requireProvider: true,
+        requireOrderId: true,
+        lineNotification: false,
+        description: "ขอยกเลิกออเดอร์",
+      },
+    }),
+    prisma.caseType.upsert({
+      where: { name: "เสร็จแต่ยอดไม่ขึ้น" },
+      update: {},
+      create: {
+        name: "เสร็จแต่ยอดไม่ขึ้น",
         category: "ORDER",
         defaultSeverity: "HIGH",
-        defaultSlaMinutes: 60,
+        defaultSlaMinutes: 30,
         requireProvider: true,
         requireOrderId: true,
         lineNotification: true,
-        description: "ปัญหาเกี่ยวกับออเดอร์ เช่น ค้าง Processing",
-      },
-    }),
-    prisma.caseType.upsert({
-      where: { name: "ยอดไม่ตรง" },
-      update: {},
-      create: {
-        name: "ยอดไม่ตรง",
-        category: "PAYMENT",
-        defaultSeverity: "NORMAL",
-        defaultSlaMinutes: 120,
-        requireProvider: false,
-        requireOrderId: true,
-        lineNotification: false,
-        description: "ยอดเงินที่แสดงไม่ตรงกับที่ลูกค้าโอน",
-      },
-    }),
-    prisma.caseType.upsert({
-      where: { name: "SMS/OTP ไม่ได้รับ" },
-      update: {},
-      create: {
-        name: "SMS/OTP ไม่ได้รับ",
-        category: "SYSTEM",
-        defaultSeverity: "LOW",
-        defaultSlaMinutes: 180,
-        requireProvider: false,
-        requireOrderId: false,
-        lineNotification: false,
-        description: "ลูกค้าไม่ได้รับ SMS หรือ OTP",
-      },
-    }),
-    prisma.caseType.upsert({
-      where: { name: "Refund" },
-      update: {},
-      create: {
-        name: "Refund",
-        category: "PAYMENT",
-        defaultSeverity: "HIGH",
-        defaultSlaMinutes: 60,
-        requireProvider: true,
-        requireOrderId: true,
-        lineNotification: true,
-        description: "คำขอคืนเงิน",
-      },
-    }),
-    prisma.caseType.upsert({
-      where: { name: "Provider ไม่ตอบ" },
-      update: {},
-      create: {
-        name: "Provider ไม่ตอบ",
-        category: "PROVIDER",
-        defaultSeverity: "HIGH",
-        defaultSlaMinutes: 60,
-        requireProvider: true,
-        requireOrderId: false,
-        lineNotification: true,
-        description: "Provider ไม่ตอบกลับหรือใช้เวลานาน",
+        description: "ออเดอร์เสร็จแล้วแต่ยอดไม่อัปเดต",
       },
     }),
     prisma.caseType.upsert({
@@ -156,7 +164,7 @@ async function main() {
       create: {
         name: "อื่นๆ",
         category: "OTHER",
-        defaultSeverity: "NORMAL",
+        defaultSeverity: "LOW",
         defaultSlaMinutes: 240,
         requireProvider: false,
         requireOrderId: false,
@@ -164,232 +172,132 @@ async function main() {
         description: "ปัญหาอื่นๆ ที่ไม่อยู่ในหมวดหมู่",
       },
     }),
+    prisma.caseType.upsert({
+      where: { name: "ขอโปรโมชั่น" },
+      update: {},
+      create: {
+        name: "ขอโปรโมชั่น",
+        category: "OTHER",
+        defaultSeverity: "LOW",
+        defaultSlaMinutes: 60,
+        requireProvider: false,
+        requireOrderId: false,
+        lineNotification: false,
+        description: "สอบถามหรือขอโปรโมชั่น",
+      },
+    }),
+    prisma.caseType.upsert({
+      where: { name: "ยอดไม่ครบ" },
+      update: {},
+      create: {
+        name: "ยอดไม่ครบ",
+        category: "ORDER",
+        defaultSeverity: "HIGH",
+        defaultSlaMinutes: 30,
+        requireProvider: true,
+        requireOrderId: true,
+        lineNotification: true,
+        description: "ยอดที่ได้รับไม่ครบตามที่สั่ง",
+      },
+    }),
+    prisma.caseType.upsert({
+      where: { name: "เข้าเว็บไม่ได้" },
+      update: {},
+      create: {
+        name: "เข้าเว็บไม่ได้",
+        category: "SYSTEM",
+        defaultSeverity: "CRITICAL",
+        defaultSlaMinutes: 15,
+        requireProvider: false,
+        requireOrderId: false,
+        lineNotification: true,
+        description: "ไม่สามารถเข้าใช้งานเว็บไซต์ได้",
+      },
+    }),
+    prisma.caseType.upsert({
+      where: { name: "ยอดไม่ขึ้น" },
+      update: {},
+      create: {
+        name: "ยอดไม่ขึ้น",
+        category: "ORDER",
+        defaultSeverity: "HIGH",
+        defaultSlaMinutes: 30,
+        requireProvider: true,
+        requireOrderId: true,
+        lineNotification: true,
+        description: "ยอดไม่อัปเดตในระบบ",
+      },
+    }),
+    prisma.caseType.upsert({
+      where: { name: "ขอเพิ่มความเร็ว" },
+      update: {},
+      create: {
+        name: "ขอเพิ่มความเร็ว",
+        category: "ORDER",
+        defaultSeverity: "NORMAL",
+        defaultSlaMinutes: 60,
+        requireProvider: true,
+        requireOrderId: true,
+        lineNotification: false,
+        description: "ขอเพิ่มความเร็วในการทำงาน",
+      },
+    }),
+    prisma.caseType.upsert({
+      where: { name: "สอบถามอื่นๆ" },
+      update: {},
+      create: {
+        name: "สอบถามอื่นๆ",
+        category: "OTHER",
+        defaultSeverity: "LOW",
+        defaultSlaMinutes: 120,
+        requireProvider: false,
+        requireOrderId: false,
+        lineNotification: false,
+        description: "สอบถามข้อมูลทั่วไป",
+      },
+    }),
   ]);
 
   console.log("✅ Case Types created");
 
   // Create Providers
-  const providers = await Promise.all([
-    prisma.provider.upsert({
-      where: { name: "TrueMoney" },
-      update: {},
-      create: {
-        name: "TrueMoney",
-        type: "API",
-        defaultSlaMinutes: 30,
-        contactChannel: "API Support",
-        totalCases: 45,
-        resolvedCases: 42,
-        avgResolutionMinutes: 25,
-        refundRate: 2.5,
-        riskLevel: "LOW",
-      },
-    }),
-    prisma.provider.upsert({
-      where: { name: "PromptPay" },
-      update: {},
-      create: {
-        name: "PromptPay",
-        type: "API",
-        defaultSlaMinutes: 30,
-        contactChannel: "Bank API",
-        totalCases: 128,
-        resolvedCases: 120,
-        avgResolutionMinutes: 18,
-        refundRate: 1.8,
-        riskLevel: "LOW",
-      },
-    }),
-    prisma.provider.upsert({
-      where: { name: "KBank" },
-      update: {},
-      create: {
-        name: "KBank",
-        type: "API",
-        defaultSlaMinutes: 60,
-        contactChannel: "K-API",
-        totalCases: 67,
-        resolvedCases: 58,
-        avgResolutionMinutes: 45,
-        refundRate: 5.2,
-        riskLevel: "MEDIUM",
-      },
-    }),
-    prisma.provider.upsert({
-      where: { name: "SCB" },
-      update: {},
-      create: {
-        name: "SCB",
-        type: "MANUAL",
-        defaultSlaMinutes: 120,
-        contactChannel: "Call Center",
-        totalCases: 34,
-        resolvedCases: 28,
-        avgResolutionMinutes: 120,
-        refundRate: 8.5,
-        riskLevel: "HIGH",
-      },
-    }),
-    prisma.provider.upsert({
-      where: { name: "BBL" },
-      update: {},
-      create: {
-        name: "BBL",
-        type: "API",
-        defaultSlaMinutes: 90,
-        contactChannel: "API",
-        totalCases: 23,
-        resolvedCases: 18,
-        avgResolutionMinutes: 90,
-        refundRate: 12.0,
-        riskLevel: "CRITICAL",
-        isActive: false,
-      },
-    }),
-  ]);
+  const truemoney = await prisma.provider.upsert({
+    where: { name: "TrueMoney" },
+    update: {},
+    create: {
+      name: "TrueMoney",
+      type: "API",
+      defaultSlaMinutes: 15,
+      contactChannel: "Line: @truemoney",
+      notificationPreference: "LINE",
+    },
+  });
+
+  const promptpay = await prisma.provider.upsert({
+    where: { name: "PromptPay" },
+    update: {},
+    create: {
+      name: "PromptPay",
+      type: "API",
+      defaultSlaMinutes: 30,
+      contactChannel: "Support: 1234",
+      notificationPreference: "EMAIL",
+    },
+  });
+
+  const kbank = await prisma.provider.upsert({
+    where: { name: "K-BANK" },
+    update: {},
+    create: {
+      name: "K-BANK",
+      type: "MANUAL",
+      defaultSlaMinutes: 60,
+      contactChannel: "Phone: 02-xxx-xxxx",
+      notificationPreference: "EMAIL",
+    },
+  });
 
   console.log("✅ Providers created");
-
-  // Create Sample Cases
-  const now = new Date();
-
-  const case1 = await prisma.case.create({
-    data: {
-      caseNumber: `CASE-${now.getFullYear()}-0001`,
-      title: "เติมเงินไม่เข้าบัญชี",
-      description: "ลูกค้าแจ้งว่าโอนเงิน 500 บาท เมื่อเวลา 14:32 แต่ยอดเงินไม่เข้าระบบ รอตรวจสอบจาก TrueMoney",
-      source: "LINE",
-      caseTypeId: caseTypes[0].id,
-      severity: "CRITICAL",
-      status: "INVESTIGATING",
-      customerName: "คุณสมชาย ใจดี",
-      customerId: "USER-12345",
-      customerContact: "Line: @somchai",
-      providerId: providers[0].id,
-      ownerId: supportA.id,
-      slaDeadline: new Date(Date.now() + 10 * 60 * 1000),
-      firstResponseAt: new Date(Date.now() - 5 * 60 * 1000),
-    },
-  });
-
-  await prisma.caseActivity.createMany({
-    data: [
-      {
-        caseId: case1.id,
-        type: "CREATED",
-        title: "สร้างเคสใหม่",
-        description: "เคสถูกสร้างจาก Line Message",
-      },
-      {
-        caseId: case1.id,
-        type: "ASSIGNED",
-        title: "มอบหมายให้ Support A",
-        userId: adminUser.id,
-      },
-      {
-        caseId: case1.id,
-        type: "STATUS_CHANGED",
-        title: "เปลี่ยนสถานะเป็น กำลังตรวจสอบ",
-        oldValue: "NEW",
-        newValue: "INVESTIGATING",
-        userId: supportA.id,
-      },
-      {
-        caseId: case1.id,
-        type: "NOTE_ADDED",
-        title: "เพิ่มบันทึก",
-        description: "ติดต่อ TrueMoney เพื่อตรวจสอบสถานะการโอน รอการตอบกลับภายใน 15 นาที",
-        userId: supportA.id,
-      },
-    ],
-  });
-
-  // Create Order for case 1
-  await prisma.order.create({
-    data: {
-      orderId: "ORD-2024-5678",
-      amount: 500,
-      status: "PENDING",
-      providerId: providers[0].id,
-      cases: { connect: { id: case1.id } },
-    },
-  });
-
-  // Case 2
-  await prisma.case.create({
-    data: {
-      caseNumber: `CASE-${now.getFullYear()}-0002`,
-      title: "ออเดอร์ค้างสถานะ Processing",
-      description: "ออเดอร์ค้างอยู่ที่สถานะ Processing มานานกว่า 30 นาที",
-      source: "TICKET",
-      caseTypeId: caseTypes[1].id,
-      severity: "HIGH",
-      status: "INVESTIGATING",
-      customerName: "คุณสมศรี มั่งมี",
-      customerId: "USER-23456",
-      customerContact: "Tel: 081-xxx-xxxx",
-      providerId: providers[1].id,
-      ownerId: supportA.id,
-      slaDeadline: new Date(Date.now() + 45 * 60 * 1000),
-    },
-  });
-
-  // Case 3
-  await prisma.case.create({
-    data: {
-      caseNumber: `CASE-${now.getFullYear()}-0003`,
-      title: "ยอดเงินไม่ตรงกับที่โอน",
-      description: "ลูกค้าโอน 1,000 บาท แต่ระบบแสดงยอด 900 บาท",
-      source: "MANUAL",
-      caseTypeId: caseTypes[2].id,
-      severity: "NORMAL",
-      status: "WAITING_PROVIDER",
-      customerName: "คุณวิชัย สุขสันต์",
-      customerId: "USER-34567",
-      providerId: providers[2].id,
-      ownerId: supportB.id,
-      slaDeadline: new Date(Date.now() + 90 * 60 * 1000),
-    },
-  });
-
-  // Case 4
-  await prisma.case.create({
-    data: {
-      caseNumber: `CASE-${now.getFullYear()}-0004`,
-      title: "ไม่ได้รับ SMS ยืนยัน OTP",
-      description: "ลูกค้ารอ OTP นานกว่า 5 นาทีแล้วยังไม่ได้รับ",
-      source: "LINE",
-      caseTypeId: caseTypes[3].id,
-      severity: "LOW",
-      status: "FIXING",
-      customerName: "คุณนิดา อารมณ์ดี",
-      customerId: "USER-45678",
-      ownerId: supportA.id,
-      slaDeadline: new Date(Date.now() + 120 * 60 * 1000),
-    },
-  });
-
-  // Case 5 - Resolved
-  await prisma.case.create({
-    data: {
-      caseNumber: `CASE-${now.getFullYear()}-0005`,
-      title: "Refund ไม่คืนเข้าบัญชี",
-      description: "ขอ Refund แล้วแต่เงินยังไม่เข้าบัญชี",
-      source: "TICKET",
-      caseTypeId: caseTypes[4].id,
-      severity: "HIGH",
-      status: "RESOLVED",
-      customerName: "คุณมานะ พากเพียร",
-      customerId: "USER-56789",
-      providerId: providers[3].id,
-      ownerId: supportB.id,
-      resolvedAt: new Date(Date.now() - 30 * 60 * 1000),
-      rootCause: "PROVIDER_ISSUE",
-      resolution: "ดำเนินการ Refund เรียบร้อยแล้ว ลูกค้าจะได้รับเงินภายใน 3-5 วันทำการ",
-    },
-  });
-
-  console.log("✅ Sample cases created");
 
   // Create Notification Templates
   await prisma.notificationTemplate.upsert({
@@ -398,13 +306,8 @@ async function main() {
     create: {
       name: "case_created",
       event: "case_created",
-      template: `🔔 เคสใหม่: {{case_number}}
-
-หัวข้อ: {{title}}
-ลูกค้า: {{customer_name}}
-ความรุนแรง: {{severity}}
-
-SLA: {{sla_deadline}}`,
+      template: "🆕 เคสใหม่: {{caseNumber}}\n📝 {{title}}\n👤 ลูกค้า: {{customerName}}\n⚠️ ความรุนแรง: {{severity}}",
+      isActive: true,
     },
   });
 
@@ -414,13 +317,8 @@ SLA: {{sla_deadline}}`,
     create: {
       name: "sla_warning",
       event: "sla_warning",
-      template: `⚠️ SLA ใกล้หมด!
-
-เคส: {{case_number}}
-หัวข้อ: {{title}}
-เหลือเวลา: {{remaining_time}}
-
-กรุณาดำเนินการโดยเร็ว`,
+      template: "⏰ แจ้งเตือน SLA!\nเคส {{caseNumber}} ใกล้เกินกำหนด\n⏱ เหลือเวลา: {{slaRemaining}} นาที",
+      isActive: true,
     },
   });
 
@@ -430,24 +328,44 @@ SLA: {{sla_deadline}}`,
     create: {
       name: "case_resolved",
       event: "case_resolved",
-      template: `✅ แก้ไขเรียบร้อย
-
-เคส: {{case_number}}
-หัวข้อ: {{title}}
-แก้ไขโดย: {{owner_name}}
-
-ขอบคุณที่ใช้บริการ Meelike`,
+      template: "✅ แก้ไขเคสสำเร็จ\nเคส: {{caseNumber}}\n📝 {{title}}\n✨ วิธีแก้ไข: {{resolution}}",
+      isActive: true,
     },
   });
 
-  console.log("✅ Notification templates created");
+  console.log("✅ Notification Templates created");
+
+  // Create Line Channels (delete old and create new)
+  await prisma.lineChannel.deleteMany({
+    where: { name: "Meelike Alert-Staff" },
+  });
+
+  await prisma.lineChannel.create({
+    data: {
+      name: "Meelike Alert-Staff",
+      accessToken: "YOUR_LINE_ACCESS_TOKEN",
+      defaultGroupId: "YOUR_LINE_GROUP_ID",
+      enabledEvents: [
+        "case_created",
+        "case_assigned",
+        "case_status_changed",
+        "case_resolved",
+        "provider_issue",
+        "sla_missed",
+        "sla_warning",
+      ],
+      isActive: true,
+    },
+  });
+
+  console.log("✅ Line Channels created");
 
   console.log("🎉 Seed completed successfully!");
 }
 
 main()
   .catch((e) => {
-    console.error("❌ Seed failed:", e);
+    console.error(e);
     process.exit(1);
   })
   .finally(async () => {
