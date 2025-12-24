@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Upload, File, X, Download, Loader2 } from "lucide-react";
+import { Upload, File, X, Download, Loader2, Image, Video, FileText, FileSpreadsheet, Paperclip } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { th } from "date-fns/locale";
@@ -125,12 +125,12 @@ export function FileAttachments({ caseId, onUploadSuccess }: FileAttachmentsProp
   };
 
   const getFileIcon = (fileType: string) => {
-    if (fileType.startsWith("image/")) return "🖼️";
-    if (fileType.startsWith("video/")) return "🎥";
-    if (fileType.includes("pdf")) return "📄";
-    if (fileType.includes("word") || fileType.includes("document")) return "📝";
-    if (fileType.includes("excel") || fileType.includes("spreadsheet")) return "📊";
-    return "📎";
+    if (fileType.startsWith("image/")) return Image;
+    if (fileType.startsWith("video/")) return Video;
+    if (fileType.includes("pdf")) return File;
+    if (fileType.includes("word") || fileType.includes("document")) return FileText;
+    if (fileType.includes("excel") || fileType.includes("spreadsheet")) return FileSpreadsheet;
+    return Paperclip;
   };
 
   return (
@@ -179,7 +179,10 @@ export function FileAttachments({ caseId, onUploadSuccess }: FileAttachmentsProp
                 className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <span className="text-2xl">{getFileIcon(attachment.fileType)}</span>
+                  {(() => {
+                    const IconComponent = getFileIcon(attachment.fileType);
+                    return <IconComponent className="h-8 w-8 text-muted-foreground" />;
+                  })()}
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{attachment.fileName}</p>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">

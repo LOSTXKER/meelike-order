@@ -30,7 +30,28 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, RefreshCw, Settings2, X, CheckCircle2, XCircle } from "lucide-react";
+import { 
+  Plus, 
+  Pencil, 
+  Trash2, 
+  RefreshCw, 
+  Settings2, 
+  X, 
+  CheckCircle2, 
+  XCircle,
+  Clipboard,
+  DollarSign,
+  Package,
+  Settings,
+  Building2,
+  Wrench,
+  FileText,
+  AlertCircle,
+  AlertTriangle,
+  Info,
+  CheckCircle,
+  MessageSquare
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -51,22 +72,22 @@ interface CaseType {
 }
 
 const categoryOptions = [
-  { value: "all", label: "ทั้งหมด", emoji: "📋" },
-  { value: "PAYMENT", label: "การชำระเงิน", emoji: "💰" },
-  { value: "ORDER", label: "ออเดอร์", emoji: "📦" },
-  { value: "SYSTEM", label: "ระบบ", emoji: "⚙️" },
-  { value: "PROVIDER", label: "Provider", emoji: "🏢" },
-  { value: "TECHNICAL", label: "เทคนิค", emoji: "🔧" },
-  { value: "OTHER", label: "อื่นๆ", emoji: "📝" },
+  { value: "all", label: "ทั้งหมด", icon: Clipboard },
+  { value: "PAYMENT", label: "การชำระเงิน", icon: DollarSign },
+  { value: "ORDER", label: "ออเดอร์", icon: Package },
+  { value: "SYSTEM", label: "ระบบ", icon: Settings },
+  { value: "PROVIDER", label: "Provider", icon: Building2 },
+  { value: "TECHNICAL", label: "เทคนิค", icon: Wrench },
+  { value: "OTHER", label: "อื่นๆ", icon: FileText },
 ];
 
-const categoryLabels: Record<string, { label: string; className: string; emoji: string }> = {
-  PAYMENT: { label: "การชำระเงิน", className: "bg-green-500/10 text-green-600 dark:text-green-400", emoji: "💰" },
-  ORDER: { label: "ออเดอร์", className: "bg-blue-500/10 text-blue-600 dark:text-blue-400", emoji: "📦" },
-  SYSTEM: { label: "ระบบ", className: "bg-purple-500/10 text-purple-600 dark:text-purple-400", emoji: "⚙️" },
-  PROVIDER: { label: "Provider", className: "bg-orange-500/10 text-orange-600 dark:text-orange-400", emoji: "🏢" },
-  TECHNICAL: { label: "เทคนิค", className: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400", emoji: "🔧" },
-  OTHER: { label: "อื่นๆ", className: "bg-gray-500/10 text-gray-600 dark:text-gray-400", emoji: "📝" },
+const categoryLabels: Record<string, { label: string; className: string; icon: typeof DollarSign }> = {
+  PAYMENT: { label: "การชำระเงิน", className: "bg-green-500/10 text-green-600 dark:text-green-400", icon: DollarSign },
+  ORDER: { label: "ออเดอร์", className: "bg-blue-500/10 text-blue-600 dark:text-blue-400", icon: Package },
+  SYSTEM: { label: "ระบบ", className: "bg-purple-500/10 text-purple-600 dark:text-purple-400", icon: Settings },
+  PROVIDER: { label: "Provider", className: "bg-orange-500/10 text-orange-600 dark:text-orange-400", icon: Building2 },
+  TECHNICAL: { label: "เทคนิค", className: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400", icon: Wrench },
+  OTHER: { label: "อื่นๆ", className: "bg-gray-500/10 text-gray-600 dark:text-gray-400", icon: FileText },
 };
 
 const severityLabels: Record<string, string> = {
@@ -504,26 +525,29 @@ export default function CaseTypesPage() {
         {/* Filter Tabs - Category */}
         <div className="space-y-3">
           <div className="flex flex-wrap gap-2">
-            {categoryOptions.map((cat) => (
-              <Button
-                key={cat.value}
-                variant={filterCategory === cat.value ? "default" : "outline"}
-                size="sm"
-                className={cn(
-                  "gap-1.5 transition-all",
-                  filterCategory === cat.value && "shadow-md"
-                )}
-                onClick={() => setFilterCategory(cat.value)}
-              >
-                <span>{cat.emoji}</span>
-                <span>{cat.label}</span>
-                {cat.value !== "all" && (
-                  <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
-                    {caseTypes.filter(t => t.category === cat.value).length}
-                  </Badge>
-                )}
-              </Button>
-            ))}
+            {categoryOptions.map((cat) => {
+              const IconComponent = cat.icon;
+              return (
+                <Button
+                  key={cat.value}
+                  variant={filterCategory === cat.value ? "default" : "outline"}
+                  size="sm"
+                  className={cn(
+                    "gap-1.5 transition-all",
+                    filterCategory === cat.value && "shadow-md"
+                  )}
+                  onClick={() => setFilterCategory(cat.value)}
+                >
+                  <IconComponent className="h-3.5 w-3.5" />
+                  <span>{cat.label}</span>
+                  {cat.value !== "all" && (
+                    <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                      {caseTypes.filter(t => t.category === cat.value).length}
+                    </Badge>
+                  )}
+                </Button>
+              );
+            })}
           </div>
 
           {/* Status Filter Tabs */}
@@ -625,12 +649,42 @@ export default function CaseTypesPage() {
                               <SelectValue placeholder="ไม่เปลี่ยน" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="PAYMENT">💰 การชำระเงิน</SelectItem>
-                              <SelectItem value="ORDER">📦 ออเดอร์</SelectItem>
-                              <SelectItem value="SYSTEM">⚙️ ระบบ</SelectItem>
-                              <SelectItem value="PROVIDER">🏢 Provider</SelectItem>
-                              <SelectItem value="TECHNICAL">🔧 เทคนิค</SelectItem>
-                              <SelectItem value="OTHER">📝 อื่นๆ</SelectItem>
+                              <SelectItem value="PAYMENT">
+                                <span className="flex items-center gap-1.5">
+                                  <DollarSign className="h-3.5 w-3.5" />
+                                  <span>การชำระเงิน</span>
+                                </span>
+                              </SelectItem>
+                              <SelectItem value="ORDER">
+                                <span className="flex items-center gap-1.5">
+                                  <Package className="h-3.5 w-3.5" />
+                                  <span>ออเดอร์</span>
+                                </span>
+                              </SelectItem>
+                              <SelectItem value="SYSTEM">
+                                <span className="flex items-center gap-1.5">
+                                  <Settings className="h-3.5 w-3.5" />
+                                  <span>ระบบ</span>
+                                </span>
+                              </SelectItem>
+                              <SelectItem value="PROVIDER">
+                                <span className="flex items-center gap-1.5">
+                                  <Building2 className="h-3.5 w-3.5" />
+                                  <span>Provider</span>
+                                </span>
+                              </SelectItem>
+                              <SelectItem value="TECHNICAL">
+                                <span className="flex items-center gap-1.5">
+                                  <Wrench className="h-3.5 w-3.5" />
+                                  <span>เทคนิค</span>
+                                </span>
+                              </SelectItem>
+                              <SelectItem value="OTHER">
+                                <span className="flex items-center gap-1.5">
+                                  <FileText className="h-3.5 w-3.5" />
+                                  <span>อื่นๆ</span>
+                                </span>
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -642,10 +696,30 @@ export default function CaseTypesPage() {
                               <SelectValue placeholder="ไม่เปลี่ยน" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="CRITICAL">🔴 วิกฤต</SelectItem>
-                              <SelectItem value="HIGH">🟠 สูง</SelectItem>
-                              <SelectItem value="NORMAL">🟡 ปกติ</SelectItem>
-                              <SelectItem value="LOW">🟢 ต่ำ</SelectItem>
+                              <SelectItem value="CRITICAL">
+                                <span className="flex items-center gap-1.5">
+                                  <AlertCircle className="h-3.5 w-3.5 text-red-600" />
+                                  <span>วิกฤต</span>
+                                </span>
+                              </SelectItem>
+                              <SelectItem value="HIGH">
+                                <span className="flex items-center gap-1.5">
+                                  <AlertTriangle className="h-3.5 w-3.5 text-orange-600" />
+                                  <span>สูง</span>
+                                </span>
+                              </SelectItem>
+                              <SelectItem value="NORMAL">
+                                <span className="flex items-center gap-1.5">
+                                  <Info className="h-3.5 w-3.5 text-yellow-600" />
+                                  <span>ปกติ</span>
+                                </span>
+                              </SelectItem>
+                              <SelectItem value="LOW">
+                                <span className="flex items-center gap-1.5">
+                                  <CheckCircle className="h-3.5 w-3.5 text-green-600" />
+                                  <span>ต่ำ</span>
+                                </span>
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -669,8 +743,18 @@ export default function CaseTypesPage() {
                                 <SelectValue placeholder="ไม่เปลี่ยน" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="true">✅ ต้องระบุ</SelectItem>
-                                <SelectItem value="false">❌ ไม่ต้องระบุ</SelectItem>
+                                <SelectItem value="true">
+                                  <span className="flex items-center gap-1.5">
+                                    <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
+                                    <span>ต้องระบุ</span>
+                                  </span>
+                                </SelectItem>
+                                <SelectItem value="false">
+                                  <span className="flex items-center gap-1.5">
+                                    <XCircle className="h-3.5 w-3.5 text-gray-400" />
+                                    <span>ไม่ต้องระบุ</span>
+                                  </span>
+                                </SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -682,8 +766,18 @@ export default function CaseTypesPage() {
                                 <SelectValue placeholder="ไม่เปลี่ยน" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="true">✅ ต้องระบุ</SelectItem>
-                                <SelectItem value="false">❌ ไม่ต้องระบุ</SelectItem>
+                                <SelectItem value="true">
+                                  <span className="flex items-center gap-1.5">
+                                    <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
+                                    <span>ต้องระบุ</span>
+                                  </span>
+                                </SelectItem>
+                                <SelectItem value="false">
+                                  <span className="flex items-center gap-1.5">
+                                    <XCircle className="h-3.5 w-3.5 text-gray-400" />
+                                    <span>ไม่ต้องระบุ</span>
+                                  </span>
+                                </SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -697,8 +791,18 @@ export default function CaseTypesPage() {
                                 <SelectValue placeholder="ไม่เปลี่ยน" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="true">✅ เปิด</SelectItem>
-                                <SelectItem value="false">❌ ปิด</SelectItem>
+                                <SelectItem value="true">
+                                  <span className="flex items-center gap-1.5">
+                                    <MessageSquare className="h-3.5 w-3.5 text-green-600" />
+                                    <span>เปิด</span>
+                                  </span>
+                                </SelectItem>
+                                <SelectItem value="false">
+                                  <span className="flex items-center gap-1.5">
+                                    <XCircle className="h-3.5 w-3.5 text-gray-400" />
+                                    <span>ปิด</span>
+                                  </span>
+                                </SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -710,8 +814,18 @@ export default function CaseTypesPage() {
                                 <SelectValue placeholder="ไม่เปลี่ยน" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="true">✅ เปิดใช้งาน</SelectItem>
-                                <SelectItem value="false">❌ ปิดใช้งาน</SelectItem>
+                                <SelectItem value="true">
+                                  <span className="flex items-center gap-1.5">
+                                    <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
+                                    <span>เปิดใช้งาน</span>
+                                  </span>
+                                </SelectItem>
+                                <SelectItem value="false">
+                                  <span className="flex items-center gap-1.5">
+                                    <XCircle className="h-3.5 w-3.5 text-gray-400" />
+                                    <span>ปิดใช้งาน</span>
+                                  </span>
+                                </SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -807,7 +921,10 @@ export default function CaseTypesPage() {
                         variant="outline"
                         className={cn("text-xs gap-1", categoryLabels[type.category]?.className)}
                       >
-                        <span>{categoryLabels[type.category]?.emoji}</span>
+                        {(() => {
+                          const IconComponent = categoryLabels[type.category]?.icon;
+                          return IconComponent ? <IconComponent className="h-3 w-3" /> : null;
+                        })()}
                         {categoryLabels[type.category]?.label}
                       </Badge>
                     </TableCell>
@@ -820,18 +937,21 @@ export default function CaseTypesPage() {
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {type.requireProvider && (
-                          <Badge variant="outline" className="text-xs">
-                            🏢 Provider
+                          <Badge variant="outline" className="text-xs gap-1">
+                            <Building2 className="h-3 w-3" />
+                            Provider
                           </Badge>
                         )}
                         {type.requireOrderId && (
-                          <Badge variant="outline" className="text-xs">
-                            📋 Order
+                          <Badge variant="outline" className="text-xs gap-1">
+                            <Clipboard className="h-3 w-3" />
+                            Order
                           </Badge>
                         )}
                         {type.lineNotification && (
-                          <Badge variant="outline" className="text-xs">
-                            💬 Line
+                          <Badge variant="outline" className="text-xs gap-1">
+                            <MessageSquare className="h-3 w-3" />
+                            Line
                           </Badge>
                         )}
                       </div>

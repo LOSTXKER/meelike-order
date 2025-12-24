@@ -11,7 +11,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, X, ChevronDown } from "lucide-react";
+import { 
+  Search, 
+  X, 
+  ChevronDown, 
+  Clipboard,
+  PlusCircle,
+  Search as SearchIcon,
+  Clock,
+  Building2,
+  Wrench,
+  CheckCircle,
+  Lock,
+  AlertCircle,
+  AlertTriangle,
+  Info,
+  CheckCircle2,
+  BarChart3,
+  DollarSign,
+  Package,
+  Settings,
+  FileText,
+  Tag
+} from "lucide-react";
 import { useCallback, useState, useTransition, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
@@ -21,36 +43,36 @@ interface CaseType {
   category: string;
 }
 
-// Status options with emoji
+// Status options with icons
 const statusOptions = [
-  { value: "all", label: "ทั้งหมด", emoji: "📋" },
-  { value: "NEW", label: "ใหม่", emoji: "🆕" },
-  { value: "INVESTIGATING", label: "ตรวจสอบ", emoji: "🔍" },
-  { value: "WAITING_CUSTOMER", label: "รอลูกค้า", emoji: "⏳" },
-  { value: "WAITING_PROVIDER", label: "รอ Provider", emoji: "🏢" },
-  { value: "FIXING", label: "แก้ไข", emoji: "🔧" },
-  { value: "RESOLVED", label: "แก้ไขแล้ว", emoji: "✅" },
-  { value: "CLOSED", label: "ปิดเคส", emoji: "🔒" },
+  { value: "all", label: "ทั้งหมด", icon: Clipboard },
+  { value: "NEW", label: "ใหม่", icon: PlusCircle },
+  { value: "INVESTIGATING", label: "ตรวจสอบ", icon: SearchIcon },
+  { value: "WAITING_CUSTOMER", label: "รอลูกค้า", icon: Clock },
+  { value: "WAITING_PROVIDER", label: "รอ Provider", icon: Building2 },
+  { value: "FIXING", label: "แก้ไข", icon: Wrench },
+  { value: "RESOLVED", label: "แก้ไขแล้ว", icon: CheckCircle },
+  { value: "CLOSED", label: "ปิดเคส", icon: Lock },
 ];
 
-// Severity options with emoji
+// Severity options with icons
 const severityOptions = [
-  { value: "all", label: "ทุกระดับ", emoji: "📊" },
-  { value: "CRITICAL", label: "วิกฤต", emoji: "🔴", color: "text-red-600 dark:text-red-400" },
-  { value: "HIGH", label: "สูง", emoji: "🟠", color: "text-orange-600 dark:text-orange-400" },
-  { value: "NORMAL", label: "ปกติ", emoji: "🟡", color: "text-yellow-600 dark:text-yellow-400" },
-  { value: "LOW", label: "ต่ำ", emoji: "🟢", color: "text-green-600 dark:text-green-400" },
+  { value: "all", label: "ทุกระดับ", icon: BarChart3 },
+  { value: "CRITICAL", label: "วิกฤต", icon: AlertCircle, color: "text-red-600 dark:text-red-400" },
+  { value: "HIGH", label: "สูง", icon: AlertTriangle, color: "text-orange-600 dark:text-orange-400" },
+  { value: "NORMAL", label: "ปกติ", icon: Info, color: "text-yellow-600 dark:text-yellow-400" },
+  { value: "LOW", label: "ต่ำ", icon: CheckCircle2, color: "text-green-600 dark:text-green-400" },
 ];
 
-// Category options with emoji
+// Category options with icons
 const categoryOptions = [
-  { value: "all", label: "ทุกหมวด", emoji: "📁" },
-  { value: "PAYMENT", label: "การชำระเงิน", emoji: "💰" },
-  { value: "ORDER", label: "ออเดอร์", emoji: "📦" },
-  { value: "SYSTEM", label: "ระบบ", emoji: "⚙️" },
-  { value: "PROVIDER", label: "Provider", emoji: "🏢" },
-  { value: "TECHNICAL", label: "เทคนิค", emoji: "🔧" },
-  { value: "OTHER", label: "อื่นๆ", emoji: "📝" },
+  { value: "all", label: "ทุกหมวด", icon: Tag },
+  { value: "PAYMENT", label: "การชำระเงิน", icon: DollarSign },
+  { value: "ORDER", label: "ออเดอร์", icon: Package },
+  { value: "SYSTEM", label: "ระบบ", icon: Settings },
+  { value: "PROVIDER", label: "Provider", icon: Building2 },
+  { value: "TECHNICAL", label: "เทคนิค", icon: Wrench },
+  { value: "OTHER", label: "อื่นๆ", icon: FileText },
 ];
 
 // Labels for display
@@ -188,22 +210,25 @@ export function CasesFilters() {
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm font-medium text-muted-foreground mr-1">สถานะ:</span>
         <div className="flex flex-wrap gap-1">
-          {visibleStatuses.map((opt) => (
-            <Button
-              key={opt.value}
-              variant={(status || "all") === opt.value ? "default" : "outline"}
-              size="sm"
-              className={cn(
-                "h-7 px-2.5 gap-1 transition-all text-xs",
-                (status || "all") === opt.value && "shadow-sm"
-              )}
-              onClick={() => handleStatusChange(opt.value)}
-              disabled={isPending}
-            >
-              <span>{opt.emoji}</span>
-              <span>{opt.label}</span>
-            </Button>
-          ))}
+          {visibleStatuses.map((opt) => {
+            const IconComponent = opt.icon;
+            return (
+              <Button
+                key={opt.value}
+                variant={(status || "all") === opt.value ? "default" : "outline"}
+                size="sm"
+                className={cn(
+                  "h-7 px-2.5 gap-1.5 transition-all text-xs",
+                  (status || "all") === opt.value && "shadow-sm"
+                )}
+                onClick={() => handleStatusChange(opt.value)}
+                disabled={isPending}
+              >
+                <IconComponent className="h-3.5 w-3.5" />
+                <span>{opt.label}</span>
+              </Button>
+            );
+          })}
           {!showAllStatuses && statusOptions.length > 5 && (
             <Button
               variant="ghost"
@@ -234,22 +259,25 @@ export function CasesFilters() {
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-muted-foreground">ความรุนแรง:</span>
           <div className="flex gap-1 rounded-lg bg-muted p-0.5">
-            {severityOptions.map((opt) => (
-              <Button
-                key={opt.value}
-                variant={(severity || "all") === opt.value ? "secondary" : "ghost"}
-                size="sm"
-                className={cn(
-                  "h-6 px-2 gap-1 text-xs",
-                  opt.color && (severity || "all") === opt.value && opt.color
-                )}
-                onClick={() => handleSeverityChange(opt.value)}
-                disabled={isPending}
-              >
-                <span>{opt.emoji}</span>
-                <span className="hidden sm:inline">{opt.label}</span>
-              </Button>
-            ))}
+            {severityOptions.map((opt) => {
+              const IconComponent = opt.icon;
+              return (
+                <Button
+                  key={opt.value}
+                  variant={(severity || "all") === opt.value ? "secondary" : "ghost"}
+                  size="sm"
+                  className={cn(
+                    "h-6 px-2 gap-1 text-xs",
+                    opt.color && (severity || "all") === opt.value && opt.color
+                  )}
+                  onClick={() => handleSeverityChange(opt.value)}
+                  disabled={isPending}
+                >
+                  <IconComponent className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">{opt.label}</span>
+                </Button>
+              );
+            })}
           </div>
         </div>
 
@@ -265,14 +293,17 @@ export function CasesFilters() {
               <SelectValue placeholder="ทุกหมวด" />
             </SelectTrigger>
             <SelectContent>
-              {categoryOptions.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  <span className="flex items-center gap-1.5">
-                    <span>{opt.emoji}</span>
-                    <span>{opt.label}</span>
-                  </span>
-                </SelectItem>
-              ))}
+              {categoryOptions.map((opt) => {
+                const IconComponent = opt.icon;
+                return (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    <span className="flex items-center gap-1.5">
+                      <IconComponent className="h-3.5 w-3.5" />
+                      <span>{opt.label}</span>
+                    </span>
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>
@@ -289,7 +320,12 @@ export function CasesFilters() {
               <SelectValue placeholder="ทุกประเภท" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">📋 ทุกประเภท</SelectItem>
+              <SelectItem value="all">
+                <span className="flex items-center gap-1.5">
+                  <Clipboard className="h-3.5 w-3.5" />
+                  <span>ทุกประเภท</span>
+                </span>
+              </SelectItem>
               {caseTypes.map((type) => (
                 <SelectItem key={type.id} value={type.id}>
                   {type.name}
@@ -369,63 +405,77 @@ export function ActiveFilterTags() {
 
   if (!hasActiveFilters) return null;
 
-  // Get emoji for filters
-  const getStatusEmoji = (s: string) => statusOptions.find(o => o.value === s)?.emoji || "";
-  const getSeverityEmoji = (s: string) => severityOptions.find(o => o.value === s)?.emoji || "";
-  const getCategoryEmoji = (s: string) => categoryOptions.find(o => o.value === s)?.emoji || "";
+  // Get icon for filters
+  const getStatusIcon = (s: string) => statusOptions.find(o => o.value === s)?.icon;
+  const getSeverityIcon = (s: string) => severityOptions.find(o => o.value === s)?.icon;
+  const getCategoryIcon = (s: string) => categoryOptions.find(o => o.value === s)?.icon;
 
   return (
     <div className="flex flex-wrap items-center gap-2 py-2 px-3 bg-muted/50 rounded-lg">
-      <span className="text-sm text-muted-foreground">🏷️ ตัวกรอง:</span>
+      <Tag className="h-4 w-4 text-muted-foreground" />
+      <span className="text-sm text-muted-foreground">ตัวกรอง:</span>
       
-      {status && (
-        <Badge variant="secondary" className="gap-1 pr-1 bg-background">
-          {getStatusEmoji(status)} {statusLabels[status] || status}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-4 w-4 ml-1 hover:bg-destructive/20"
-            onClick={() => clearFilter("status")}
-            disabled={isPending}
-          >
-            <X className="h-3 w-3" />
-          </Button>
-        </Badge>
-      )}
+      {status && (() => {
+        const StatusIcon = getStatusIcon(status);
+        return (
+          <Badge variant="secondary" className="gap-1 pr-1 bg-background">
+            {StatusIcon && <StatusIcon className="h-3 w-3" />}
+            {statusLabels[status] || status}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-4 w-4 ml-1 hover:bg-destructive/20"
+              onClick={() => clearFilter("status")}
+              disabled={isPending}
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </Badge>
+        );
+      })()}
       
-      {severity && (
-        <Badge variant="secondary" className="gap-1 pr-1 bg-background">
-          {getSeverityEmoji(severity)} {severityLabels[severity] || severity}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-4 w-4 ml-1 hover:bg-destructive/20"
-            onClick={() => clearFilter("severity")}
-            disabled={isPending}
-          >
-            <X className="h-3 w-3" />
-          </Button>
-        </Badge>
-      )}
+      {severity && (() => {
+        const SeverityIcon = getSeverityIcon(severity);
+        return (
+          <Badge variant="secondary" className="gap-1 pr-1 bg-background">
+            {SeverityIcon && <SeverityIcon className="h-3 w-3" />}
+            {severityLabels[severity] || severity}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-4 w-4 ml-1 hover:bg-destructive/20"
+              onClick={() => clearFilter("severity")}
+              disabled={isPending}
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </Badge>
+        );
+      })()}
 
-      {category && (
-        <Badge variant="secondary" className="gap-1 pr-1 bg-background">
-          {getCategoryEmoji(category)} {categoryLabels[category] || category}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-4 w-4 ml-1 hover:bg-destructive/20"
-            onClick={() => clearFilter("category")}
-            disabled={isPending}
-          >
-            <X className="h-3 w-3" />
-          </Button>
-        </Badge>
-      )}
+      {category && (() => {
+        const CategoryIcon = getCategoryIcon(category);
+        return (
+          <Badge variant="secondary" className="gap-1 pr-1 bg-background">
+            {CategoryIcon && <CategoryIcon className="h-3 w-3" />}
+            {categoryLabels[category] || category}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-4 w-4 ml-1 hover:bg-destructive/20"
+              onClick={() => clearFilter("category")}
+              disabled={isPending}
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </Badge>
+        );
+      })()}
       
       {caseType && (
         <Badge variant="secondary" className="gap-1 pr-1 bg-background">
-          📋 {getCaseTypeName(caseType)}
+          <Clipboard className="h-3 w-3" />
+          {getCaseTypeName(caseType)}
           <Button
             variant="ghost"
             size="icon"
@@ -440,7 +490,8 @@ export function ActiveFilterTags() {
       
       {search && (
         <Badge variant="secondary" className="gap-1 pr-1 bg-background">
-          🔍 &quot;{search}&quot;
+          <Search className="h-3 w-3" />
+          &quot;{search}&quot;
           <Button
             variant="ghost"
             size="icon"

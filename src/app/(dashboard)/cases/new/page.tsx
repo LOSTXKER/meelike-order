@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Loader2, Info, Clock, X, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Loader2, Info, Clock, X, CheckCircle2, DollarSign, Package, Settings, Building2, Wrench, FileText, AlertCircle, AlertTriangle, Clipboard } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -245,12 +245,20 @@ export default function NewCasePage() {
                     <SelectContent>
                       {categories.map((cat) => (
                         <SelectItem key={cat} value={cat}>
-                          {cat === "PAYMENT" && "💰 การชำระเงิน"}
-                          {cat === "ORDER" && "📦 ออเดอร์"}
-                          {cat === "SYSTEM" && "⚙️ ระบบ"}
-                          {cat === "PROVIDER" && "🏢 Provider"}
-                          {cat === "TECHNICAL" && "🔧 เทคนิค"}
-                          {cat === "OTHER" && "📋 อื่นๆ"}
+                          <span className="flex items-center gap-1.5">
+                            {cat === "PAYMENT" && <DollarSign className="h-3.5 w-3.5" />}
+                            {cat === "ORDER" && <Package className="h-3.5 w-3.5" />}
+                            {cat === "SYSTEM" && <Settings className="h-3.5 w-3.5" />}
+                            {cat === "PROVIDER" && <Building2 className="h-3.5 w-3.5" />}
+                            {cat === "TECHNICAL" && <Wrench className="h-3.5 w-3.5" />}
+                            {cat === "OTHER" && <FileText className="h-3.5 w-3.5" />}
+                            {cat === "PAYMENT" && "การชำระเงิน"}
+                            {cat === "ORDER" && "ออเดอร์"}
+                            {cat === "SYSTEM" && "ระบบ"}
+                            {cat === "PROVIDER" && "Provider"}
+                            {cat === "TECHNICAL" && "เทคนิค"}
+                            {cat === "OTHER" && "อื่นๆ"}
+                          </span>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -388,8 +396,18 @@ export default function NewCasePage() {
                         <SelectValue placeholder="เลือกความรุนแรง" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="CRITICAL">🔴 วิกฤต</SelectItem>
-                        <SelectItem value="HIGH">🟠 สูง</SelectItem>
+                        <SelectItem value="CRITICAL">
+                          <span className="flex items-center gap-1.5">
+                            <AlertCircle className="h-3.5 w-3.5 text-red-600" />
+                            <span>วิกฤต</span>
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="HIGH">
+                          <span className="flex items-center gap-1.5">
+                            <AlertTriangle className="h-3.5 w-3.5 text-orange-600" />
+                            <span>สูง</span>
+                          </span>
+                        </SelectItem>
                         <SelectItem value="NORMAL">🔵 ปกติ</SelectItem>
                         <SelectItem value="LOW">⚪ ต่ำ</SelectItem>
                       </SelectContent>
@@ -426,7 +444,8 @@ export default function NewCasePage() {
               {selectedCaseType?.requireOrderId && (
                 <div className="pt-4 border-t">
                   <h3 className="font-medium mb-4 flex items-center gap-2">
-                    📋 ข้อมูล Order <span className="text-red-500">*</span>
+                    <Clipboard className="h-4 w-4" />
+                    ข้อมูล Order <span className="text-red-500">*</span>
                   </h3>
                   <div className="space-y-3">
                     {/* Order ID Input */}
