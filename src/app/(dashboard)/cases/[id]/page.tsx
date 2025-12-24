@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingScreen } from "@/components/ui/loading-screen";
 import { RefreshButton } from "@/components/ui/refresh-button";
 import {
@@ -17,6 +18,12 @@ import {
   CheckCircle2,
   ChevronRight,
   AlertCircle,
+  Calendar,
+  Tag,
+  Link as LinkIcon,
+  History,
+  Paperclip,
+  Edit3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -28,6 +35,7 @@ import { AddNoteForm } from "./add-note-form";
 import { FileAttachments } from "./file-attachments";
 import { StatusFlowGuide } from "@/components/case/status-flow-guide";
 import { useParams } from "next/navigation";
+import { useState } from "react";
 
 const statusLabels: Record<string, { label: string; className: string }> = {
   NEW: { label: "ใหม่", className: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800" },
@@ -104,6 +112,7 @@ interface Activity {
 export default function CaseDetailPage() {
   const params = useParams();
   const id = params.id as string;
+  const [activeTab, setActiveTab] = useState("overview");
   
   const { data: caseDetail, isLoading, refetch } = useCase(id);
 
@@ -114,56 +123,190 @@ export default function CaseDetailPage() {
   const sla = formatSlaRemaining(caseDetail.slaDeadline);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-muted/30">
       <Header />
       
-      <div className="p-6 space-y-6">
-        {/* Back button and header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/cases">
-              <Button variant="ghost" size="icon" className="h-9 w-9">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            </Link>
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-semibold">{caseDetail.caseNumber}</h1>
-                <Badge
-                  variant="outline"
-                  className={cn("text-xs font-medium", severityLabels[caseDetail.severity]?.className)}
-                >
-                  {severityLabels[caseDetail.severity]?.label}
-                </Badge>
-                <Badge
-                  variant="outline"
-                  className={cn("text-xs font-medium", statusLabels[caseDetail.status]?.className)}
-                >
-                  {statusLabels[caseDetail.status]?.label}
-                </Badge>
+      {/* Sticky Top Bar */}
+      <div className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="p-4 sm:px-6">
+          <div className="flex items-center justify-between gap-4">
+            {/* Left: Back + Title */}
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <Link href="/cases">
+                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              </Link>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-lg sm:text-xl font-semibold">{caseDetail.caseNumber}</h1>
+                  <Badge
+                    variant="outline"
+                    className={cn("text-xs", severityLabels[caseDetail.severity]?.className)}
+                  >
+                    {severityLabels[caseDetail.severity]?.label}
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className={cn("text-xs", statusLabels[caseDetail.status]?.className)}
+                  >
+                    {statusLabels[caseDetail.status]?.label}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground truncate mt-0.5">{caseDetail.title}</p>
               </div>
-              <p className="mt-1 text-muted-foreground">{caseDetail.title}</p>
+            </div>
+            
+            {/* Right: Actions */}
+            <div className="flex items-center gap-2 shrink-0">
+              <RefreshButton invalidateKeys={[`case-${id}`]} size="sm" />
+              <CaseActions caseId={caseDetail.id} currentStatus={caseDetail.status} />
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <RefreshButton invalidateKeys={[`case-${id}`]} size="sm" />
-            <CaseActions caseId={caseDetail.id} currentStatus={caseDetail.status} />
-          </div>
+        </div>
+      </div>
+
+      <div className="p-4 sm:p-6 space-y-4">
+        {/* SLA Alert Banner */}
+        {caseDetail.slaDeadline && caseDetail.status !== "RESOLVED" && caseDetail.status !== "CLOSED" && (
+          <Card className={cn(
+            "border-2",
+            sla.isMissed ? "border-red-500 bg-red-50 dark:bg-red-950/30" : 
+            sla.isUrgent ? "border-amber-500 bg-amber-50 dark:bg-amber-950/30" : 
+            "border-green-500 bg-green-50 dark:bg-green-950/30"
+          )}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Clock className={cn(
+                    "h-5 w-5",
+                    sla.isMissed ? "text-red-500" :
+                    sla.isUrgent ? "text-amber-500" : "text-green-500"
+                  )} />
+                  <div>
+                    <p className="text-sm font-medium">
+                      {sla.isMissed ? "⚠️ เกิน SLA แล้ว!" : sla.isUrgent ? "⏰ SLA ใกล้หมด!" : "✓ อยู่ใน SLA"}
+                    </p>
+                    <p className={cn(
+                      "text-lg font-bold",
+                      sla.isMissed ? "text-red-600 dark:text-red-400" :
+                      sla.isUrgent ? "text-amber-600 dark:text-amber-400" : "text-green-600 dark:text-green-400"
+                    )}>
+                      {sla.text}
+                    </p>
+                  </div>
+                </div>
+                {sla.isUrgent && (
+                  <Button size="sm" variant="default" className="shrink-0">
+                    ดำเนินการด่วน!
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Quick Info Summary */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="rounded-lg bg-primary/10 p-2">
+                  <User className="h-4 w-4 text-primary" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-muted-foreground">ลูกค้า</p>
+                  <p className="font-medium text-sm truncate">{caseDetail.customerName || "ไม่ระบุ"}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="rounded-lg bg-primary/10 p-2">
+                  <Tag className="h-4 w-4 text-primary" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-muted-foreground">ประเภท</p>
+                  <p className="font-medium text-sm truncate">{caseDetail.caseType?.name || "-"}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="rounded-lg bg-primary/10 p-2">
+                  <Calendar className="h-4 w-4 text-primary" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-muted-foreground">สร้างเมื่อ</p>
+                  <p className="font-medium text-sm">
+                    {formatDistanceToNow(typeof caseDetail.createdAt === "string" ? new Date(caseDetail.createdAt) : caseDetail.createdAt, { addSuffix: true, locale: th })}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="rounded-lg bg-primary/10 p-2">
+                  <LinkIcon className="h-4 w-4 text-primary" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-muted-foreground">แหล่งที่มา</p>
+                  <p className="font-medium text-sm">{caseDetail.source}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Status Flow Guide */}
+        {/* Status Flow */}
         <StatusFlowGuide currentStatus={caseDetail.status} />
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Main content */}
-          <div className="lg:col-span-2 space-y-6">
+        {/* Main Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+            <TabsTrigger value="overview" className="gap-2">
+              <FileText className="h-4 w-4" />
+              <span className="hidden sm:inline">ภาพรวม</span>
+            </TabsTrigger>
+            <TabsTrigger value="timeline" className="gap-2">
+              <History className="h-4 w-4" />
+              <span className="hidden sm:inline">Timeline</span>
+            </TabsTrigger>
+            <TabsTrigger value="files" className="gap-2">
+              <Paperclip className="h-4 w-4" />
+              <span className="hidden sm:inline">ไฟล์</span>
+              {caseDetail.attachments && caseDetail.attachments.length > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                  {caseDetail.attachments.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="details" className="gap-2">
+              <Edit3 className="h-4 w-4" />
+              <span className="hidden sm:inline">รายละเอียด</span>
+            </TabsTrigger>
+          </TabsList>
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-4">
             {/* Description */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">รายละเอียด</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  รายละเอียดปัญหา
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground leading-relaxed">
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">
                   {caseDetail.description || "ไม่มีรายละเอียด"}
                 </p>
               </CardContent>
@@ -173,27 +316,24 @@ export default function CaseDetailPage() {
             {caseDetail.orders && caseDetail.orders.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">ออเดอร์ที่เกี่ยวข้อง</CardTitle>
+                  <CardTitle className="text-lg">ออเดอร์ที่เกี่ยวข้อง ({caseDetail.orders.length})</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     {caseDetail.orders.map((order: Order) => (
                       <div
                         key={order.id}
-                        className="flex items-center justify-between rounded-lg border border-border p-4"
+                        className="flex items-center justify-between rounded-lg border p-4 hover:bg-muted/50 transition-colors"
                       >
                         <div>
                           <p className="font-mono text-sm font-medium">{order.orderId}</p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-xs text-muted-foreground mt-1">
                             {format(typeof order.createdAt === "string" ? new Date(order.createdAt) : order.createdAt, "d MMM yyyy HH:mm", { locale: th })}
                           </p>
                         </div>
-                        <div className="text-right">
-                          <p className="font-semibold">฿{Number(order.amount).toLocaleString()}</p>
-                          <Badge variant="outline" className="mt-1 text-xs">
-                            {order.status}
-                          </Badge>
-                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {order.status}
+                        </Badge>
                       </div>
                     ))}
                   </div>
@@ -201,16 +341,37 @@ export default function CaseDetailPage() {
               </Card>
             )}
 
-            {/* File Attachments */}
-            <FileAttachments 
-              caseId={caseDetail.id} 
-              onUploadSuccess={() => refetch()} 
-            />
+            {/* Resolution (if resolved/closed) */}
+            {(caseDetail.status === "RESOLVED" || caseDetail.status === "CLOSED") && caseDetail.resolution && (
+              <Card className="border-green-500/50 bg-green-50 dark:bg-green-950/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg text-green-600 dark:text-green-400">
+                    <CheckCircle2 className="h-5 w-5" />
+                    การแก้ไข
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {caseDetail.rootCause && (
+                    <div>
+                      <p className="text-xs font-semibold uppercase text-green-600/80 dark:text-green-400/80">สาเหตุ</p>
+                      <p className="mt-1 text-sm">{caseDetail.rootCause}</p>
+                    </div>
+                  )}
+                  <Separator />
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-green-600/80 dark:text-green-400/80">วิธีแก้ไข</p>
+                    <p className="mt-1 text-sm">{caseDetail.resolution}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
 
-            {/* Timeline */}
+          {/* Timeline Tab */}
+          <TabsContent value="timeline" className="space-y-4">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-lg">Timeline</CardTitle>
+              <CardHeader>
+                <CardTitle className="text-lg">ประวัติการดำเนินการ</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -220,30 +381,33 @@ export default function CaseDetailPage() {
                     return (
                       <div key={activity.id} className="flex gap-4">
                         <div className="relative flex flex-col items-center">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-                            <Icon className="h-4 w-4 text-muted-foreground" />
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 border-2 border-background ring-2 ring-muted">
+                            <Icon className="h-4 w-4 text-primary" />
                           </div>
                           {index < caseDetail.activities.length - 1 && (
-                            <div className="absolute top-8 h-full w-px bg-border" />
+                            <div className="absolute top-9 h-full w-px bg-border" />
                           )}
                         </div>
-                        <div className="flex-1 pb-4">
-                          <div className="flex items-center justify-between">
-                            <p className="font-medium">{activity.title}</p>
-                            <span className="text-xs text-muted-foreground">
-                              {format(activityDate, "HH:mm")}
+                        <div className="flex-1 pb-6">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1">
+                              <p className="font-semibold text-sm">{activity.title}</p>
+                              {activity.description && (
+                                <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
+                                  {activity.description}
+                                </p>
+                              )}
+                              {activity.user && (
+                                <p className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
+                                  <User className="h-3 w-3" />
+                                  {activity.user.name}
+                                </p>
+                              )}
+                            </div>
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                              {format(activityDate, "d MMM, HH:mm", { locale: th })}
                             </span>
                           </div>
-                          {activity.description && (
-                            <p className="mt-1 text-sm text-muted-foreground">
-                              {activity.description}
-                            </p>
-                          )}
-                          {activity.user && (
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              โดย {activity.user.name}
-                            </p>
-                          )}
                         </div>
                       </div>
                     );
@@ -252,158 +416,131 @@ export default function CaseDetailPage() {
 
                 {/* Add note */}
                 <Separator className="my-6" />
-                <AddNoteForm caseId={caseDetail.id} />
+                <div>
+                  <h3 className="font-semibold text-sm mb-3">เพิ่มบันทึก</h3>
+                  <AddNoteForm caseId={caseDetail.id} />
+                </div>
               </CardContent>
             </Card>
-          </div>
+          </TabsContent>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* SLA Alert */}
-            {caseDetail.slaDeadline && caseDetail.status !== "RESOLVED" && caseDetail.status !== "CLOSED" && (
-              <Card className={cn(
-                "border-2",
-                sla.isMissed ? "border-red-500 bg-red-50 dark:bg-red-950/30" : 
-                sla.isUrgent ? "border-amber-500 bg-amber-50 dark:bg-amber-950/30" : 
-                "border-green-500 bg-green-50 dark:bg-green-950/30"
-              )}>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <Clock className={cn(
-                      "h-5 w-5",
-                      sla.isMissed ? "text-red-500" :
-                      sla.isUrgent ? "text-amber-500" : "text-green-500"
-                    )} />
-                    <div>
-                      <p className="text-sm font-medium">SLA Deadline</p>
-                      <p className={cn(
-                        "text-lg font-bold",
-                        sla.isMissed ? "text-red-600 dark:text-red-400" :
-                        sla.isUrgent ? "text-amber-600 dark:text-amber-400" : "text-green-600 dark:text-green-400"
-                      )}>
-                        {sla.text}
-                      </p>
-                    </div>
+          {/* Files Tab */}
+          <TabsContent value="files">
+            <FileAttachments 
+              caseId={caseDetail.id} 
+              onUploadSuccess={() => refetch()} 
+            />
+          </TabsContent>
+
+          {/* Details Tab */}
+          <TabsContent value="details" className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {/* Case Info */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">ข้อมูลเคส</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">เลขที่เคส</p>
+                    <p className="mt-1 font-mono">{caseDetail.caseNumber}</p>
+                  </div>
+                  <Separator />
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">ประเภท</p>
+                    <p className="mt-1">{caseDetail.caseType?.name || "-"}</p>
+                  </div>
+                  <Separator />
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">แหล่งที่มา</p>
+                    <p className="mt-1">{caseDetail.source}</p>
+                  </div>
+                  <Separator />
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">สร้างเมื่อ</p>
+                    <p className="mt-1 text-sm">
+                      {format(typeof caseDetail.createdAt === "string" ? new Date(caseDetail.createdAt) : caseDetail.createdAt, "d MMMM yyyy, HH:mm น.", { locale: th })}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      ({formatDistanceToNow(typeof caseDetail.createdAt === "string" ? new Date(caseDetail.createdAt) : caseDetail.createdAt, { addSuffix: true, locale: th })})
+                    </p>
                   </div>
                 </CardContent>
               </Card>
-            )}
 
-            {/* Case Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">ข้อมูลเคส</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-xs font-medium uppercase text-muted-foreground">ประเภท</p>
-                  <p className="mt-1">{caseDetail.caseType?.name || "-"}</p>
-                </div>
-                <Separator />
-                <div>
-                  <p className="text-xs font-medium uppercase text-muted-foreground">แหล่งที่มา</p>
-                  <p className="mt-1">{caseDetail.source}</p>
-                </div>
-                <Separator />
-                <div>
-                  <p className="text-xs font-medium uppercase text-muted-foreground">สร้างเมื่อ</p>
-                  <p className="mt-1 text-sm">
-                    {format(typeof caseDetail.createdAt === "string" ? new Date(caseDetail.createdAt) : caseDetail.createdAt, "d MMM yyyy HH:mm", { locale: th })}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    ({formatDistanceToNow(typeof caseDetail.createdAt === "string" ? new Date(caseDetail.createdAt) : caseDetail.createdAt, { addSuffix: true, locale: th })})
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Customer Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <User className="h-4 w-4" />
-                  ลูกค้า
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <p className="font-medium">{caseDetail.customerName || "ไม่ระบุ"}</p>
-                  {caseDetail.customerId && (
-                    <p className="text-sm text-muted-foreground">{caseDetail.customerId}</p>
-                  )}
-                </div>
-                {caseDetail.customerContact && (
-                  <div className="text-sm text-muted-foreground">
-                    {caseDetail.customerContact}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Provider Info */}
-            {caseDetail.provider && (
+              {/* Customer Info */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
-                    <Building2 className="h-4 w-4" />
-                    Provider
+                    <User className="h-4 w-4" />
+                    ข้อมูลลูกค้า
                   </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">ชื่อ</p>
+                    <p className="mt-1 font-medium">{caseDetail.customerName || "ไม่ระบุ"}</p>
+                  </div>
+                  {caseDetail.customerId && (
+                    <>
+                      <Separator />
+                      <div>
+                        <p className="text-xs font-semibold uppercase text-muted-foreground">Customer ID</p>
+                        <p className="mt-1 font-mono text-sm">{caseDetail.customerId}</p>
+                      </div>
+                    </>
+                  )}
+                  {caseDetail.customerContact && (
+                    <>
+                      <Separator />
+                      <div>
+                        <p className="text-xs font-semibold uppercase text-muted-foreground">ช่องทางติดต่อ</p>
+                        <p className="mt-1 text-sm">{caseDetail.customerContact}</p>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Provider Info */}
+              {caseDetail.provider && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Building2 className="h-4 w-4" />
+                      Provider
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="font-medium">{caseDetail.provider.name}</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Assigned To */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">ผู้รับผิดชอบ</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="font-medium">{caseDetail.provider.name}</p>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Assigned To */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">ผู้รับผิดชอบ</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {caseDetail.owner ? (
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                      <span className="text-sm font-medium">
-                        {caseDetail.owner.name?.charAt(0) || "?"}
-                      </span>
+                  {caseDetail.owner ? (
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold">
+                        {caseDetail.owner.name?.charAt(0).toUpperCase() || "?"}
+                      </div>
+                      <div>
+                        <p className="font-medium">{caseDetail.owner.name}</p>
+                        <p className="text-sm text-muted-foreground">{caseDetail.owner.role}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium">{caseDetail.owner.name}</p>
-                      <p className="text-sm text-muted-foreground">{caseDetail.owner.role}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">ยังไม่มีผู้รับผิดชอบ</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Resolution (if resolved/closed) */}
-            {(caseDetail.status === "RESOLVED" || caseDetail.status === "CLOSED") && caseDetail.resolution && (
-              <Card className="border-green-200 dark:border-green-900/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg text-green-600 dark:text-green-400">
-                    <CheckCircle2 className="h-4 w-4" />
-                    การแก้ไข
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {caseDetail.rootCause && (
-                    <div>
-                      <p className="text-xs font-medium uppercase text-muted-foreground">สาเหตุ</p>
-                      <p className="mt-1 text-sm">{caseDetail.rootCause}</p>
-                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">ยังไม่มีผู้รับผิดชอบ</p>
                   )}
-                  <div>
-                    <p className="text-xs font-medium uppercase text-muted-foreground">วิธีแก้ไข</p>
-                    <p className="mt-1 text-sm">{caseDetail.resolution}</p>
-                  </div>
                 </CardContent>
               </Card>
-            )}
-          </div>
-        </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
