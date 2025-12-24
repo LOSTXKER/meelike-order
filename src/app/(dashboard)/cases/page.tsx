@@ -1,0 +1,261 @@
+import { Header } from "@/components/layout/header";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Card } from "@/components/ui/card";
+import { Plus, Clock } from "lucide-react";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
+import prisma from "@/lib/prisma";
+import { formatDistanceToNow, differenceInMinutes } from "date-fns";
+import { th } from "date-fns/locale";
+import { CasesFilters } from "./cases-filters";
+
+const statusLabels: Record<string, { label: string; className: string }> = {
+  NEW: { label: "ใหม่", className: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800" },
+  INVESTIGATING: { label: "กำลังตรวจสอบ", className: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-800" },
+  WAITING_CUSTOMER: { label: "รอลูกค้า", className: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800" },
+  WAITING_PROVIDER: { label: "รอ Provider", className: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800" },
+  FIXING: { label: "กำลังแก้ไข", className: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-200 dark:border-cyan-800" },
+  RESOLVED: { label: "แก้ไขแล้ว", className: "bg-green-500/10 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800" },
+  CLOSED: { label: "ปิดเคส", className: "bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-800" },
+};
+
+const severityLabels: Record<string, { label: string; dotColor: string }> = {
+  CRITICAL: { label: "วิกฤต", dotColor: "bg-red-500" },
+  HIGH: { label: "สูง", dotColor: "bg-orange-500" },
+  NORMAL: { label: "ปกติ", dotColor: "bg-blue-500" },
+  LOW: { label: "ต่ำ", dotColor: "bg-gray-500" },
+};
+
+function formatSlaRemaining(deadline: Date | null): { text: string; isUrgent: boolean; isMissed: boolean } {
+  if (!deadline) return { text: "-", isUrgent: false, isMissed: false };
+  
+  const now = new Date();
+  const diffMins = differenceInMinutes(deadline, now);
+  
+  if (diffMins < 0) {
+    return { text: `เกิน ${Math.abs(diffMins)} นาที`, isUrgent: false, isMissed: true };
+  }
+  
+  if (diffMins < 15) {
+    return { text: `${diffMins} นาที`, isUrgent: true, isMissed: false };
+  }
+  
+  if (diffMins < 60) {
+    return { text: `${diffMins} นาที`, isUrgent: false, isMissed: false };
+  }
+  
+  const hours = Math.floor(diffMins / 60);
+  const mins = diffMins % 60;
+  return { text: `${hours}:${mins.toString().padStart(2, "0")} ชม.`, isUrgent: false, isMissed: false };
+}
+
+interface CasesPageProps {
+  searchParams: Promise<{
+    status?: string;
+    severity?: string;
+    search?: string;
+    page?: string;
+  }>;
+}
+
+export default async function CasesPage({ searchParams }: CasesPageProps) {
+  const params = await searchParams;
+  const status = params.status;
+  const severity = params.severity;
+  const search = params.search;
+  const page = parseInt(params.page || "1");
+  const limit = 20;
+
+  // Build where clause
+  const where: Record<string, unknown> = {};
+  
+  if (status && status !== "all") {
+    where.status = status;
+  }
+  
+  if (severity && severity !== "all") {
+    where.severity = severity;
+  }
+  
+  if (search) {
+    where.OR = [
+      { caseNumber: { contains: search, mode: "insensitive" } },
+      { title: { contains: search, mode: "insensitive" } },
+      { customerName: { contains: search, mode: "insensitive" } },
+    ];
+  }
+
+  const [cases, total] = await Promise.all([
+    prisma.case.findMany({
+      where,
+      include: {
+        caseType: { select: { name: true } },
+        owner: { select: { name: true } },
+        provider: { select: { name: true } },
+      },
+      orderBy: [
+        { severity: "asc" },
+        { createdAt: "desc" },
+      ],
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.case.count({ where }),
+  ]);
+
+  const totalPages = Math.ceil(total / limit);
+
+  return (
+    <div className="min-h-screen">
+      <Header title="เคสทั้งหมด" />
+      
+      <div className="p-6 space-y-6">
+        {/* Filters */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <CasesFilters />
+          <Link href="/cases/new">
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              สร้างเคสใหม่
+            </Button>
+          </Link>
+        </div>
+
+        {/* Cases Table */}
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-[140px]">เลขเคส</TableHead>
+                <TableHead>รายละเอียด</TableHead>
+                <TableHead className="w-[100px]">ความรุนแรง</TableHead>
+                <TableHead className="w-[130px]">สถานะ</TableHead>
+                <TableHead className="w-[120px]">ผู้รับผิดชอบ</TableHead>
+                <TableHead className="w-[100px]">SLA</TableHead>
+                <TableHead className="w-[120px] text-right">สร้างเมื่อ</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {cases.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
+                    ไม่พบเคส
+                  </TableCell>
+                </TableRow>
+              ) : (
+                cases.map((caseItem) => {
+                  const sla = formatSlaRemaining(caseItem.slaDeadline);
+                  return (
+                    <TableRow key={caseItem.id} className="cursor-pointer">
+                      <TableCell className="font-mono text-sm">
+                        <Link href={`/cases/${caseItem.id}`} className="hover:underline">
+                          {caseItem.caseNumber}
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        <Link href={`/cases/${caseItem.id}`} className="block space-y-1">
+                          <p className="font-medium hover:underline">{caseItem.title}</p>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <span>{caseItem.customerName || "ไม่ระบุลูกค้า"}</span>
+                            {caseItem.provider && (
+                              <>
+                                <span>•</span>
+                                <span>{caseItem.provider.name}</span>
+                              </>
+                            )}
+                          </div>
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className={cn("h-2 w-2 rounded-full", severityLabels[caseItem.severity]?.dotColor)} />
+                          <span className="text-sm">{severityLabels[caseItem.severity]?.label}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={cn("text-xs font-medium", statusLabels[caseItem.status]?.className)}
+                        >
+                          {statusLabels[caseItem.status]?.label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {caseItem.owner ? (
+                          <span className="text-sm">{caseItem.owner.name}</span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">ยังไม่มี</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {sla.text !== "-" && (
+                          <div className={cn(
+                            "flex items-center gap-1 text-sm",
+                            sla.isMissed && "text-red-600 dark:text-red-400",
+                            sla.isUrgent && !sla.isMissed && "text-amber-600 dark:text-amber-400"
+                          )}>
+                            <Clock className="h-3.5 w-3.5" />
+                            <span>{sla.text}</span>
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right text-sm text-muted-foreground">
+                        {formatDistanceToNow(caseItem.createdAt, { addSuffix: true, locale: th })}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </Card>
+
+        {/* Pagination */}
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            แสดง {(page - 1) * limit + 1}-{Math.min(page * limit, total)} จาก {total} เคส
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
+              asChild={page > 1}
+            >
+              {page > 1 ? (
+                <Link href={`/cases?page=${page - 1}${status ? `&status=${status}` : ""}${severity ? `&severity=${severity}` : ""}${search ? `&search=${search}` : ""}`}>
+                  ก่อนหน้า
+                </Link>
+              ) : (
+                "ก่อนหน้า"
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages}
+              asChild={page < totalPages}
+            >
+              {page < totalPages ? (
+                <Link href={`/cases?page=${page + 1}${status ? `&status=${status}` : ""}${severity ? `&severity=${severity}` : ""}${search ? `&search=${search}` : ""}`}>
+                  ถัดไป
+                </Link>
+              ) : (
+                "ถัดไป"
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

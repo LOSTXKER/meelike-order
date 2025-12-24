@@ -1,0 +1,441 @@
+// Meelike Issue & Order Management System (MIMS)
+// Prisma Schema - Phase 1 MVP
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// User & Authentication
+// ============================================
+
+enum UserRole {
+  ADMIN
+  SUPPORT
+  MANAGER
+  CEO
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String
+  role          UserRole  @default(SUPPORT)
+  avatar        String?
+  isActive      Boolean   @default(true)
+  
+  // Relations
+  ownedCases    Case[]    @relation("CaseOwner")
+  activities    CaseActivity[]
+  attachments   Attachment[]
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@map("users")
+}
+
+// ============================================
+// Case Type Master Data
+// ============================================
+
+enum CaseCategory {
+  PAYMENT
+  ORDER
+  SYSTEM
+  PROVIDER
+  OTHER
+}
+
+enum Severity {
+  CRITICAL
+  HIGH
+  NORMAL
+  LOW
+}
+
+model CaseType {
+  id                String       @id @default(cuid())
+  name              String       @unique
+  category          CaseCategory
+  defaultSeverity   Severity     @default(NORMAL)
+  defaultSlaMinutes Int          @default(120) // 2 hours default
+  requireProvider   Boolean      @default(false)
+  requireOrderId    Boolean      @default(false)
+  lineNotification  Boolean      @default(false)
+  escalationRule    String?      // JSON string for escalation rules
+  description       String?
+  isActive          Boolean      @default(true)
+  
+  // Relations
+  cases             Case[]
+  
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  @@map("case_types")
+}
+
+// ============================================
+// Provider Management
+// ============================================
+
+enum ProviderType {
+  API
+  MANUAL
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model Provider {
+  id                    String       @id @default(cuid())
+  name                  String       @unique
+  type                  ProviderType @default(API)
+  defaultSlaMinutes     Int          @default(60)
+  contactChannel        String?
+  notificationPreference String?
+  riskLevel             RiskLevel    @default(LOW)
+  isActive              Boolean      @default(true)
+  
+  // Statistics (denormalized for performance)
+  totalCases            Int          @default(0)
+  resolvedCases         Int          @default(0)
+  avgResolutionMinutes  Float?
+  refundRate            Float?
+  
+  // Relations
+  cases                 Case[]
+  orders                Order[]
+  
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+  
+  @@map("providers")
+}
+
+// ============================================
+// Case Management (Core)
+// ============================================
+
+enum CaseSource {
+  LINE
+  TICKET
+  API
+  MANUAL
+}
+
+enum CaseStatus {
+  NEW
+  INVESTIGATING
+  WAITING_CUSTOMER
+  WAITING_PROVIDER
+  FIXING
+  RESOLVED
+  CLOSED
+}
+
+model Case {
+  id              String       @id @default(cuid())
+  caseNumber      String       @unique // Auto-generated readable ID (e.g., CASE-2024-001)
+  
+  // Source & Customer
+  source          CaseSource   @default(MANUAL)
+  customerName    String?
+  customerId      String?      // External user ID
+  customerContact String?      // Line ID, Phone, etc.
+  
+  // Case Details
+  title           String
+  description     String?
+  
+  // Type & Severity
+  caseTypeId      String
+  caseType        CaseType     @relation(fields: [caseTypeId], references: [id])
+  severity        Severity     @default(NORMAL)
+  
+  // Status & State Machine
+  status          CaseStatus   @default(NEW)
+  
+  // Assignment
+  ownerId         String?
+  owner           User?        @relation("CaseOwner", fields: [ownerId], references: [id])
+  
+  // Provider (optional)
+  providerId      String?
+  provider        Provider?    @relation(fields: [providerId], references: [id])
+  
+  // SLA
+  slaDeadline     DateTime?
+  slaMissed       Boolean      @default(false)
+  
+  // Resolution
+  rootCause       String?      // Required on close
+  resolution      String?
+  
+  // Time Tracking (auto-calculated)
+  firstResponseAt DateTime?
+  resolvedAt      DateTime?
+  closedAt        DateTime?
+  
+  // Relations
+  orders          Order[]
+  activities      CaseActivity[]
+  attachments     Attachment[]
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  @@index([status])
+  @@index([severity])
+  @@index([ownerId])
+  @@index([caseTypeId])
+  @@index([createdAt])
+  @@map("cases")
+}
+
+// ============================================
+// Order & Transaction Linking
+// ============================================
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+model Order {
+  id            String       @id @default(cuid())
+  orderId       String       @unique // External order ID from main system
+  amount        Decimal      @db.Decimal(12, 2)
+  status        OrderStatus  @default(PENDING)
+  
+  // Provider
+  providerId    String?
+  provider      Provider?    @relation(fields: [providerId], references: [id])
+  
+  // Metadata
+  metadata      Json?        // Additional order data from main system
+  
+  // Relations
+  cases         Case[]
+  transactions  Transaction[]
+  
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  @@map("orders")
+}
+
+enum TransactionType {
+  TOPUP
+  DEDUCT
+  REFUND
+  ADJUSTMENT
+}
+
+model Transaction {
+  id            String          @id @default(cuid())
+  transactionId String          @unique // External transaction ID
+  type          TransactionType
+  amount        Decimal         @db.Decimal(12, 2)
+  description   String?
+  
+  // Relations
+  orderId       String?
+  order         Order?          @relation(fields: [orderId], references: [id])
+  
+  createdAt     DateTime        @default(now())
+  
+  @@map("transactions")
+}
+
+// ============================================
+// Timeline & Activity Log
+// ============================================
+
+enum ActivityType {
+  CREATED
+  STATUS_CHANGED
+  ASSIGNED
+  NOTE_ADDED
+  FILE_ATTACHED
+  SLA_UPDATED
+  SEVERITY_CHANGED
+  ESCALATED
+  RESOLVED
+  CLOSED
+  REOPENED
+}
+
+model CaseActivity {
+  id          String       @id @default(cuid())
+  
+  // Case
+  caseId      String
+  case        Case         @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  
+  // Activity Details
+  type        ActivityType
+  title       String
+  description String?
+  
+  // Old/New values for tracking changes
+  oldValue    String?
+  newValue    String?
+  
+  // Who performed this action
+  userId      String?
+  user        User?        @relation(fields: [userId], references: [id])
+  
+  // File attachment
+  attachmentUrl String?
+  
+  // Immutable - no updatedAt
+  createdAt   DateTime     @default(now())
+  
+  @@index([caseId])
+  @@index([createdAt])
+  @@map("case_activities")
+}
+
+// ============================================
+// Line Notification Settings
+// ============================================
+
+model LineChannel {
+  id                String   @id @default(cuid())
+  name              String
+  accessToken       String   // Should be encrypted
+  defaultGroupId    String?
+  
+  // Events to notify (stored as JSON array)
+  enabledEvents     Json     @default("[]")
+  
+  isActive          Boolean  @default(true)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@map("line_channels")
+}
+
+model NotificationTemplate {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  event       String   // Event type (e.g., "case_created", "sla_missed")
+  template    String   // Template with variables like {{case_id}}
+  
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("notification_templates")
+}
+
+// ============================================
+// Outbox Pattern for Reliable Messaging
+// ============================================
+
+enum OutboxStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model Outbox {
+  id          String       @id @default(cuid())
+  eventType   String       // e.g., "line_notification", "webhook_sync"
+  payload     Json
+  status      OutboxStatus @default(PENDING)
+  retryCount  Int          @default(0)
+  maxRetries  Int          @default(3)
+  lastError   String?
+  processedAt DateTime?
+  
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  
+  @@index([status])
+  @@index([createdAt])
+  @@map("outbox")
+}
+
+// ============================================
+// File Attachments
+// ============================================
+
+model Attachment {
+  id          String   @id @default(cuid())
+  
+  // Case relation
+  caseId      String
+  case        Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  
+  // File details
+  fileName    String
+  fileSize    Int      // in bytes
+  fileType    String   // MIME type
+  storagePath String   // Path in Supabase Storage
+  publicUrl   String
+  
+  // Uploader
+  uploadedById String
+  uploadedBy   User    @relation(fields: [uploadedById], references: [id])
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([caseId])
+  @@map("attachments")
+}
+
+// ============================================
+// Webhooks
+// ============================================
+
+model Webhook {
+  id          String   @id @default(cuid())
+  
+  // Webhook details
+  name        String
+  url         String
+  secret      String   // For signature verification
+  
+  // Events to listen for
+  events      String[] // e.g., ["case.created", "case.updated"]
+  
+  // Status
+  isActive    Boolean  @default(true)
+  
+  // Retry configuration
+  retryCount  Int      @default(3)
+  timeout     Int      @default(10000) // milliseconds
+  
+  // Stats
+  lastSuccess DateTime?
+  lastFailure DateTime?
+  failureCount Int     @default(0)
+  
+  // Metadata
+  description String?
+  headers     Json?    // Custom headers
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("webhooks")
+}

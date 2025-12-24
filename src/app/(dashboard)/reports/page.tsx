@@ -1,0 +1,395 @@
+"use client";
+
+import { Header } from "@/components/layout/header";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+import { TrendingUp, TrendingDown, Clock, CheckCircle2, AlertCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
+
+interface ReportsData {
+  casesByStatus: Record<string, number>;
+  casesBySeverity: Record<string, number>;
+  casesByCategory: Array<{ name: string; category: string; count: number }>;
+  monthlyTrend: Array<{ month: string; total: number; resolved: number }>;
+  avgResolutionTime: number;
+  slaCompliance: number;
+  topProviders: Array<{
+    name: string;
+    totalCases: number;
+    resolvedCases: number;
+    refundRate: number | null;
+  }>;
+  teamPerformance: Array<{
+    id: string;
+    name: string | null;
+    role: string;
+    casesThisMonth: number;
+  }>;
+  growth: number;
+}
+
+const COLORS = {
+  primary: "#2563eb",
+  success: "#10b981",
+  warning: "#f59e0b",
+  danger: "#ef4444",
+  purple: "#8b5cf6",
+  cyan: "#06b6d4",
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  NEW: COLORS.primary,
+  INVESTIGATING: COLORS.purple,
+  WAITING_CUSTOMER: COLORS.warning,
+  WAITING_PROVIDER: "#f97316",
+  FIXING: COLORS.cyan,
+  RESOLVED: COLORS.success,
+  CLOSED: "#6b7280",
+};
+
+const SEVERITY_COLORS: Record<string, string> = {
+  CRITICAL: COLORS.danger,
+  HIGH: "#f97316",
+  NORMAL: COLORS.primary,
+  LOW: "#6b7280",
+};
+
+export default function ReportsPage() {
+  const [data, setData] = useState<ReportsData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/reports")
+      .then((r) => r.json())
+      .then((d) => {
+        setData(d);
+        setIsLoading(false);
+      });
+  }, []);
+
+  if (isLoading || !data) {
+    return (
+      <div className="min-h-screen">
+        <Header title="รายงานและสถิติ" />
+        <div className="p-6 flex items-center justify-center h-[60vh]">
+          <p className="text-muted-foreground">กำลังโหลดข้อมูล...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const statusData = Object.entries(data.casesByStatus).map(([name, value]) => ({
+    name,
+    value,
+  }));
+
+  const severityData = Object.entries(data.casesBySeverity).map(([name, value]) => ({
+    name,
+    value,
+  }));
+
+  return (
+    <div className="min-h-screen">
+      <Header title="รายงานและสถิติ" />
+
+      <div className="p-6 space-y-6">
+        {/* KPI Cards */}
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                เวลาแก้ไขเฉลี่ย
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-primary" />
+                <span className="text-3xl font-bold">{data.avgResolutionTime}</span>
+                <span className="text-muted-foreground">นาที</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                SLA Compliance
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                <span className="text-3xl font-bold">{data.slaCompliance}%</span>
+              </div>
+              <p className={cn(
+                "text-xs mt-1",
+                data.slaCompliance >= 95 ? "text-green-500" : "text-amber-500"
+              )}>
+                {data.slaCompliance >= 95 ? "เป้าหมายบรรลุ" : "ต่ำกว่าเป้าหมาย (95%)"}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                เคสเดือนนี้
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">
+                {data.monthlyTrend[data.monthlyTrend.length - 1]?.total || 0}
+              </div>
+              <p className={cn(
+                "text-xs mt-1 flex items-center gap-1",
+                data.growth >= 0 ? "text-green-500" : "text-red-500"
+              )}>
+                {data.growth >= 0 ? (
+                  <TrendingUp className="h-3 w-3" />
+                ) : (
+                  <TrendingDown className="h-3 w-3" />
+                )}
+                {data.growth >= 0 ? "+" : ""}{data.growth}% จากเดือนก่อน
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                อัตราแก้ไขสำเร็จ
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">
+                {data.monthlyTrend[data.monthlyTrend.length - 1]?.total > 0
+                  ? Math.round(
+                      (data.monthlyTrend[data.monthlyTrend.length - 1].resolved /
+                        data.monthlyTrend[data.monthlyTrend.length - 1].total) *
+                        100
+                    )
+                  : 0}
+                %
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">เดือนนี้</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Charts Row 1 */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Monthly Trend */}
+          <Card>
+            <CardHeader>
+              <CardTitle>แนวโน้มรายเดือน</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={data.monthlyTrend}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="month" stroke="#6b7280" fontSize={12} />
+                  <YAxis stroke="#6b7280" fontSize={12} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#fff",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="total"
+                    stroke={COLORS.primary}
+                    strokeWidth={2}
+                    name="เคสทั้งหมด"
+                    dot={{ fill: COLORS.primary }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="resolved"
+                    stroke={COLORS.success}
+                    strokeWidth={2}
+                    name="แก้ไขแล้ว"
+                    dot={{ fill: COLORS.success }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Cases by Status */}
+          <Card>
+            <CardHeader>
+              <CardTitle>สถานะเคส</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={statusData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={(entry) => `${entry.name}: ${entry.value}`}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {statusData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={STATUS_COLORS[entry.name] || COLORS.primary}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Charts Row 2 */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Top Case Types */}
+          <Card>
+            <CardHeader>
+              <CardTitle>ประเภทเคส Top 10</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={data.casesByCategory}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="name" stroke="#6b7280" fontSize={12} angle={-45} textAnchor="end" height={100} />
+                  <YAxis stroke="#6b7280" fontSize={12} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#fff",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Bar dataKey="count" fill={COLORS.primary} name="จำนวนเคส" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Cases by Severity */}
+          <Card>
+            <CardHeader>
+              <CardTitle>ความรุนแรง</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={severityData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis type="number" stroke="#6b7280" fontSize={12} />
+                  <YAxis type="category" dataKey="name" stroke="#6b7280" fontSize={12} width={100} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#fff",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Bar dataKey="value" name="จำนวนเคส" radius={[0, 8, 8, 0]}>
+                    {severityData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={SEVERITY_COLORS[entry.name] || COLORS.primary}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Tables Row */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Top Providers */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Provider อันดับต้น</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {data.topProviders.map((provider, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <p className="font-medium">{provider.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {provider.resolvedCases}/{provider.totalCases} แก้ไขแล้ว
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold">{provider.totalCases} เคส</p>
+                      {provider.refundRate !== null && (
+                        <p className={cn(
+                          "text-sm",
+                          provider.refundRate > 5 ? "text-red-500" : "text-green-500"
+                        )}>
+                          Refund: {provider.refundRate.toFixed(1)}%
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Team Performance */}
+          <Card>
+            <CardHeader>
+              <CardTitle>ประสิทธิภาพทีม (เดือนนี้)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {data.teamPerformance.slice(0, 5).map((member, index) => (
+                  <div key={member.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <p className="font-medium">{member.name || "Unknown"}</p>
+                        <p className="text-sm text-muted-foreground">{member.role}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold">{member.casesThisMonth} เคส</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
