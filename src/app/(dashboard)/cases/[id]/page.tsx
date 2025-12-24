@@ -18,10 +18,11 @@ import {
   ChevronRight,
   AlertCircle,
   Edit3,
-  ChevronDown,
   Package,
   History,
   Info,
+  Calendar,
+  UserCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -120,7 +121,7 @@ export default function CaseDetailPage() {
   const sla = formatSlaRemaining(caseDetail.slaDeadline);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-muted/30">
       {/* Compact Header */}
       <div className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
         <div className="flex items-center justify-between gap-4 px-4 py-3">
@@ -130,15 +131,7 @@ export default function CaseDetailPage() {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold">{caseDetail.caseNumber}</h1>
-              <Badge variant="outline" className={cn("text-xs", severityLabels[caseDetail.severity]?.className)}>
-                {severityLabels[caseDetail.severity]?.label}
-              </Badge>
-              <Badge variant="outline" className={cn("text-xs", statusLabels[caseDetail.status]?.className)}>
-                {statusLabels[caseDetail.status]?.label}
-              </Badge>
-            </div>
+            <h1 className="text-lg font-bold">{caseDetail.caseNumber}</h1>
           </div>
           <div className="flex items-center gap-2">
             <RefreshButton invalidateKeys={[`case-${id}`]} size="sm" />
@@ -148,154 +141,180 @@ export default function CaseDetailPage() {
       </div>
 
       <div className="p-4 sm:p-6">
-        <div className="max-w-[1400px] mx-auto space-y-6">
-          {/* Top Section: Hero + Sidebar */}
-          <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-            <div className="space-y-6">
-              {/* SLA Alert - BIG & PROMINENT */}
-              {caseDetail.slaDeadline && caseDetail.status !== "RESOLVED" && caseDetail.status !== "CLOSED" && (
-                <div className={cn(
-                  "rounded-xl border-2 p-6",
-                  sla.isMissed ? "border-red-500 bg-red-50 dark:bg-red-950/30" : 
-                  sla.isUrgent ? "border-amber-500 bg-amber-50 dark:bg-amber-950/30" : 
-                  "border-green-500 bg-green-50 dark:bg-green-950/30"
-                )}>
-                  <div className="flex items-center gap-4">
+        <div className="max-w-6xl mx-auto space-y-6">
+          {/* SLA Alert - MEGA */}
+          {caseDetail.slaDeadline && caseDetail.status !== "RESOLVED" && caseDetail.status !== "CLOSED" && (
+            <div className={cn(
+              "rounded-2xl border-2 p-8",
+              sla.isMissed ? "border-red-500 bg-red-50 dark:bg-red-950/30" : 
+              sla.isUrgent ? "border-amber-500 bg-amber-50 dark:bg-amber-950/30" : 
+              "border-green-500 bg-green-50 dark:bg-green-950/30"
+            )}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-6">
+                  <div className={cn(
+                    "flex h-16 w-16 items-center justify-center rounded-2xl",
+                    sla.isMissed ? "bg-red-500/20" :
+                    sla.isUrgent ? "bg-amber-500/20" : "bg-green-500/20"
+                  )}>
                     <Clock className={cn(
                       "h-8 w-8",
-                      sla.isMissed ? "text-red-500" :
-                      sla.isUrgent ? "text-amber-500" : "text-green-500"
+                      sla.isMissed ? "text-red-600" :
+                      sla.isUrgent ? "text-amber-600" : "text-green-600"
                     )} />
-                    <div>
-                      <p className="font-medium text-sm mb-1">
-                        {sla.isMissed ? "⚠️ เกิน SLA แล้ว!" : sla.isUrgent ? "⏰ ใกล้หมด SLA!" : "✓ อยู่ใน SLA"}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold mb-2 uppercase tracking-wide text-muted-foreground">
+                      {sla.isMissed ? "⚠️ เกิน SLA แล้ว!" : sla.isUrgent ? "⏰ ใกล้หมด SLA!" : "✓ อยู่ใน SLA"}
+                    </p>
+                    <p className={cn(
+                      "text-4xl font-bold tracking-tight",
+                      sla.isMissed ? "text-red-600 dark:text-red-400" :
+                      sla.isUrgent ? "text-amber-600 dark:text-amber-400" : "text-green-600 dark:text-green-400"
+                    )}>
+                      {sla.text}
+                    </p>
+                  </div>
+                </div>
+                {sla.isUrgent && !sla.isMissed && (
+                  <Button size="lg" className="shrink-0">
+                    ดำเนินการด่วน
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* HERO SECTION - Main Info */}
+          <Card className="border-2">
+            <CardContent className="p-8">
+              <div className="space-y-6">
+                {/* Title + Badges */}
+                <div>
+                  <div className="flex items-start justify-between gap-4 mb-3">
+                    <div className="flex-1">
+                      <h2 className="text-3xl font-bold tracking-tight mb-2">{caseDetail.title}</h2>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="outline" className={cn("text-sm py-1", severityLabels[caseDetail.severity]?.className)}>
+                          {severityLabels[caseDetail.severity]?.label}
+                        </Badge>
+                        <Badge variant="outline" className={cn("text-sm py-1", statusLabels[caseDetail.status]?.className)}>
+                          {statusLabels[caseDetail.status]?.label}
+                        </Badge>
+                        <Badge variant="secondary" className="text-sm py-1">
+                          {caseDetail.caseType?.name}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <p className="text-base leading-relaxed text-muted-foreground whitespace-pre-wrap">
+                    {caseDetail.description || "ไม่มีรายละเอียด"}
+                  </p>
+                </div>
+
+                <Separator />
+
+                {/* Info Grid - 4 Columns */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Customer */}
+                  <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 shrink-0">
+                      <User className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">ลูกค้า</p>
+                      <p className="font-semibold truncate">{caseDetail.customerName || "ไม่ระบุ"}</p>
+                      {caseDetail.customerId && (
+                        <p className="text-xs text-muted-foreground font-mono truncate mt-0.5">{caseDetail.customerId}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Provider */}
+                  <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 shrink-0">
+                      <Building2 className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">Provider</p>
+                      <p className="font-semibold truncate">{caseDetail.provider?.name || "ไม่มี"}</p>
+                    </div>
+                  </div>
+
+                  {/* Created At */}
+                  <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 shrink-0">
+                      <Calendar className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">สร้างเมื่อ</p>
+                      <p className="font-semibold text-sm">
+                        {format(typeof caseDetail.createdAt === "string" ? new Date(caseDetail.createdAt) : caseDetail.createdAt, "d MMM yyyy", { locale: th })}
                       </p>
-                      <p className={cn(
-                        "text-3xl font-bold tracking-tight",
-                        sla.isMissed ? "text-red-600 dark:text-red-400" :
-                        sla.isUrgent ? "text-amber-600 dark:text-amber-400" : "text-green-600 dark:text-green-400"
-                      )}>
-                        {sla.text}
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {formatDistanceToNow(typeof caseDetail.createdAt === "string" ? new Date(caseDetail.createdAt) : caseDetail.createdAt, { addSuffix: true, locale: th })}
                       </p>
+                    </div>
+                  </div>
+
+                  {/* Assigned To */}
+                  <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 shrink-0">
+                      <UserCircle className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">ผู้รับผิดชอบ</p>
+                      {caseDetail.owner ? (
+                        <>
+                          <p className="font-semibold truncate">{caseDetail.owner.name}</p>
+                          <p className="text-xs text-muted-foreground truncate mt-0.5">{caseDetail.owner.role}</p>
+                        </>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">ยังไม่มี</p>
+                      )}
                     </div>
                   </div>
                 </div>
-              )}
+              </div>
+            </CardContent>
+          </Card>
 
-              {/* HERO CARD - Main Problem */}
-              <Card className="border-2">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-2xl font-bold leading-tight">
-                    {caseDetail.title}
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    {caseDetail.caseType?.name} • {caseDetail.source} • {formatDistanceToNow(typeof caseDetail.createdAt === "string" ? new Date(caseDetail.createdAt) : caseDetail.createdAt, { addSuffix: true, locale: th })}
-                  </p>
-                </CardHeader>
-              </Card>
-            </div>
-
-            {/* Sidebar - COMPACT */}
-            <div className="space-y-3">
-              {/* Quick Info */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-bold">ข้อมูลเคส</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 text-sm">
-                  <div className="flex items-start gap-2">
-                    <User className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs text-muted-foreground">ลูกค้า</p>
-                      <p className="font-medium truncate">{caseDetail.customerName || "ไม่ระบุ"}</p>
+          {/* Resolution Card - If Resolved */}
+          {(caseDetail.status === "RESOLVED" || caseDetail.status === "CLOSED") && caseDetail.resolution && (
+            <Card className="border-2 border-green-300 bg-green-50/50 dark:border-green-700 dark:bg-green-950/30">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-500/20 shrink-0">
+                    <CheckCircle2 className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div className="flex-1 space-y-3">
+                    <h3 className="text-xl font-bold text-green-700 dark:text-green-400">แก้ไขเรียบร้อยแล้ว</h3>
+                    {caseDetail.rootCause && (
+                      <div>
+                        <p className="text-sm font-semibold text-green-700/70 dark:text-green-400/70 mb-1">สาเหตุ</p>
+                        <p className="text-sm leading-relaxed">{caseDetail.rootCause}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm font-semibold text-green-700/70 dark:text-green-400/70 mb-1">วิธีแก้ไข</p>
+                      <p className="text-sm leading-relaxed">{caseDetail.resolution}</p>
                     </div>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-                  {caseDetail.customerId && (
-                    <>
-                      <Separator />
-                      <div className="flex items-start gap-2">
-                        <div className="h-4 w-4 shrink-0" />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs text-muted-foreground">ID</p>
-                          <p className="font-mono text-xs truncate">{caseDetail.customerId}</p>
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  {caseDetail.customerContact && (
-                    <>
-                      <Separator />
-                      <div className="flex items-start gap-2">
-                        <div className="h-4 w-4 shrink-0" />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs text-muted-foreground">ติดต่อ</p>
-                          <p className="text-xs truncate">{caseDetail.customerContact}</p>
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  <Separator />
-
-                  {caseDetail.provider && (
-                    <>
-                      <div className="flex items-start gap-2">
-                        <Building2 className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs text-muted-foreground">Provider</p>
-                          <p className="font-medium truncate">{caseDetail.provider.name}</p>
-                        </div>
-                      </div>
-                      <Separator />
-                    </>
-                  )}
-
-                  <div className="flex items-start gap-2">
-                    <Clock className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs text-muted-foreground">สร้างเมื่อ</p>
-                      <p className="text-xs">
-                        {format(typeof caseDetail.createdAt === "string" ? new Date(caseDetail.createdAt) : caseDetail.createdAt, "d MMM yyyy, HH:mm", { locale: th })}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Assigned */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-bold">ผู้รับผิดชอบ</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {caseDetail.owner ? (
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold shrink-0">
-                        {caseDetail.owner.name?.charAt(0).toUpperCase() || "?"}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{caseDetail.owner.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{caseDetail.owner.role}</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">ยังไม่มี</p>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          {/* TABS: รายละเอียด | ประวัติ */}
+          {/* TABS */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="details" className="gap-2">
+            <TabsList className="grid w-full grid-cols-2 h-12">
+              <TabsTrigger value="details" className="gap-2 text-base">
                 <Info className="h-4 w-4" />
                 รายละเอียด
               </TabsTrigger>
-              <TabsTrigger value="timeline" className="gap-2">
+              <TabsTrigger value="timeline" className="gap-2 text-base">
                 <History className="h-4 w-4" />
                 ประวัติ/Log
                 {caseDetail.activities && caseDetail.activities.length > 0 && (
@@ -308,63 +327,31 @@ export default function CaseDetailPage() {
 
             {/* Details Tab */}
             <TabsContent value="details" className="mt-6 space-y-6">
-              {/* Description */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg font-bold flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    รายละเอียดปัญหา
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-base leading-relaxed whitespace-pre-wrap">
-                    {caseDetail.description || "ไม่มีรายละเอียด"}
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Resolution - If Resolved */}
-              {(caseDetail.status === "RESOLVED" || caseDetail.status === "CLOSED") && caseDetail.resolution && (
-                <Card className="border-2 border-green-300 bg-green-50/50 dark:border-green-700 dark:bg-green-950/30">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg font-bold flex items-center gap-2 text-green-700 dark:text-green-400">
-                      <CheckCircle2 className="h-5 w-5" />
-                      แก้ไขแล้ว
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {caseDetail.rootCause && (
-                      <>
-                        <div>
-                          <p className="text-xs font-semibold text-green-700/70 dark:text-green-400/70 mb-1">สาเหตุ</p>
-                          <p className="text-sm">{caseDetail.rootCause}</p>
-                        </div>
-                        <Separator className="bg-green-200 dark:bg-green-800" />
-                      </>
-                    )}
-                    <div>
-                      <p className="text-xs font-semibold text-green-700/70 dark:text-green-400/70 mb-1">วิธีแก้ไข</p>
-                      <p className="text-sm">{caseDetail.resolution}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
               {/* Orders */}
               {caseDetail.orders && caseDetail.orders.length > 0 && (
                 <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg font-bold flex items-center gap-2">
-                      <Package className="h-4 w-4" />
-                      ออเดอร์ ({caseDetail.orders.length})
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Package className="h-5 w-5" />
+                      ออเดอร์ที่เกี่ยวข้อง ({caseDetail.orders.length})
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-2">
+                    <div className="grid gap-3 sm:grid-cols-2">
                       {caseDetail.orders.map((order: Order) => (
-                        <div key={order.id} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors">
-                          <p className="font-mono text-sm font-medium">{order.orderId}</p>
-                          <Badge variant="outline" className="text-xs">{order.status}</Badge>
+                        <div key={order.id} className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                              <Package className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-mono font-semibold">{order.orderId}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {format(typeof order.createdAt === "string" ? new Date(order.createdAt) : order.createdAt, "d MMM yyyy", { locale: th })}
+                              </p>
+                            </div>
+                          </div>
+                          <Badge variant="outline">{order.status}</Badge>
                         </div>
                       ))}
                     </div>
@@ -379,11 +366,14 @@ export default function CaseDetailPage() {
             {/* Timeline Tab */}
             <TabsContent value="timeline" className="mt-6">
               <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg font-bold">ประวัติการดำเนินการ</CardTitle>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <History className="h-5 w-5" />
+                    ประวัติการดำเนินการ
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     {caseDetail.activities && caseDetail.activities.length > 0 ? (
                       caseDetail.activities.map((activity: Activity, index: number) => {
                         const Icon = activityIcons[activity.type] || MessageSquare;
@@ -391,31 +381,31 @@ export default function CaseDetailPage() {
                         return (
                           <div key={activity.id} className="flex gap-4">
                             <div className="relative flex flex-col items-center">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 border-2 border-background ring-2 ring-border shrink-0">
-                                <Icon className="h-3.5 w-3.5 text-primary" />
+                              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 border-2 border-background ring-2 ring-muted shrink-0">
+                                <Icon className="h-4 w-4 text-primary" />
                               </div>
                               {index < caseDetail.activities.length - 1 && (
-                                <div className="absolute top-8 h-full w-px bg-border" />
+                                <div className="absolute top-10 h-full w-px bg-border" />
                               )}
                             </div>
-                            <div className="flex-1 pb-4 min-w-0">
-                              <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 pb-6 min-w-0">
+                              <div className="flex items-start justify-between gap-4 mb-2">
                                 <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-sm">{activity.title}</p>
+                                  <p className="font-semibold">{activity.title}</p>
                                   {activity.description && (
-                                    <p className="mt-1 text-sm text-muted-foreground">{activity.description}</p>
+                                    <p className="mt-1 text-sm text-muted-foreground leading-relaxed">{activity.description}</p>
                                   )}
                                   {activity.user && (
-                                    <p className="mt-1.5 text-xs text-muted-foreground flex items-center gap-1">
+                                    <p className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
                                       <User className="h-3 w-3" />
                                       {activity.user.name}
                                     </p>
                                   )}
                                 </div>
                                 <div className="text-right shrink-0">
-                                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                  <p className="text-sm font-medium">
                                     {format(activityDate, "d MMM, HH:mm", { locale: th })}
-                                  </span>
+                                  </p>
                                   <p className="text-xs text-muted-foreground mt-0.5">
                                     {formatDistanceToNow(activityDate, { addSuffix: true, locale: th })}
                                   </p>
@@ -426,16 +416,19 @@ export default function CaseDetailPage() {
                         );
                       })
                     ) : (
-                      <p className="text-sm text-muted-foreground text-center py-8">ยังไม่มีประวัติ</p>
+                      <div className="text-center py-12">
+                        <History className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
+                        <p className="text-sm text-muted-foreground">ยังไม่มีประวัติการดำเนินการ</p>
+                      </div>
                     )}
                   </div>
 
                   <Separator className="my-6" />
                   
                   <div>
-                    <h3 className="font-medium text-sm mb-3 flex items-center gap-2">
-                      <Edit3 className="h-3.5 w-3.5" />
-                      เพิ่มบันทึก
+                    <h3 className="font-semibold mb-4 flex items-center gap-2">
+                      <Edit3 className="h-4 w-4" />
+                      เพิ่มบันทึกใหม่
                     </h3>
                     <AddNoteForm caseId={caseDetail.id} />
                   </div>
@@ -443,7 +436,6 @@ export default function CaseDetailPage() {
               </Card>
             </TabsContent>
           </Tabs>
-
         </div>
       </div>
     </div>
