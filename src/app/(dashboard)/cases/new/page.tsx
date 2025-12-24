@@ -42,9 +42,10 @@ export default function NewCasePage() {
   // Form state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("");
   const [caseTypeId, setCaseTypeId] = useState("");
-  const [source, setSource] = useState("MANUAL");
-  const [severity, setSeverity] = useState("NORMAL");
+  const [source, setSource] = useState("");
+  const [severity, setSeverity] = useState("");
   const [providerId, setProviderId] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerId, setCustomerId] = useState("");
@@ -54,6 +55,14 @@ export default function NewCasePage() {
 
   // Get selected case type to check requirements
   const selectedCaseType = caseTypes.find((t) => t.id === caseTypeId);
+  
+  // Filter case types by selected category
+  const filteredCaseTypes = category
+    ? caseTypes.filter((t) => t.category === category)
+    : [];
+
+  // Get unique categories
+  const categories = Array.from(new Set(caseTypes.map((t) => t.category)));
 
   useEffect(() => {
     // Load case types and providers
@@ -73,9 +82,28 @@ export default function NewCasePage() {
     }
   }, [selectedCaseType]);
 
+  // Reset case type when category changes
+  useEffect(() => {
+    setCaseTypeId("");
+    setSeverity("");
+  }, [category]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+
+    // Validate required fields
+    if (!source) {
+      toast.error("กรุณาเลือกแหล่งที่มา");
+      setIsLoading(false);
+      return;
+    }
+
+    if (!severity) {
+      toast.error("กรุณาเลือกความรุนแรง");
+      setIsLoading(false);
+      return;
+    }
 
     // Validate required fields based on case type
     if (selectedCaseType?.requireProvider && (!providerId || providerId === "none")) {
@@ -192,20 +220,25 @@ export default function NewCasePage() {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>ประเภทเคส *</Label>
+                  <Label>หมวดหมู่ *</Label>
                   <Select 
-                    value={caseTypeId} 
-                    onValueChange={setCaseTypeId}
+                    value={category} 
+                    onValueChange={setCategory}
                     required
                     disabled={isLoading}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="เลือกประเภท" />
+                      <SelectValue placeholder="เลือกหมวดหมู่" />
                     </SelectTrigger>
                     <SelectContent>
-                      {caseTypes.map((type) => (
-                        <SelectItem key={type.id} value={type.id}>
-                          {type.name}
+                      {categories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat === "PAYMENT" && "การชำระเงิน"}
+                          {cat === "ORDER" && "ออเดอร์"}
+                          {cat === "SYSTEM" && "ระบบ"}
+                          {cat === "PROVIDER" && "Provider"}
+                          {cat === "TECHNICAL" && "เทคนิค"}
+                          {cat === "OTHER" && "อื่นๆ"}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -213,14 +246,38 @@ export default function NewCasePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>แหล่งที่มา</Label>
+                  <Label>ประเภทเคส *</Label>
+                  <Select 
+                    value={caseTypeId} 
+                    onValueChange={setCaseTypeId}
+                    required
+                    disabled={isLoading || !category}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={category ? "เลือกประเภทเคส" : "เลือกหมวดหมู่ก่อน"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredCaseTypes.map((type) => (
+                        <SelectItem key={type.id} value={type.id}>
+                          {type.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>แหล่งที่มา *</Label>
                   <Select 
                     value={source} 
                     onValueChange={setSource}
+                    required
                     disabled={isLoading}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="เลือกแหล่งที่มา" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="LINE">Line</SelectItem>
@@ -230,18 +287,17 @@ export default function NewCasePage() {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>ความรุนแรง</Label>
+                  <Label>ความรุนแรง *</Label>
                   <Select 
                     value={severity} 
                     onValueChange={setSeverity}
+                    required
                     disabled={isLoading}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="เลือกความรุนแรง" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="CRITICAL">วิกฤต</SelectItem>
@@ -251,30 +307,30 @@ export default function NewCasePage() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
 
-                <div className="space-y-2">
-                  <Label>
-                    Provider {selectedCaseType?.requireProvider && <span className="text-red-500">*</span>}
-                  </Label>
-                  <Select 
-                    value={providerId} 
-                    onValueChange={setProviderId}
-                    disabled={isLoading}
-                    required={selectedCaseType?.requireProvider}
-                  >
-                    <SelectTrigger className={selectedCaseType?.requireProvider && !providerId ? "border-red-500" : ""}>
-                      <SelectValue placeholder={selectedCaseType?.requireProvider ? "เลือก Provider" : "เลือก Provider (ถ้ามี)"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {!selectedCaseType?.requireProvider && <SelectItem value="none">ไม่ระบุ</SelectItem>}
-                      {providers.map((provider) => (
-                        <SelectItem key={provider.id} value={provider.id}>
-                          {provider.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label>
+                  Provider {selectedCaseType?.requireProvider && <span className="text-red-500">*</span>}
+                </Label>
+                <Select 
+                  value={providerId} 
+                  onValueChange={setProviderId}
+                  disabled={isLoading}
+                  required={selectedCaseType?.requireProvider}
+                >
+                  <SelectTrigger className={selectedCaseType?.requireProvider && !providerId ? "border-red-500" : ""}>
+                    <SelectValue placeholder={selectedCaseType?.requireProvider ? "เลือก Provider" : "เลือก Provider (ถ้ามี)"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {!selectedCaseType?.requireProvider && <SelectItem value="none">ไม่ระบุ</SelectItem>}
+                    {providers.map((provider) => (
+                      <SelectItem key={provider.id} value={provider.id}>
+                        {provider.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Order Info - Show if requireOrderId is true */}
@@ -369,8 +425,11 @@ export default function NewCasePage() {
               type="submit" 
               disabled={
                 isLoading || 
+                !category ||
                 !caseTypeId || 
                 !title ||
+                !source ||
+                !severity ||
                 (selectedCaseType?.requireProvider && (!providerId || providerId === "none")) ||
                 (selectedCaseType?.requireOrderId && !orderId)
               }
