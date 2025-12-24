@@ -15,6 +15,18 @@ import { cn } from "@/lib/utils";
 import prisma from "@/lib/prisma";
 import Link from "next/link";
 
+interface Provider {
+  id: string;
+  name: string;
+  type: string;
+  totalCases: number;
+  resolvedCases: number;
+  avgResolutionMinutes: number | null;
+  refundRate: number | null;
+  riskLevel: string;
+  isActive: boolean;
+}
+
 const riskLabels: Record<string, { label: string; className: string }> = {
   LOW: { label: "ต่ำ", className: "bg-green-500/10 text-green-600 dark:text-green-400" },
   MEDIUM: { label: "ปานกลาง", className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
@@ -37,14 +49,14 @@ export default async function ProvidersPage() {
   const providers = await getProvidersData();
 
   // Calculate summary stats
-  const totalCases = providers.reduce((sum: number, p) => sum + p.totalCases, 0);
+  const totalCases = providers.reduce((sum: number, p: Provider) => sum + p.totalCases, 0);
   const avgResolution = totalCases > 0 
     ? Math.round(
-        providers.reduce((sum: number, p) => sum + (p.avgResolutionMinutes || 0) * p.totalCases, 0) / totalCases
+        providers.reduce((sum: number, p: Provider) => sum + (p.avgResolutionMinutes || 0) * p.totalCases, 0) / totalCases
       )
     : 0;
   const highRiskCount = providers.filter(
-    (p) => p.riskLevel === "HIGH" || p.riskLevel === "CRITICAL"
+    (p: Provider) => p.riskLevel === "HIGH" || p.riskLevel === "CRITICAL"
   ).length;
 
   return (
@@ -63,7 +75,7 @@ export default async function ProvidersPage() {
             <CardContent>
               <div className="text-3xl font-bold">{providers.length}</div>
               <p className="text-xs text-muted-foreground">
-                Active: {providers.filter((p) => p.isActive).length}
+                Active: {providers.filter((p: Provider) => p.isActive).length}
               </p>
             </CardContent>
           </Card>
@@ -137,7 +149,7 @@ export default async function ProvidersPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                providers.map((provider) => (
+                providers.map((provider: Provider) => (
                   <TableRow key={provider.id} className="cursor-pointer">
                     <TableCell className="font-medium">
                       <Link href={`/providers/${provider.id}`} className="hover:underline">
