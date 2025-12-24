@@ -143,7 +143,9 @@ export function CasesFilters() {
 
   const handleCategoryChange = (value: string) => {
     startTransition(() => {
-      router.push(`/cases?${createQueryString({ category: value })}`);
+      // เมื่อเปลี่ยนหมวดหมู่ ให้ล้าง caseType ด้วย
+      const newParams: Record<string, string | null> = { category: value, caseType: null };
+      router.push(`/cases?${createQueryString(newParams)}`);
     });
   };
 
@@ -178,6 +180,11 @@ export function CasesFilters() {
   // Show first 5 statuses by default, all when expanded
   const visibleStatuses = showAllStatuses ? statusOptions : statusOptions.slice(0, 5);
 
+  // Filter case types by selected category
+  const filteredCaseTypes = category && category !== "all"
+    ? caseTypes.filter(type => type.category === category)
+    : caseTypes;
+
   return (
     <div className="space-y-4">
       {/* Row 1: Search + Clear All */}
@@ -204,6 +211,43 @@ export function CasesFilters() {
             ล้างตัวกรอง
           </Button>
         )}
+      </div>
+
+      {/* Row 2: Category Tabs (แสดงเป็นแถบ) */}
+      <div className="flex flex-wrap items-center gap-2 pb-3 border-b">
+        {categoryOptions.map((cat) => {
+          const IconComponent = cat.icon;
+          const isActive = (category || "all") === cat.value;
+          const count = cat.value === "all" 
+            ? caseTypes.length 
+            : caseTypes.filter(t => t.category === cat.value).length;
+          
+          return (
+            <Button
+              key={cat.value}
+              variant={isActive ? "default" : "ghost"}
+              size="sm"
+              className={cn(
+                "gap-1.5 transition-all",
+                isActive && "shadow-md"
+              )}
+              onClick={() => handleCategoryChange(cat.value)}
+              disabled={isPending}
+            >
+              <IconComponent className="h-4 w-4" />
+              <span>{cat.label}</span>
+              <Badge 
+                variant={isActive ? "secondary" : "outline"} 
+                className={cn(
+                  "ml-1 h-5 px-1.5 text-xs",
+                  isActive && "bg-background/20 text-primary-foreground border-primary-foreground/20"
+                )}
+              >
+                {count}
+              </Badge>
+            </Button>
+          );
+        })}
       </div>
 
       {/* Row 2: Status Tabs */}
@@ -253,7 +297,7 @@ export function CasesFilters() {
         </div>
       </div>
 
-      {/* Row 3: Severity + Category + Case Type */}
+      {/* Row 3: Severity + Case Type (แสดงเฉพาะ Case Type ตาม Category ที่เลือก) */}
       <div className="flex flex-wrap items-center gap-4">
         {/* Severity */}
         <div className="flex items-center gap-2">
@@ -281,34 +325,7 @@ export function CasesFilters() {
           </div>
         </div>
 
-        {/* Category */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-muted-foreground">หมวดหมู่:</span>
-          <Select
-            value={category || "all"}
-            onValueChange={handleCategoryChange}
-            disabled={isPending}
-          >
-            <SelectTrigger className="h-7 w-[140px] text-xs">
-              <SelectValue placeholder="ทุกหมวด" />
-            </SelectTrigger>
-            <SelectContent>
-              {categoryOptions.map((opt) => {
-                const IconComponent = opt.icon;
-                return (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    <span className="flex items-center gap-1.5">
-                      <IconComponent className="h-3.5 w-3.5" />
-                      <span>{opt.label}</span>
-                    </span>
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Case Type */}
+        {/* Case Type - แสดงเฉพาะประเภทที่ตรงกับ Category */}
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-muted-foreground">ประเภท:</span>
           <Select
@@ -316,7 +333,7 @@ export function CasesFilters() {
             onValueChange={handleCaseTypeChange}
             disabled={isPending}
           >
-            <SelectTrigger className="h-7 w-[160px] text-xs">
+            <SelectTrigger className="h-7 w-[180px] text-xs">
               <SelectValue placeholder="ทุกประเภท" />
             </SelectTrigger>
             <SelectContent>
@@ -324,9 +341,12 @@ export function CasesFilters() {
                 <span className="flex items-center gap-1.5">
                   <Clipboard className="h-3.5 w-3.5" />
                   <span>ทุกประเภท</span>
+                  <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-xs">
+                    {filteredCaseTypes.length}
+                  </Badge>
                 </span>
               </SelectItem>
-              {caseTypes.map((type) => (
+              {filteredCaseTypes.map((type) => (
                 <SelectItem key={type.id} value={type.id}>
                   {type.name}
                 </SelectItem>
