@@ -168,6 +168,7 @@ export async function POST(request: NextRequest) {
         severity: newCase.severity,
         customerName: newCase.customerName || undefined,
         providerName: newCase.provider?.name,
+        slaDeadline: newCase.slaDeadline,
       }).catch(console.error);
     }
 

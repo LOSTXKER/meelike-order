@@ -4,14 +4,14 @@ interface LineMessagePayload {
   channelId?: string;
   event: string;
   caseNumber?: string;
-  caseTitle?: string;
+  title?: string;
   status?: string;
   severity?: string;
   customerName?: string;
   ownerName?: string;
   providerName?: string;
-  slaRemaining?: string;
-  [key: string]: any;
+  slaDeadline?: string;
+  [key: string]: unknown;
 }
 
 /**
@@ -179,17 +179,27 @@ export async function notifyOnCaseEvent(
     customerName?: string;
     ownerName?: string;
     providerName?: string;
+    slaDeadline?: Date | null;
   }
 ) {
+  // Format SLA deadline
+  const slaDeadlineStr = caseData.slaDeadline 
+    ? new Date(caseData.slaDeadline).toLocaleString('th-TH', { 
+        dateStyle: 'short', 
+        timeStyle: 'short' 
+      })
+    : '-';
+
   await sendLineNotification({
     event,
     caseNumber: caseData.caseNumber,
-    caseTitle: caseData.title,
+    title: caseData.title,
     status: caseData.status,
     severity: caseData.severity,
     customerName: caseData.customerName,
     ownerName: caseData.ownerName,
     providerName: caseData.providerName,
+    slaDeadline: slaDeadlineStr,
   });
 }
 
