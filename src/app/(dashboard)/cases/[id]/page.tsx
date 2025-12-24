@@ -292,6 +292,18 @@ export default function CaseDetailPage() {
                 )}
 
                 <FileAttachments caseId={caseDetail.id} onUploadSuccess={() => refetch()} />
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <Edit3 className="h-4 w-4" />
+                      เพิ่มบันทึก
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <AddNoteForm caseId={caseDetail.id} />
+                  </CardContent>
+                </Card>
               </TabsContent>
 
               {/* TAB: Timeline */}
@@ -299,14 +311,6 @@ export default function CaseDetailPage() {
                 <Card>
                   <CardContent className="p-6">
                     <div className="relative space-y-8 before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-border before:to-transparent">
-                      {/* Add Note Input */}
-                      <div className="relative pl-8 mb-8">
-                         <div className="absolute left-0 top-1 h-10 w-10 flex items-center justify-center rounded-full border bg-background z-10">
-                           <Edit3 className="h-4 w-4 text-primary" />
-                         </div>
-                         <AddNoteForm caseId={caseDetail.id} />
-                      </div>
-
                       {/* Activities List */}
                       {caseDetail.activities && caseDetail.activities.map((activity: Activity) => {
                         const Icon = activityIcons[activity.type] || MessageSquare;
