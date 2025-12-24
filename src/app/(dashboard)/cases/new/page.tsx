@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Loader2, Info, Clock, X } from "lucide-react";
+import { ArrowLeft, Loader2, Info, Clock, X, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -60,7 +60,6 @@ export default function NewCasePage() {
   const [providers, setProviders] = useState<Provider[]>([]);
   
   // Form state
-  const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [caseTypeId, setCaseTypeId] = useState("");
@@ -170,7 +169,7 @@ export default function NewCasePage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title,
+          title: selectedCaseType?.name || "เคสใหม่",
           description,
           caseTypeId,
           source,
@@ -222,36 +221,15 @@ export default function NewCasePage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Case Details */}
+          {/* Step 1: เลือกประเภทเคส */}
           <Card>
             <CardHeader>
-              <CardTitle>ข้อมูลเคส</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">1</span>
+                เลือกประเภทเคส
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">หัวข้อ *</Label>
-                <Input
-                  id="title"
-                  placeholder="ระบุหัวข้อปัญหา"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  required
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">รายละเอียด</Label>
-                <Textarea
-                  id="description"
-                  placeholder="อธิบายปัญหาโดยละเอียด..."
-                  className="min-h-[120px]"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  disabled={isLoading}
-                />
-              </div>
-
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>หมวดหมู่ *</Label>
@@ -261,18 +239,18 @@ export default function NewCasePage() {
                     required
                     disabled={isLoading}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-12">
                       <SelectValue placeholder="เลือกหมวดหมู่" />
                     </SelectTrigger>
                     <SelectContent>
                       {categories.map((cat) => (
                         <SelectItem key={cat} value={cat}>
-                          {cat === "PAYMENT" && "การชำระเงิน"}
-                          {cat === "ORDER" && "ออเดอร์"}
-                          {cat === "SYSTEM" && "ระบบ"}
-                          {cat === "PROVIDER" && "Provider"}
-                          {cat === "TECHNICAL" && "เทคนิค"}
-                          {cat === "OTHER" && "อื่นๆ"}
+                          {cat === "PAYMENT" && "💰 การชำระเงิน"}
+                          {cat === "ORDER" && "📦 ออเดอร์"}
+                          {cat === "SYSTEM" && "⚙️ ระบบ"}
+                          {cat === "PROVIDER" && "🏢 Provider"}
+                          {cat === "TECHNICAL" && "🔧 เทคนิค"}
+                          {cat === "OTHER" && "📋 อื่นๆ"}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -287,7 +265,7 @@ export default function NewCasePage() {
                     required
                     disabled={isLoading || !category}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-12">
                       <SelectValue placeholder={category ? "เลือกประเภทเคส" : "เลือกหมวดหมู่ก่อน"} />
                     </SelectTrigger>
                     <SelectContent>
@@ -317,106 +295,138 @@ export default function NewCasePage() {
 
               {/* Selected Case Type Info */}
               {selectedCaseType && (
-                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900/50 dark:bg-blue-950/30">
+                <div className="rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-900/50 dark:bg-green-950/30">
                   <div className="flex items-start gap-3">
-                    <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500/20">
+                      <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    </div>
                     <div className="flex-1">
-                      <h4 className="font-medium text-blue-900 dark:text-blue-100">
-                        {selectedCaseType.name}
+                      <h4 className="font-semibold text-green-900 dark:text-green-100">
+                        หัวข้อ: {selectedCaseType.name}
                       </h4>
                       {selectedCaseType.description && (
-                        <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                        <p className="text-sm text-green-700 dark:text-green-300 mt-1">
                           {selectedCaseType.description}
                         </p>
                       )}
                       <div className="flex flex-wrap gap-3 mt-2 text-xs">
-                        <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+                        <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
                           <Clock className="h-3 w-3" />
                           <span>SLA: {selectedCaseType.defaultSlaMinutes} นาที</span>
                         </div>
                         {selectedCaseType.requireProvider && (
-                          <span className="text-orange-600 dark:text-orange-400">• ต้องระบุ Provider</span>
+                          <Badge variant="outline" className="text-orange-600 dark:text-orange-400 border-orange-300">
+                            ต้องระบุ Provider
+                          </Badge>
                         )}
                         {selectedCaseType.requireOrderId && (
-                          <span className="text-orange-600 dark:text-orange-400">• ต้องระบุ Order ID</span>
+                          <Badge variant="outline" className="text-orange-600 dark:text-orange-400 border-orange-300">
+                            ต้องระบุ Order ID
+                          </Badge>
                         )}
                       </div>
                     </div>
                   </div>
                 </div>
               )}
+            </CardContent>
+          </Card>
 
-              <div className="grid gap-4 sm:grid-cols-2">
+          {/* Step 2: รายละเอียดเคส - แสดงหลังเลือกประเภทเคส */}
+          {selectedCaseType && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">2</span>
+                  รายละเอียดเคส
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* รายละเอียด */}
                 <div className="space-y-2">
-                  <Label>แหล่งที่มา *</Label>
-                  <Select 
-                    value={source} 
-                    onValueChange={setSource}
-                    required
+                  <Label htmlFor="description">รายละเอียดปัญหา</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="อธิบายปัญหาโดยละเอียด เช่น เกิดอะไรขึ้น, เวลาที่เกิดปัญหา, ข้อมูลเพิ่มเติม..."
+                    className="min-h-[100px]"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
                     disabled={isLoading}
+                  />
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>แหล่งที่มา *</Label>
+                    <Select 
+                      value={source} 
+                      onValueChange={setSource}
+                      required
+                      disabled={isLoading}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="เลือกแหล่งที่มา" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="LINE">📱 Line</SelectItem>
+                        <SelectItem value="TICKET">🎫 Ticket</SelectItem>
+                        <SelectItem value="API">🔗 API</SelectItem>
+                        <SelectItem value="MANUAL">✍️ สร้างเอง</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>ความรุนแรง *</Label>
+                    <Select 
+                      value={severity} 
+                      onValueChange={setSeverity}
+                      required
+                      disabled={isLoading}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="เลือกความรุนแรง" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="CRITICAL">🔴 วิกฤต</SelectItem>
+                        <SelectItem value="HIGH">🟠 สูง</SelectItem>
+                        <SelectItem value="NORMAL">🔵 ปกติ</SelectItem>
+                        <SelectItem value="LOW">⚪ ต่ำ</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Provider */}
+                <div className="space-y-2">
+                  <Label>
+                    Provider {selectedCaseType?.requireProvider && <span className="text-red-500">*</span>}
+                  </Label>
+                  <Select 
+                    value={providerId} 
+                    onValueChange={setProviderId}
+                    disabled={isLoading}
+                    required={selectedCaseType?.requireProvider}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="เลือกแหล่งที่มา" />
+                    <SelectTrigger className={selectedCaseType?.requireProvider && !providerId ? "border-red-500" : ""}>
+                      <SelectValue placeholder={selectedCaseType?.requireProvider ? "เลือก Provider" : "เลือก Provider (ถ้ามี)"} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="LINE">Line</SelectItem>
-                      <SelectItem value="TICKET">Ticket</SelectItem>
-                      <SelectItem value="API">API</SelectItem>
-                      <SelectItem value="MANUAL">สร้างเอง</SelectItem>
+                      {!selectedCaseType?.requireProvider && <SelectItem value="none">ไม่ระบุ</SelectItem>}
+                      {providers.map((provider) => (
+                        <SelectItem key={provider.id} value={provider.id}>
+                          {provider.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-
-                <div className="space-y-2">
-                  <Label>ความรุนแรง *</Label>
-                  <Select 
-                    value={severity} 
-                    onValueChange={setSeverity}
-                    required
-                    disabled={isLoading}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="เลือกความรุนแรง" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="CRITICAL">วิกฤต</SelectItem>
-                      <SelectItem value="HIGH">สูง</SelectItem>
-                      <SelectItem value="NORMAL">ปกติ</SelectItem>
-                      <SelectItem value="LOW">ต่ำ</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>
-                  Provider {selectedCaseType?.requireProvider && <span className="text-red-500">*</span>}
-                </Label>
-                <Select 
-                  value={providerId} 
-                  onValueChange={setProviderId}
-                  disabled={isLoading}
-                  required={selectedCaseType?.requireProvider}
-                >
-                  <SelectTrigger className={selectedCaseType?.requireProvider && !providerId ? "border-red-500" : ""}>
-                    <SelectValue placeholder={selectedCaseType?.requireProvider ? "เลือก Provider" : "เลือก Provider (ถ้ามี)"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {!selectedCaseType?.requireProvider && <SelectItem value="none">ไม่ระบุ</SelectItem>}
-                    {providers.map((provider) => (
-                      <SelectItem key={provider.id} value={provider.id}>
-                        {provider.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
 
               {/* Order Info - Show if requireOrderId is true */}
               {selectedCaseType?.requireOrderId && (
                 <div className="pt-4 border-t">
-                  <h3 className="font-medium mb-4">
-                    ข้อมูล Order <span className="text-red-500">*</span>
+                  <h3 className="font-medium mb-4 flex items-center gap-2">
+                    📋 ข้อมูล Order <span className="text-red-500">*</span>
                   </h3>
                   <div className="space-y-3">
                     {/* Order ID Input */}
@@ -493,11 +503,15 @@ export default function NewCasePage() {
               )}
             </CardContent>
           </Card>
+          )}
 
-          {/* Customer Info */}
+          {/* Step 3: Customer Info */}
           <Card>
             <CardHeader>
-              <CardTitle>ข้อมูลลูกค้า</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs text-muted-foreground">3</span>
+                ข้อมูลลูกค้า (ไม่บังคับ)
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
@@ -550,7 +564,6 @@ export default function NewCasePage() {
                 isLoading || 
                 !category ||
                 !caseTypeId || 
-                !title ||
                 !source ||
                 !severity ||
                 (selectedCaseType?.requireProvider && (!providerId || providerId === "none")) ||
