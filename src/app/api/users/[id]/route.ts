@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
 import { hash } from "bcryptjs";
+import { requireAdmin, canModify } from "@/lib/auth-helpers";
 
 // GET /api/users/[id] - Get user details
 export async function GET(
@@ -62,8 +63,8 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
 
-    // Only admin can update other users, or users can update themselves
-    if (session.user.role !== "ADMIN" && session.user.id !== id) {
+    // Admin/CEO can update anyone, or users can update themselves
+    if (!canModify(session, id) && session.user.id !== id) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -72,8 +73,8 @@ export async function PATCH(
     if (body.name !== undefined) updateData.name = body.name;
     if (body.email !== undefined) updateData.email = body.email;
 
-    // Only admin can change role and active status
-    if (session.user.role === "ADMIN") {
+    // Only admin/CEO can change role and active status
+    if (session.user.role === "ADMIN" || session.user.role === "CEO") {
       if (body.role !== undefined) updateData.role = body.role;
       if (body.isActive !== undefined) updateData.isActive = body.isActive;
     }
@@ -111,8 +112,8 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "ADMIN") {
+  const { authorized, session } = await requireAdmin();
+  if (!authorized || !session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
