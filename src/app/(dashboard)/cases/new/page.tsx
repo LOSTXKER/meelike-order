@@ -250,13 +250,11 @@ export default function NewCasePage() {
                             {cat === "ORDER" && <Package className="h-3.5 w-3.5" />}
                             {cat === "SYSTEM" && <Settings className="h-3.5 w-3.5" />}
                             {cat === "PROVIDER" && <Building2 className="h-3.5 w-3.5" />}
-                            {cat === "TECHNICAL" && <Wrench className="h-3.5 w-3.5" />}
                             {cat === "OTHER" && <FileText className="h-3.5 w-3.5" />}
                             {cat === "PAYMENT" && "การชำระเงิน"}
                             {cat === "ORDER" && "ออเดอร์"}
                             {cat === "SYSTEM" && "ระบบ"}
                             {cat === "PROVIDER" && "Provider"}
-                            {cat === "TECHNICAL" && "เทคนิค"}
                             {cat === "OTHER" && "อื่นๆ"}
                           </span>
                         </SelectItem>

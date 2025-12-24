@@ -64,14 +64,13 @@ const severityOptions = [
   { value: "LOW", label: "ต่ำ", icon: CheckCircle2, color: "text-green-600 dark:text-green-400" },
 ];
 
-// Category options with icons
+// Category options with icons (match schema enum)
 const categoryOptions = [
   { value: "all", label: "ทุกหมวด", icon: Tag },
   { value: "PAYMENT", label: "การชำระเงิน", icon: DollarSign },
   { value: "ORDER", label: "ออเดอร์", icon: Package },
   { value: "SYSTEM", label: "ระบบ", icon: Settings },
   { value: "PROVIDER", label: "Provider", icon: Building2 },
-  { value: "TECHNICAL", label: "เทคนิค", icon: Wrench },
   { value: "OTHER", label: "อื่นๆ", icon: FileText },
 ];
 
@@ -93,12 +92,25 @@ const severityLabels: Record<string, string> = {
   LOW: "ต่ำ",
 };
 
+// Case counts by category
+interface CaseCounts {
+  all: number;
+  PAYMENT: number;
+  ORDER: number;
+  SYSTEM: number;
+  PROVIDER: number;
+  OTHER: number;
+}
+
 export function CasesFilters() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [searchValue, setSearchValue] = useState(searchParams.get("search") || "");
   const [caseTypes, setCaseTypes] = useState<CaseType[]>([]);
+  const [caseCounts, setCaseCounts] = useState<CaseCounts>({
+    all: 0, PAYMENT: 0, ORDER: 0, SYSTEM: 0, PROVIDER: 0, OTHER: 0
+  });
   const [showAllStatuses, setShowAllStatuses] = useState(false);
 
   useEffect(() => {
@@ -107,6 +119,12 @@ export function CasesFilters() {
       .then((res) => res.json())
       .then((data) => setCaseTypes(data))
       .catch((err) => console.error("Failed to load case types:", err));
+
+    // Fetch case counts by category
+    fetch("/api/cases/counts")
+      .then((res) => res.json())
+      .then((data) => setCaseCounts(data))
+      .catch((err) => console.error("Failed to load case counts:", err));
   }, []);
 
   const createQueryString = useCallback(
@@ -219,9 +237,10 @@ export function CasesFilters() {
         {categoryOptions.map((cat) => {
           const IconComponent = cat.icon;
           const isActive = (category || "all") === cat.value;
+          // ใช้ caseCounts แทน caseTypes.length
           const count = cat.value === "all" 
-            ? caseTypes.length 
-            : caseTypes.filter(t => t.category === cat.value).length;
+            ? caseCounts.all 
+            : caseCounts[cat.value as keyof CaseCounts] || 0;
           
           return (
             <Button
@@ -342,9 +361,6 @@ export function CasesFilters() {
                 <span className="flex items-center gap-1.5">
                   <Clipboard className="h-3.5 w-3.5" />
                   <span>ทุกประเภท</span>
-                  <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-xs">
-                    {filteredCaseTypes.length}
-                  </Badge>
                 </span>
               </SelectItem>
               {filteredCaseTypes.map((type) => (
@@ -360,13 +376,12 @@ export function CasesFilters() {
   );
 }
 
-// Category labels for display
+// Category labels for display (match schema enum)
 const categoryLabels: Record<string, string> = {
   PAYMENT: "การชำระเงิน",
   ORDER: "ออเดอร์",
   SYSTEM: "ระบบ",
   PROVIDER: "Provider",
-  TECHNICAL: "เทคนิค",
   OTHER: "อื่นๆ",
 };
 

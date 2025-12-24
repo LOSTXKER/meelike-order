@@ -60,7 +60,6 @@ const categoryLabels: Record<string, string> = {
   ORDER: "ออเดอร์",
   SYSTEM: "ระบบ",
   PROVIDER: "Provider",
-  TECHNICAL: "เทคนิค",
   OTHER: "อื่นๆ",
 };
 

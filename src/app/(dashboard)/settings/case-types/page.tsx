@@ -77,7 +77,6 @@ const categoryOptions = [
   { value: "ORDER", label: "ออเดอร์", icon: Package },
   { value: "SYSTEM", label: "ระบบ", icon: Settings },
   { value: "PROVIDER", label: "Provider", icon: Building2 },
-  { value: "TECHNICAL", label: "เทคนิค", icon: Wrench },
   { value: "OTHER", label: "อื่นๆ", icon: FileText },
 ];
 
@@ -86,7 +85,6 @@ const categoryLabels: Record<string, { label: string; className: string; icon: t
   ORDER: { label: "ออเดอร์", className: "bg-blue-500/10 text-blue-600 dark:text-blue-400", icon: Package },
   SYSTEM: { label: "ระบบ", className: "bg-purple-500/10 text-purple-600 dark:text-purple-400", icon: Settings },
   PROVIDER: { label: "Provider", className: "bg-orange-500/10 text-orange-600 dark:text-orange-400", icon: Building2 },
-  TECHNICAL: { label: "เทคนิค", className: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400", icon: Wrench },
   OTHER: { label: "อื่นๆ", className: "bg-gray-500/10 text-gray-600 dark:text-gray-400", icon: FileText },
 };
 
@@ -398,7 +396,6 @@ export default function CaseTypesPage() {
                         <SelectItem value="ORDER">ออเดอร์</SelectItem>
                         <SelectItem value="SYSTEM">ระบบ</SelectItem>
                         <SelectItem value="PROVIDER">Provider</SelectItem>
-                        <SelectItem value="TECHNICAL">เทคนิค</SelectItem>
                         <SelectItem value="OTHER">อื่นๆ</SelectItem>
                       </SelectContent>
                     </Select>
@@ -671,12 +668,6 @@ export default function CaseTypesPage() {
                                 <span className="flex items-center gap-1.5">
                                   <Building2 className="h-3.5 w-3.5" />
                                   <span>Provider</span>
-                                </span>
-                              </SelectItem>
-                              <SelectItem value="TECHNICAL">
-                                <span className="flex items-center gap-1.5">
-                                  <Wrench className="h-3.5 w-3.5" />
-                                  <span>เทคนิค</span>
                                 </span>
                               </SelectItem>
                               <SelectItem value="OTHER">
