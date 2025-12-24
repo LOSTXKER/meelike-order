@@ -14,14 +14,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
-import { Plus, Clock } from "lucide-react";
+import { Plus, Clock, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useCases } from "@/hooks";
 import { formatDistanceToNow, differenceInMinutes } from "date-fns";
 import { th } from "date-fns/locale";
 import { CasesFilters, ActiveFilterTags } from "./cases-filters";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useTransition } from "react";
 
 const statusLabels: Record<string, { label: string; className: string }> = {
   NEW: { label: "ใหม่", className: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800" },
@@ -80,21 +81,64 @@ interface CaseItem {
 
 export default function CasesPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   
   const status = searchParams.get("status") || undefined;
   const severity = searchParams.get("severity") || undefined;
+  const category = searchParams.get("category") || undefined;
   const caseTypeId = searchParams.get("caseType") || undefined;
   const search = searchParams.get("search") || undefined;
+  const sort = searchParams.get("sort") || "createdAt-desc";
   const page = parseInt(searchParams.get("page") || "1");
   const limit = 20;
 
-  const { data, isLoading } = useCases({ caseTypeId,
+  const { data, isLoading } = useCases({ 
+    caseTypeId,
     status: status !== "all" ? status : undefined,
     severity: severity !== "all" ? severity : undefined,
+    category: category !== "all" ? category : undefined,
     search,
+    sort,
     page,
     limit,
   });
+
+  // Handle column sort
+  const handleSort = (field: string) => {
+    const [currentField, currentOrder] = sort.split("-");
+    let newSort = `${field}-desc`; // Default to desc
+    
+    if (currentField === field) {
+      // Toggle order if same field
+      newSort = currentOrder === "desc" ? `${field}-asc` : `${field}-desc`;
+    }
+    
+    startTransition(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("sort", newSort);
+      params.delete("page"); // Reset to page 1
+      router.push(`/cases?${params.toString()}`);
+    });
+  };
+
+  // Get sort icon for column
+  const getSortIcon = (field: string) => {
+    const [currentField, currentOrder] = sort.split("-");
+    
+    if (currentField !== field) {
+      return <ArrowUpDown className="h-3.5 w-3.5 opacity-50" />;
+    }
+    
+    return currentOrder === "asc" 
+      ? <ArrowUp className="h-3.5 w-3.5" />
+      : <ArrowDown className="h-3.5 w-3.5" />;
+  };
+
+  const isSortActive = (field: string) => {
+    const [currentField] = sort.split("-");
+    return currentField === field;
+  };
 
   if (isLoading || !data) {
     return <LoadingScreen variant="pulse" />;
@@ -133,11 +177,67 @@ export default function CasesPage() {
               <TableRow className="hover:bg-transparent">
                 <TableHead className="w-[140px]">เลขเคส</TableHead>
                 <TableHead>รายละเอียด</TableHead>
-                <TableHead className="w-[100px]">ความรุนแรง</TableHead>
-                <TableHead className="w-[130px]">สถานะ</TableHead>
+                <TableHead className="w-[120px]">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "h-8 px-2 -ml-2 gap-1.5 hover:bg-muted/50",
+                      isSortActive("severity") && "text-primary font-semibold"
+                    )}
+                    onClick={() => handleSort("severity")}
+                    disabled={isPending}
+                  >
+                    ความรุนแรง
+                    {getSortIcon("severity")}
+                  </Button>
+                </TableHead>
+                <TableHead className="w-[140px]">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "h-8 px-2 -ml-2 gap-1.5 hover:bg-muted/50",
+                      isSortActive("status") && "text-primary font-semibold"
+                    )}
+                    onClick={() => handleSort("status")}
+                    disabled={isPending}
+                  >
+                    สถานะ
+                    {getSortIcon("status")}
+                  </Button>
+                </TableHead>
                 <TableHead className="w-[120px]">ผู้รับผิดชอบ</TableHead>
-                <TableHead className="w-[100px]">SLA</TableHead>
-                <TableHead className="w-[120px] text-right">สร้างเมื่อ</TableHead>
+                <TableHead className="w-[100px]">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "h-8 px-2 -ml-2 gap-1.5 hover:bg-muted/50",
+                      isSortActive("slaDeadline") && "text-primary font-semibold"
+                    )}
+                    onClick={() => handleSort("slaDeadline")}
+                    disabled={isPending}
+                  >
+                    SLA
+                    {getSortIcon("slaDeadline")}
+                  </Button>
+                </TableHead>
+                <TableHead className="w-[140px] text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "h-8 px-2 -mr-2 gap-1.5 hover:bg-muted/50",
+                      isSortActive("createdAt") && "text-primary font-semibold"
+                    )}
+                    onClick={() => handleSort("createdAt")}
+                    disabled={isPending}
+                  >
+                    สร้างเมื่อ
+                    {getSortIcon("createdAt")}
+                  </Button>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
