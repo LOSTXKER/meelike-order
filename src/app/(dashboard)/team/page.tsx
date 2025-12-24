@@ -63,15 +63,15 @@ export default function TeamPage() {
   }
 
   const activeMembers = team.filter((m) => m.isActive).length;
-  const totalCasesHandled = team.reduce((sum, m) => sum + m.totalCases, 0);
+  const totalCasesHandled = team.reduce((sum: number, m: TeamMember) => sum + m.totalCases, 0);
   const avgTeamResolution = team.length > 0
     ? Math.round(
-        team.reduce((sum, m) => sum + m.avgResolutionTime, 0) / team.length
+        team.reduce((sum: number, m: TeamMember) => sum + m.avgResolutionTime, 0) / team.length
       )
     : 0;
   const avgResolutionRate = team.length > 0
     ? Math.round(
-        team.reduce((sum, m) => sum + m.resolutionRate, 0) / team.length
+        team.reduce((sum: number, m: TeamMember) => sum + m.resolutionRate, 0) / team.length
       )
     : 0;
 

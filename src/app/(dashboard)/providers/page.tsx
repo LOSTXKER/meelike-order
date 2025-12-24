@@ -37,10 +37,10 @@ export default async function ProvidersPage() {
   const providers = await getProvidersData();
 
   // Calculate summary stats
-  const totalCases = providers.reduce((sum, p) => sum + p.totalCases, 0);
+  const totalCases = providers.reduce((sum: number, p) => sum + p.totalCases, 0);
   const avgResolution = totalCases > 0 
     ? Math.round(
-        providers.reduce((sum, p) => sum + (p.avgResolutionMinutes || 0) * p.totalCases, 0) / totalCases
+        providers.reduce((sum: number, p) => sum + (p.avgResolutionMinutes || 0) * p.totalCases, 0) / totalCases
       )
     : 0;
   const highRiskCount = providers.filter(
