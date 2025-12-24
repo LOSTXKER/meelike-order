@@ -1,8 +1,12 @@
+"use client";
+
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { LoadingScreen } from "@/components/ui/loading-screen";
+import { RefreshButton } from "@/components/ui/refresh-button";
 import {
   ArrowLeft,
   Clock,
@@ -16,12 +20,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import prisma from "@/lib/prisma";
-import { notFound } from "next/navigation";
+import { useCase } from "@/hooks";
 import { formatDistanceToNow, differenceInMinutes, format } from "date-fns";
 import { th } from "date-fns/locale";
 import { CaseActions } from "./case-actions";
 import { AddNoteForm } from "./add-note-form";
+import { useParams } from "next/navigation";
 
 const statusLabels: Record<string, { label: string; className: string }> = {
   NEW: { label: "ใหม่", className: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800" },
@@ -54,11 +58,12 @@ const activityIcons: Record<string, typeof MessageSquare> = {
   REOPENED: ChevronRight,
 };
 
-function formatSlaRemaining(deadline: Date | null): { text: string; isUrgent: boolean; isMissed: boolean } {
+function formatSlaRemaining(deadline: Date | string | null): { text: string; isUrgent: boolean; isMissed: boolean } {
   if (!deadline) return { text: "-", isUrgent: false, isMissed: false };
   
   const now = new Date();
-  const diffMins = differenceInMinutes(deadline, now);
+  const deadlineDate = typeof deadline === "string" ? new Date(deadline) : deadline;
+  const diffMins = differenceInMinutes(deadlineDate, now);
   
   if (diffMins < 0) {
     return { text: `เกิน ${Math.abs(diffMins)} นาที`, isUrgent: false, isMissed: true };
@@ -82,7 +87,7 @@ interface Order {
   orderId: string;
   amount: unknown;
   status: string;
-  createdAt: Date;
+  createdAt: Date | string;
 }
 
 interface Activity {
@@ -90,39 +95,18 @@ interface Activity {
   type: string;
   title: string;
   description: string | null;
-  createdAt: Date;
+  createdAt: Date | string;
   user: { id: string; name: string | null } | null;
 }
 
-interface CaseDetailPageProps {
-  params: Promise<{ id: string }>;
-}
-
-export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
-  const { id } = await params;
+export default function CaseDetailPage() {
+  const params = useParams();
+  const id = params.id as string;
   
-  const caseDetail = await prisma.case.findUnique({
-    where: { id },
-    include: {
-      caseType: true,
-      owner: { select: { id: true, name: true, role: true } },
-      provider: { select: { id: true, name: true } },
-      orders: {
-        include: {
-          provider: { select: { name: true } },
-        },
-      },
-      activities: {
-        include: {
-          user: { select: { id: true, name: true } },
-        },
-        orderBy: { createdAt: "desc" },
-      },
-    },
-  });
+  const { data: caseDetail, isLoading } = useCase(id);
 
-  if (!caseDetail) {
-    notFound();
+  if (isLoading || !caseDetail) {
+    return <LoadingScreen variant="dots" />;
   }
 
   const sla = formatSlaRemaining(caseDetail.slaDeadline);
@@ -159,7 +143,10 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
               <p className="mt-1 text-muted-foreground">{caseDetail.title}</p>
             </div>
           </div>
-          <CaseActions caseId={caseDetail.id} currentStatus={caseDetail.status} />
+          <div className="flex items-center gap-2">
+            <RefreshButton invalidateKeys={[`case-${id}`]} size="sm" />
+            <CaseActions caseId={caseDetail.id} currentStatus={caseDetail.status} />
+          </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
@@ -178,7 +165,7 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
             </Card>
 
             {/* Orders */}
-            {caseDetail.orders.length > 0 && (
+            {caseDetail.orders && caseDetail.orders.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">ออเดอร์ที่เกี่ยวข้อง</CardTitle>
@@ -193,7 +180,7 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
                         <div>
                           <p className="font-mono text-sm font-medium">{order.orderId}</p>
                           <p className="text-sm text-muted-foreground">
-                            {format(order.createdAt, "d MMM yyyy HH:mm", { locale: th })}
+                            {format(typeof order.createdAt === "string" ? new Date(order.createdAt) : order.createdAt, "d MMM yyyy HH:mm", { locale: th })}
                           </p>
                         </div>
                         <div className="text-right">
@@ -216,8 +203,9 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {caseDetail.activities.map((activity: Activity, index: number) => {
+                  {caseDetail.activities && caseDetail.activities.map((activity: Activity, index: number) => {
                     const Icon = activityIcons[activity.type] || MessageSquare;
+                    const activityDate = typeof activity.createdAt === "string" ? new Date(activity.createdAt) : activity.createdAt;
                     return (
                       <div key={activity.id} className="flex gap-4">
                         <div className="relative flex flex-col items-center">
@@ -232,7 +220,7 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
                           <div className="flex items-center justify-between">
                             <p className="font-medium">{activity.title}</p>
                             <span className="text-xs text-muted-foreground">
-                              {format(activity.createdAt, "HH:mm")}
+                              {format(activityDate, "HH:mm")}
                             </span>
                           </div>
                           {activity.description && (
@@ -298,7 +286,7 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
               <CardContent className="space-y-4">
                 <div>
                   <p className="text-xs font-medium uppercase text-muted-foreground">ประเภท</p>
-                  <p className="mt-1">{caseDetail.caseType.name}</p>
+                  <p className="mt-1">{caseDetail.caseType?.name || "-"}</p>
                 </div>
                 <Separator />
                 <div>
@@ -309,10 +297,10 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
                 <div>
                   <p className="text-xs font-medium uppercase text-muted-foreground">สร้างเมื่อ</p>
                   <p className="mt-1 text-sm">
-                    {format(caseDetail.createdAt, "d MMM yyyy HH:mm", { locale: th })}
+                    {format(typeof caseDetail.createdAt === "string" ? new Date(caseDetail.createdAt) : caseDetail.createdAt, "d MMM yyyy HH:mm", { locale: th })}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    ({formatDistanceToNow(caseDetail.createdAt, { addSuffix: true, locale: th })})
+                    ({formatDistanceToNow(typeof caseDetail.createdAt === "string" ? new Date(caseDetail.createdAt) : caseDetail.createdAt, { addSuffix: true, locale: th })})
                   </p>
                 </div>
               </CardContent>
