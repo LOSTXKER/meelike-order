@@ -1,7 +1,10 @@
+"use client";
+
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RefreshButton } from "@/components/ui/refresh-button";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -13,7 +16,7 @@ import {
 } from "@/components/ui/table";
 import { AlertTriangle, TrendingUp, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import prisma from "@/lib/prisma";
+import { useProviders } from "@/hooks";
 import Link from "next/link";
 
 interface Provider {
@@ -35,19 +38,12 @@ const riskLabels: Record<string, { label: string; className: string }> = {
   CRITICAL: { label: "วิกฤต", className: "bg-red-500/10 text-red-600 dark:text-red-400" },
 };
 
-async function getProvidersData() {
-  const providers = await prisma.provider.findMany({
-    orderBy: [
-      { riskLevel: "desc" },
-      { name: "asc" },
-    ],
-  });
+export default function ProvidersPage() {
+  const { data: providers, isLoading } = useProviders();
 
-  return providers;
-}
-
-export default async function ProvidersPage() {
-  const providers = await getProvidersData();
+  if (isLoading || !providers) {
+    return <LoadingScreen variant="pulse" />;
+  }
 
   // Calculate summary stats
   const totalCases = providers.reduce((sum: number, p: Provider) => sum + p.totalCases, 0);
