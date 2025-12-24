@@ -39,16 +39,40 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Plus, Trash2, Shield, Mail, Calendar, RefreshCw } from "lucide-react";
+import { Plus, Trash2, Shield, Mail, Calendar, RefreshCw, Crown, Users, Headphones, UserCog } from "lucide-react";
 import { format } from "date-fns";
 import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from "@/hooks/use-users";
 import { LoadingScreen } from "@/components/ui/loading-screen";
 
 const ROLES = [
-  { value: "ADMIN", label: "Admin", color: "bg-red-500" },
-  { value: "MANAGER", label: "Manager", color: "bg-blue-500" },
-  { value: "SUPPORT", label: "Support", color: "bg-green-500" },
-  { value: "CEO", label: "CEO", color: "bg-purple-500" },
+  { 
+    value: "ADMIN", 
+    label: "Admin", 
+    color: "bg-red-500",
+    icon: UserCog,
+    description: "รับเรื่องจากลูกค้า สร้างเคส แจ้งลูกค้า จัดการผู้ใช้และตั้งค่าระบบ"
+  },
+  { 
+    value: "SUPPORT", 
+    label: "Support", 
+    color: "bg-green-500",
+    icon: Headphones,
+    description: "รับเคสที่ถูกมอบหมาย แก้ไขปัญหา อัพเดทสถานะเคสและออเดอร์"
+  },
+  { 
+    value: "MANAGER", 
+    label: "Manager", 
+    color: "bg-blue-500",
+    icon: Users,
+    description: "ดูแลและมอบหมายงานให้ทีม ช่วยแก้ไขเคสยาก ตรวจสอบ SLA"
+  },
+  { 
+    value: "CEO", 
+    label: "CEO", 
+    color: "bg-purple-500",
+    icon: Crown,
+    description: "สิทธิ์เต็มเหมือน Admin - ดูแลระบบทั้งหมด ดูรายงาน ตัดสินใจ"
+  },
 ];
 
 export default function UsersPage() {
@@ -88,6 +112,18 @@ export default function UsersPage() {
       toast.success(isActive ? "เปิดใช้งานผู้ใช้แล้ว" : "ปิดใช้งานผู้ใช้แล้ว");
     } catch {
       toast.error("ไม่สามารถอัพเดทสถานะได้");
+    }
+  };
+
+  const handleRoleChange = async (id: string, role: string) => {
+    try {
+      await updateUser.mutateAsync({ id, data: { role } });
+      const roleInfo = ROLES.find(r => r.value === role);
+      toast.success("เปลี่ยน Role สำเร็จ", {
+        description: `เปลี่ยนเป็น ${roleInfo?.label} แล้ว`,
+      });
+    } catch {
+      toast.error("ไม่สามารถเปลี่ยน Role ได้");
     }
   };
 
@@ -199,13 +235,31 @@ export default function UsersPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {ROLES.map((role) => (
-                          <SelectItem key={role.value} value={role.value}>
-                            {role.label}
-                          </SelectItem>
-                        ))}
+                        {ROLES.map((role) => {
+                          const IconComponent = role.icon;
+                          return (
+                            <SelectItem key={role.value} value={role.value}>
+                              <div className="flex items-start gap-2">
+                                <IconComponent className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                                <div>
+                                  <div className="font-medium">{role.label}</div>
+                                  <div className="text-xs text-muted-foreground max-w-[250px]">
+                                    {role.description}
+                                  </div>
+                                </div>
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
+                    {/* แสดงคำอธิบาย Role ที่เลือก */}
+                    {formData.role && (
+                      <p className="text-xs text-muted-foreground mt-1 flex items-start gap-1.5 p-2 bg-muted/50 rounded">
+                        <Shield className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                        {ROLES.find(r => r.value === formData.role)?.description}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -303,10 +357,39 @@ export default function UsersPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="gap-1">
-                          <Shield className="h-3 w-3" />
-                          {roleInfo.label}
-                        </Badge>
+                        <Select
+                          value={user.role}
+                          onValueChange={(value) => handleRoleChange(user.id, value)}
+                          disabled={updateUser.isPending}
+                        >
+                          <SelectTrigger className="w-[140px] h-8">
+                            <div className="flex items-center gap-1.5">
+                              {(() => {
+                                const RoleIcon = roleInfo.icon;
+                                return RoleIcon ? <RoleIcon className="h-3.5 w-3.5" /> : <Shield className="h-3.5 w-3.5" />;
+                              })()}
+                              <span className="text-sm">{roleInfo.label}</span>
+                            </div>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ROLES.map((role) => {
+                              const IconComponent = role.icon;
+                              return (
+                                <SelectItem key={role.value} value={role.value}>
+                                  <div className="flex items-start gap-2">
+                                    <IconComponent className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                                    <div>
+                                      <div className="font-medium">{role.label}</div>
+                                      <div className="text-xs text-muted-foreground max-w-[220px]">
+                                        {role.description}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                       <TableCell>
                         <span className="text-sm">
