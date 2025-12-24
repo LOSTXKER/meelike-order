@@ -29,10 +29,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
+import { useCaseTypes } from "@/hooks/use-case-types";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 interface CaseType {
   id: string;
@@ -63,8 +65,7 @@ const severityLabels: Record<string, string> = {
 };
 
 export default function CaseTypesPage() {
-  const [caseTypes, setCaseTypes] = useState<CaseType[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: caseTypes = [], isLoading, refetch, isFetching } = useCaseTypes();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingType, setEditingType] = useState<CaseType | null>(null);
 
@@ -79,18 +80,7 @@ export default function CaseTypesPage() {
   const [description, setDescription] = useState("");
   const [isActive, setIsActive] = useState(true);
 
-  useEffect(() => {
-    loadCaseTypes();
-  }, []);
-
-  const loadCaseTypes = () => {
-    fetch("/api/case-types")
-      .then((r) => r.json())
-      .then((d) => {
-        setCaseTypes(d);
-        setIsLoading(false);
-      });
-  };
+  // Removed useEffect and loadCaseTypes - using React Query hook now
 
   const resetForm = () => {
     setName("");
@@ -158,7 +148,7 @@ export default function CaseTypesPage() {
 
       toast.success(editingType ? "อัพเดทประเภทเคสเรียบร้อย" : "สร้างประเภทเคสเรียบร้อย");
       setIsDialogOpen(false);
-      loadCaseTypes();
+      refetch();
       resetForm();
     } catch (error) {
       console.error(error);
@@ -177,7 +167,7 @@ export default function CaseTypesPage() {
       if (!res.ok) throw new Error("Failed");
 
       toast.success("ลบประเภทเคสเรียบร้อย");
-      loadCaseTypes();
+      refetch();
     } catch (error) {
       console.error(error);
       toast.error("ไม่สามารถลบประเภทเคสได้");
@@ -185,14 +175,7 @@ export default function CaseTypesPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen">
-        <Header title="ประเภทเคส" />
-        <div className="p-6 flex items-center justify-center h-[60vh]">
-          <p className="text-muted-foreground">กำลังโหลดข้อมูล...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen title="กำลังโหลดประเภทเคส" variant="minimal" />;
   }
 
   return (

@@ -6,4 +6,5 @@ export * from "./use-providers";
 export * from "./use-team";
 export * from "./use-case-types";
 export * from "./use-reports";
+export * from "./use-notifications";
 

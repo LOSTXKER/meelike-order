@@ -5,9 +5,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 interface CaseType {
   id: string;
   name: string;
-  description: string | null;
+  category: string;
+  defaultSeverity: string;
   defaultSlaMinutes: number;
+  requireProvider: boolean;
+  requireOrderId: boolean;
   lineNotification: boolean;
+  description: string | null;
   isActive: boolean;
   _count?: {
     cases: number;

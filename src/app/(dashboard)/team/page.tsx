@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -13,9 +14,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
-import { Users, TrendingUp, Clock, CheckCircle2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Users, TrendingUp, Clock, CheckCircle2, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTeam } from "@/hooks/use-team";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 interface TeamMember {
   id: string;
@@ -39,30 +41,13 @@ const roleLabels: Record<string, { label: string; className: string }> = {
 };
 
 export default function TeamPage() {
-  const [team, setTeam] = useState<TeamMember[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/team")
-      .then((r) => r.json())
-      .then((d) => {
-        setTeam(d);
-        setIsLoading(false);
-      });
-  }, []);
+  const { data: team = [], isLoading, refetch, isFetching } = useTeam();
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen">
-        <Header title="ทีมงาน" />
-        <div className="p-6 flex items-center justify-center h-[60vh]">
-          <p className="text-muted-foreground">กำลังโหลดข้อมูล...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen title="กำลังโหลดข้อมูลทีม" variant="dots" />;
   }
 
-  const activeMembers = team.filter((m) => m.isActive).length;
+  const activeMembers = team.filter((m: TeamMember) => m.isActive).length;
   const totalCasesHandled = team.reduce((sum: number, m: TeamMember) => sum + m.totalCases, 0);
   const avgTeamResolution = team.length > 0
     ? Math.round(
@@ -90,6 +75,19 @@ export default function TeamPage() {
       <Header title="ทีมงาน" />
 
       <div className="p-6 space-y-6">
+        {/* Refresh Button */}
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+            disabled={isFetching}
+          >
+            <RefreshCw className={cn("h-4 w-4 mr-2", isFetching && "animate-spin")} />
+            {isFetching ? "กำลังโหลด..." : "รีเฟรช"}
+          </Button>
+        </div>
+
         {/* Stats */}
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
@@ -154,7 +152,7 @@ export default function TeamPage() {
 
         {/* Top Performers */}
         <div className="grid gap-6 lg:grid-cols-3">
-          {team.slice(0, 3).map((member, index) => (
+          {team.slice(0, 3).map((member: TeamMember, index: number) => (
             <Card key={member.id} className={cn(
               index === 0 && "border-amber-200 dark:border-amber-900"
             )}>
@@ -224,7 +222,7 @@ export default function TeamPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {team.map((member) => (
+                {team.map((member: TeamMember) => (
                   <TableRow key={member.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">

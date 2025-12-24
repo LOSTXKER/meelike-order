@@ -23,10 +23,12 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Pencil, Send, MessageSquare, Trash2 } from "lucide-react";
+import { Plus, Pencil, Send, MessageSquare, Trash2, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
+import { useNotificationTemplates, useLineChannels } from "@/hooks/use-notifications";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 interface NotificationTemplate {
   id: string;
@@ -67,13 +69,15 @@ const TEMPLATE_VARIABLES = [
 ];
 
 export default function NotificationsPage() {
-  const [templates, setTemplates] = useState<NotificationTemplate[]>([]);
-  const [channels, setChannels] = useState<LineChannel[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: templates = [], isLoading: templatesLoading, refetch: refetchTemplates, isFetching: templatesFetching } = useNotificationTemplates();
+  const { data: channels = [], isLoading: channelsLoading, refetch: refetchChannels, isFetching: channelsFetching } = useLineChannels();
+  
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [isChannelDialogOpen, setIsChannelDialogOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<NotificationTemplate | null>(null);
   const [editingChannel, setEditingChannel] = useState<LineChannel | null>(null);
+  
+  const isLoading = templatesLoading || channelsLoading;
 
   // Template form state
   const [templateName, setTemplateName] = useState("");
@@ -88,27 +92,7 @@ export default function NotificationsPage() {
   const [channelEvents, setChannelEvents] = useState<string[]>([]);
   const [channelIsActive, setChannelIsActive] = useState(true);
 
-  useEffect(() => {
-    loadTemplates();
-    loadChannels();
-  }, []);
-
-  const loadTemplates = () => {
-    fetch("/api/notifications/templates")
-      .then((r) => r.json())
-      .then((d) => {
-        setTemplates(d);
-        setIsLoading(false);
-      });
-  };
-
-  const loadChannels = () => {
-    fetch("/api/notifications/channels")
-      .then((r) => r.json())
-      .then((d) => {
-        setChannels(d);
-      });
-  };
+  // Removed useEffect and load functions - using React Query hooks now
 
   const resetTemplateForm = () => {
     setTemplateName("");
@@ -176,7 +160,7 @@ export default function NotificationsPage() {
 
       toast.success(editingTemplate ? "อัพเดท Template เรียบร้อย" : "สร้าง Template เรียบร้อย");
       setIsTemplateDialogOpen(false);
-      loadTemplates();
+      refetchTemplates();
       resetTemplateForm();
     } catch (error) {
       console.error(error);
@@ -215,7 +199,7 @@ export default function NotificationsPage() {
 
       toast.success(editingChannel ? "อัพเดท Channel เรียบร้อย" : "เพิ่ม Channel เรียบร้อย");
       setIsChannelDialogOpen(false);
-      loadChannels();
+      refetchChannels();
       resetChannelForm();
     } catch (error) {
       console.error(error);
@@ -232,7 +216,7 @@ export default function NotificationsPage() {
       });
       if (!res.ok) throw new Error("Failed");
       toast.success("ลบ Template เรียบร้อย");
-      loadTemplates();
+      refetchTemplates();
     } catch (error) {
       console.error(error);
       toast.error("ไม่สามารถลบ Template ได้");
@@ -248,7 +232,7 @@ export default function NotificationsPage() {
       });
       if (!res.ok) throw new Error("Failed");
       toast.success("ลบ Channel เรียบร้อย");
-      loadChannels();
+      refetchChannels();
     } catch (error) {
       console.error(error);
       toast.error("ไม่สามารถลบ Channel ได้");
@@ -260,14 +244,7 @@ export default function NotificationsPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen">
-        <Header title="การแจ้งเตือน" />
-        <div className="p-6 flex items-center justify-center h-[60vh]">
-          <p className="text-muted-foreground">กำลังโหลดข้อมูล...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen title="กำลังโหลดการแจ้งเตือน" variant="minimal" />;
   }
 
   return (
