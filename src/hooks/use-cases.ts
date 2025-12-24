@@ -45,7 +45,7 @@ async function fetchCases(filters: CaseFilters): Promise<CasesResponse> {
   const params = new URLSearchParams();
   if (filters.status) params.set("status", filters.status);
   if (filters.severity) params.set("severity", filters.severity);
-  if (filters.caseTypeId) params.set("caseTypeId", filters.caseTypeId);
+  if (filters.caseTypeId) params.set("caseType", filters.caseTypeId);
   if (filters.search) params.set("search", filters.search);
   if (filters.page) params.set("page", filters.page.toString());
   if (filters.limit) params.set("limit", filters.limit.toString());

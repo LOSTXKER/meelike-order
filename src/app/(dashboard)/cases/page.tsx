@@ -83,11 +83,12 @@ export default function CasesPage() {
   
   const status = searchParams.get("status") || undefined;
   const severity = searchParams.get("severity") || undefined;
+  const caseTypeId = searchParams.get("caseType") || undefined;
   const search = searchParams.get("search") || undefined;
   const page = parseInt(searchParams.get("page") || "1");
   const limit = 20;
 
-  const { data, isLoading } = useCases({
+  const { data, isLoading } = useCases({ caseTypeId,
     status: status !== "all" ? status : undefined,
     severity: severity !== "all" ? severity : undefined,
     search,
@@ -225,7 +226,7 @@ export default function CasesPage() {
                 asChild={page > 1}
               >
                 {page > 1 ? (
-                  <Link href={`/cases?page=${page - 1}${status ? `&status=${status}` : ""}${severity ? `&severity=${severity}` : ""}${search ? `&search=${search}` : ""}`}>
+                  <Link href={`/cases?page=${page - 1}${status ? `&status=${status}` : ""}${severity ? `&severity=${severity}` : ""}${caseTypeId ? `&caseType=${caseTypeId}` : ""}${search ? `&search=${search}` : ""}`}>
                     ก่อนหน้า
                   </Link>
                 ) : (
@@ -239,7 +240,7 @@ export default function CasesPage() {
                 asChild={page < totalPages}
               >
                 {page < totalPages ? (
-                  <Link href={`/cases?page=${page + 1}${status ? `&status=${status}` : ""}${severity ? `&severity=${severity}` : ""}${search ? `&search=${search}` : ""}`}>
+                  <Link href={`/cases?page=${page + 1}${status ? `&status=${status}` : ""}${severity ? `&severity=${severity}` : ""}${caseTypeId ? `&caseType=${caseTypeId}` : ""}${search ? `&search=${search}` : ""}`}>
                     ถัดไป
                   </Link>
                 ) : (

@@ -10,13 +10,27 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Search, Filter } from "lucide-react";
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useState, useTransition, useEffect } from "react";
+
+interface CaseType {
+  id: string;
+  name: string;
+}
 
 export function CasesFilters() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [searchValue, setSearchValue] = useState(searchParams.get("search") || "");
+  const [caseTypes, setCaseTypes] = useState<CaseType[]>([]);
+
+  useEffect(() => {
+    // Fetch case types
+    fetch("/api/case-types")
+      .then((res) => res.json())
+      .then((data) => setCaseTypes(data))
+      .catch((err) => console.error("Failed to load case types:", err));
+  }, []);
 
   const createQueryString = useCallback(
     (params: Record<string, string | null>) => {
@@ -47,6 +61,12 @@ export function CasesFilters() {
   const handleSeverityChange = (value: string) => {
     startTransition(() => {
       router.push(`/cases?${createQueryString({ severity: value })}`);
+    });
+  };
+
+  const handleCaseTypeChange = (value: string) => {
+    startTransition(() => {
+      router.push(`/cases?${createQueryString({ caseType: value })}`);
     });
   };
 
@@ -103,6 +123,23 @@ export function CasesFilters() {
           <SelectItem value="HIGH">สูง</SelectItem>
           <SelectItem value="NORMAL">ปกติ</SelectItem>
           <SelectItem value="LOW">ต่ำ</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select
+        defaultValue={searchParams.get("caseType") || "all"}
+        onValueChange={handleCaseTypeChange}
+        disabled={isPending}
+      >
+        <SelectTrigger className="w-[180px]">
+          <SelectValue placeholder="ประเภทเคส" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">ทุกประเภท</SelectItem>
+          {caseTypes.map((type) => (
+            <SelectItem key={type.id} value={type.id}>
+              {type.name}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
     </div>
