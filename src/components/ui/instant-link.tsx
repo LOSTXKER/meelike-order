@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ReactNode, MouseEvent } from "react";
+import { ReactNode, MouseEvent, startTransition } from "react";
 
 interface InstantLinkProps {
   href: string;
@@ -32,7 +32,7 @@ export function InstantLink({ href, children, className }: InstantLinkProps) {
     e.preventDefault();
     
     // Use startTransition for smooth navigation
-    (window as any).startTransition(() => {
+    startTransition(() => {
       router.push(href);
     });
   };

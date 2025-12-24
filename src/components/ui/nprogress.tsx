@@ -11,8 +11,11 @@ export function NavigationProgress() {
 
   useEffect(() => {
     // Reset progress when navigation completes
-    setIsLoading(false);
-    setProgress(100);
+    // Use requestAnimationFrame to avoid synchronous setState in effect
+    requestAnimationFrame(() => {
+      setIsLoading(false);
+      setProgress(100);
+    });
     
     const timeout = setTimeout(() => {
       setProgress(0);

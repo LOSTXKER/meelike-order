@@ -88,7 +88,10 @@ export function Sidebar() {
     const savedTheme = localStorage.getItem("theme");
     const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     const shouldBeDark = savedTheme === "dark" || (!savedTheme && systemDark);
-    setIsDark(shouldBeDark);
+    // Use requestAnimationFrame to avoid synchronous setState in effect
+    requestAnimationFrame(() => {
+      setIsDark(shouldBeDark);
+    });
     document.documentElement.classList.toggle("dark", shouldBeDark);
   }, []);
 
