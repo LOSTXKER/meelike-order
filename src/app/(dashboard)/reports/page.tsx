@@ -2,6 +2,7 @@
 
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   BarChart,
   Bar,
@@ -17,31 +18,10 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { TrendingUp, TrendingDown, Clock, CheckCircle2, AlertCircle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { TrendingUp, TrendingDown, Clock, CheckCircle2, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface ReportsData {
-  casesByStatus: Record<string, number>;
-  casesBySeverity: Record<string, number>;
-  casesByCategory: Array<{ name: string; category: string; count: number }>;
-  monthlyTrend: Array<{ month: string; total: number; resolved: number }>;
-  avgResolutionTime: number;
-  slaCompliance: number;
-  topProviders: Array<{
-    name: string;
-    totalCases: number;
-    resolvedCases: number;
-    refundRate: number | null;
-  }>;
-  teamPerformance: Array<{
-    id: string;
-    name: string | null;
-    role: string;
-    casesThisMonth: number;
-  }>;
-  growth: number;
-}
+import { useReports } from "@/hooks/use-reports";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 const COLORS = {
   primary: "#2563eb",
@@ -70,24 +50,18 @@ const SEVERITY_COLORS: Record<string, string> = {
 };
 
 export default function ReportsPage() {
-  const [data, setData] = useState<ReportsData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data, isLoading, refetch, isFetching } = useReports();
 
-  useEffect(() => {
-    fetch("/api/reports")
-      .then((r) => r.json())
-      .then((d) => {
-        setData(d);
-        setIsLoading(false);
-      });
-  }, []);
+  if (isLoading) {
+    return <LoadingScreen title="กำลังโหลดรายงาน" variant="default" />;
+  }
 
-  if (isLoading || !data) {
+  if (!data) {
     return (
       <div className="min-h-screen">
         <Header title="รายงานและสถิติ" />
         <div className="p-6 flex items-center justify-center h-[60vh]">
-          <p className="text-muted-foreground">กำลังโหลดข้อมูล...</p>
+          <p className="text-muted-foreground">ไม่พบข้อมูล</p>
         </div>
       </div>
     );
@@ -108,6 +82,19 @@ export default function ReportsPage() {
       <Header title="รายงานและสถิติ" />
 
       <div className="p-6 space-y-6">
+        {/* Refresh Button */}
+        <div className="flex justify-end items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+            disabled={isFetching}
+          >
+            <RefreshCw className={cn("h-4 w-4 mr-2", isFetching && "animate-spin")} />
+            {isFetching ? "กำลังโหลด..." : "รีเฟรช"}
+          </Button>
+        </div>
+
         {/* KPI Cards */}
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
