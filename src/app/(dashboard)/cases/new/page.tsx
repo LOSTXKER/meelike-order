@@ -13,7 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Loader2, Info, Clock } from "lucide-react";
+import { ArrowLeft, Loader2, Info, Clock, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -69,8 +70,8 @@ export default function NewCasePage() {
   const [customerName, setCustomerName] = useState("");
   const [customerId, setCustomerId] = useState("");
   const [customerContact, setCustomerContact] = useState("");
-  const [orderId, setOrderId] = useState("");
-  const [amount, setAmount] = useState("");
+  const [orderIds, setOrderIds] = useState<string[]>([]);
+  const [orderIdInput, setOrderIdInput] = useState("");
 
   // Get selected case type to check requirements
   const selectedCaseType = caseTypes.find((t) => t.id === caseTypeId);
@@ -147,8 +148,8 @@ export default function NewCasePage() {
       return;
     }
 
-    if (selectedCaseType?.requireOrderId && !orderId) {
-      toast.error("กรุณากรอก Order ID", {
+    if (selectedCaseType?.requireOrderId && orderIds.length === 0) {
+      toast.error("กรุณากรอก Order ID อย่างน้อย 1 รายการ", {
         description: "ประเภทเคสนี้ต้องระบุ Order ID",
       });
       setIsLoading(false);
@@ -156,14 +157,14 @@ export default function NewCasePage() {
     }
 
     try {
-      const orders = [];
-      if (orderId && providerId && providerId !== "none") {
-        orders.push({
-          orderId,
-          amount: amount ? parseFloat(amount) : 0,
-          providerId,
-        });
-      }
+      // Create orders array from orderIds
+      const orders = orderIds
+        .filter((id) => id.trim())
+        .map((orderId) => ({
+          orderId: orderId.trim(),
+          amount: 0,
+          providerId: providerId && providerId !== "none" ? providerId : undefined,
+        }));
 
       const res = await fetch("/api/cases", {
         method: "POST",
@@ -414,35 +415,79 @@ export default function NewCasePage() {
               {/* Order Info - Show if requireOrderId is true */}
               {selectedCaseType?.requireOrderId && (
                 <div className="pt-4 border-t">
-                  <h3 className="font-medium mb-4">ข้อมูล Order</h3>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="orderId">
-                        Order ID <span className="text-red-500">*</span>
-                      </Label>
+                  <h3 className="font-medium mb-4">
+                    ข้อมูล Order <span className="text-red-500">*</span>
+                  </h3>
+                  <div className="space-y-3">
+                    {/* Order ID Input */}
+                    <div className="flex gap-2">
                       <Input
                         id="orderId"
-                        placeholder="หมายเลข Order"
-                        value={orderId}
-                        onChange={(e) => setOrderId(e.target.value)}
-                        required={selectedCaseType?.requireOrderId}
+                        placeholder="กรอก Order ID แล้วกด Enter หรือ เพิ่ม"
+                        value={orderIdInput}
+                        onChange={(e) => setOrderIdInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            if (orderIdInput.trim()) {
+                              setOrderIds([...orderIds, orderIdInput.trim()]);
+                              setOrderIdInput("");
+                            }
+                          }
+                        }}
                         disabled={isLoading}
-                        className={selectedCaseType?.requireOrderId && !orderId ? "border-red-500" : ""}
+                        className={selectedCaseType?.requireOrderId && orderIds.length === 0 ? "border-red-500" : ""}
                       />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          if (orderIdInput.trim()) {
+                            setOrderIds([...orderIds, orderIdInput.trim()]);
+                            setOrderIdInput("");
+                          }
+                        }}
+                        disabled={isLoading || !orderIdInput.trim()}
+                      >
+                        เพิ่ม
+                      </Button>
                     </div>
+                    
+                    {/* Order IDs List */}
+                    {orderIds.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-sm text-muted-foreground">
+                          Order ID ที่เพิ่มแล้ว ({orderIds.length} รายการ)
+                        </Label>
+                        <div className="flex flex-wrap gap-2">
+                          {orderIds.map((id, index) => (
+                            <Badge
+                              key={index}
+                              variant="secondary"
+                              className="gap-1 pr-1 text-sm"
+                            >
+                              {id}
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-4 w-4 ml-1 hover:bg-destructive/20"
+                                onClick={() => {
+                                  setOrderIds(orderIds.filter((_, i) => i !== index));
+                                }}
+                                disabled={isLoading}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-                    <div className="space-y-2">
-                      <Label htmlFor="amount">จำนวนเงิน</Label>
-                      <Input
-                        id="amount"
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                        disabled={isLoading}
-                      />
-                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      💡 สามารถเพิ่มได้หลาย Order ID โดยกรอกแล้วกด Enter หรือกดปุ่มเพิ่ม
+                    </p>
                   </div>
                 </div>
               )}
@@ -509,7 +554,7 @@ export default function NewCasePage() {
                 !source ||
                 !severity ||
                 (selectedCaseType?.requireProvider && (!providerId || providerId === "none")) ||
-                (selectedCaseType?.requireOrderId && !orderId)
+                (selectedCaseType?.requireOrderId && orderIds.length === 0)
               }
             >
               {isLoading ? (
