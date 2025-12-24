@@ -168,7 +168,7 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {caseDetail.orders.map((order) => (
+                    {caseDetail.orders.map((order: { id: string; orderId: string; amount: number; status: string; createdAt: Date }) => (
                       <div
                         key={order.id}
                         className="flex items-center justify-between rounded-lg border border-border p-4"
