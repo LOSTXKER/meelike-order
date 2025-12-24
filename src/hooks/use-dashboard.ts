@@ -8,14 +8,12 @@ async function fetchDashboard() {
   return res.json();
 }
 
-// Hook: Get dashboard data with auto-refresh
+// Hook: Get dashboard data - INSTANT from cache
 export function useDashboard() {
   return useQuery({
     queryKey: ["dashboard"],
     queryFn: fetchDashboard,
-    staleTime: 60 * 1000, // 1 minute
-    refetchInterval: 2 * 60 * 1000, // Auto refresh every 2 minutes
-    refetchIntervalInBackground: true, // Keep refreshing even when tab is not focused
+    // Data stays fresh forever - use refresh button to update
   });
 }
 

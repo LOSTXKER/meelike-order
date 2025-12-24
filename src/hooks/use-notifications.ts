@@ -31,21 +31,19 @@ async function fetchChannels(): Promise<LineChannel[]> {
   return res.json();
 }
 
-// Hook: Get notification templates with caching
+// Hook: Get notification templates - INSTANT from cache
 export function useNotificationTemplates() {
   return useQuery({
     queryKey: ["notificationTemplates"],
     queryFn: fetchTemplates,
-    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
-// Hook: Get Line channels with caching
+// Hook: Get Line channels - INSTANT from cache
 export function useLineChannels() {
   return useQuery({
     queryKey: ["lineChannels"],
     queryFn: fetchChannels,
-    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 

@@ -8,13 +8,11 @@ async function fetchTeam() {
   return res.json();
 }
 
-// Hook: Get team data with caching and auto-refresh
+// Hook: Get team data - INSTANT from cache
 export function useTeam() {
   return useQuery({
     queryKey: ["team"],
     queryFn: fetchTeam,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    refetchInterval: 3 * 60 * 1000, // Auto refresh every 3 minutes
   });
 }
 

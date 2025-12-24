@@ -62,22 +62,20 @@ async function fetchCase(id: string) {
   return res.json();
 }
 
-// Hook: Get cases list with caching and auto-refresh
+// Hook: Get cases list - INSTANT from cache
 export function useCases(filters: CaseFilters = {}) {
   return useQuery({
     queryKey: ["cases", filters],
     queryFn: () => fetchCases(filters),
-    staleTime: 30 * 1000, // 30 seconds - cases change frequently
-    refetchInterval: 60 * 1000, // Auto refresh every 60 seconds
+    // Data stays fresh forever - use refresh button to update
   });
 }
 
-// Hook: Get single case with caching
+// Hook: Get single case - INSTANT from cache
 export function useCase(id: string) {
   return useQuery({
     queryKey: ["case", id],
     queryFn: () => fetchCase(id),
-    staleTime: 30 * 1000,
     enabled: !!id,
   });
 }

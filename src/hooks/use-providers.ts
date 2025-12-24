@@ -8,13 +8,11 @@ async function fetchProviders() {
   return res.json();
 }
 
-// Hook: Get providers list with caching and auto-refresh
+// Hook: Get providers list - INSTANT from cache
 export function useProviders() {
   return useQuery({
     queryKey: ["providers"],
     queryFn: fetchProviders,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    refetchInterval: 5 * 60 * 1000, // Auto refresh every 5 minutes
   });
 }
 

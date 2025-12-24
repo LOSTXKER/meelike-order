@@ -1,15 +1,12 @@
 import { Sidebar } from "@/components/layout/sidebar";
-import { requireAuth } from "@/lib/auth";
 import { PrefetchData } from "@/components/prefetch/prefetch-links";
 
-export default async function DashboardLayout({
+// Auth is now handled by middleware - no server-side await needed!
+export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Require authentication for all dashboard pages
-  await requireAuth();
-
   return (
     <div className="min-h-screen bg-background">
       <Sidebar />

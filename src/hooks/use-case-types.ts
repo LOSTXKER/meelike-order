@@ -24,12 +24,11 @@ async function fetchCaseTypes(): Promise<CaseType[]> {
   return res.json();
 }
 
-// Hook: Get case types with caching
+// Hook: Get case types - INSTANT from cache
 export function useCaseTypes() {
   return useQuery({
     queryKey: ["caseTypes"],
     queryFn: fetchCaseTypes,
-    staleTime: 10 * 60 * 1000, // 10 minutes - case types rarely change
   });
 }
 

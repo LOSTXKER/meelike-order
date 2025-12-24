@@ -20,12 +20,11 @@ async function fetchUsers(): Promise<User[]> {
   return res.json();
 }
 
-// Hook: Get users list with caching
+// Hook: Get users list - INSTANT from cache
 export function useUsers() {
   return useQuery({
     queryKey: ["users"],
     queryFn: fetchUsers,
-    staleTime: 5 * 60 * 1000, // 5 minutes - users don't change often
   });
 }
 

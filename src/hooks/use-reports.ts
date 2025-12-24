@@ -30,15 +30,11 @@ async function fetchReports(): Promise<ReportsData> {
   return res.json();
 }
 
-// Hook: Get reports data with caching and auto-refresh
+// Hook: Get reports data - INSTANT from cache
 export function useReports() {
   return useQuery({
     queryKey: ["reports"],
     queryFn: fetchReports,
-    staleTime: 2 * 60 * 1000, // 2 minutes - reports are aggregated data
-    refetchInterval: 5 * 60 * 1000, // Auto refresh every 5 minutes
-    // Enable background refetch so data stays fresh
-    refetchIntervalInBackground: false,
   });
 }
 
