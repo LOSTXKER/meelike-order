@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { checkRateLimit } from "@/lib/rate-limit-middleware";
 import { RATE_LIMITS } from "@/lib/rate-limit";
 import { deliverWebhook, WebhookEvent } from "@/lib/webhook";
+import { notifyOnCaseEvent } from "@/lib/line-notification";
 
 // GET /api/cases - List all cases with filters
 export async function GET(request: NextRequest) {
@@ -157,6 +158,18 @@ export async function POST(request: NextRequest) {
       status: newCase.status,
       severity: newCase.severity,
     }).catch(console.error);
+
+    // Send Line notification if enabled for this case type
+    if (caseType.lineNotification) {
+      notifyOnCaseEvent("case_created", {
+        caseNumber: newCase.caseNumber,
+        title: newCase.title,
+        status: newCase.status,
+        severity: newCase.severity,
+        customerName: newCase.customerName || undefined,
+        providerName: newCase.provider?.name,
+      }).catch(console.error);
+    }
 
     return NextResponse.json(newCase, { status: 201 });
   } catch (error) {
