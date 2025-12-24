@@ -106,7 +106,7 @@ export async function PATCH(
   }
 }
 
-// DELETE /api/users/[id] - Delete user (soft delete by setting isActive = false)
+// DELETE /api/users/[id] - Delete user permanently
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -122,22 +122,44 @@ export async function DELETE(
     // Prevent deleting yourself
     if (session.user.id === id) {
       return NextResponse.json(
-        { error: "Cannot delete your own account" },
+        { error: "ไม่สามารถลบบัญชีตัวเองได้" },
         { status: 400 }
       );
     }
 
-    // Soft delete by setting isActive = false
-    await prisma.user.update({
+    // Check if user has cases
+    const user = await prisma.user.findUnique({
       where: { id },
-      data: { isActive: false },
+      include: {
+        _count: {
+          select: { ownedCases: true },
+        },
+      },
     });
 
-    return NextResponse.json({ success: true });
+    if (!user) {
+      return NextResponse.json({ error: "ไม่พบผู้ใช้" }, { status: 404 });
+    }
+
+    // If user has cases, reassign or prevent deletion
+    if (user._count.ownedCases > 0) {
+      // Set ownerId to null for all cases owned by this user
+      await prisma.case.updateMany({
+        where: { ownerId: id },
+        data: { ownerId: null },
+      });
+    }
+
+    // Delete user permanently
+    await prisma.user.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ success: true, message: "ลบผู้ใช้สำเร็จ" });
   } catch (error) {
     console.error("Error deleting user:", error);
     return NextResponse.json(
-      { error: "Failed to delete user" },
+      { error: "ไม่สามารถลบผู้ใช้ได้" },
       { status: 500 }
     );
   }

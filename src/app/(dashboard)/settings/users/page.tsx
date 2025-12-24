@@ -137,8 +137,8 @@ export default function UsersPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("คุณแน่ใจว่าต้องการปิดใช้งานผู้ใช้นี้?")) return;
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`คุณแน่ใจว่าต้องการลบผู้ใช้ "${name}" ออกจากระบบถาวร?\n\nการดำเนินการนี้ไม่สามารถย้อนกลับได้`)) return;
 
     try {
       const res = await fetch(`/api/users/${id}`, {
@@ -150,10 +150,11 @@ export default function UsersPage() {
         throw new Error(data.error);
       }
 
-      toast.success("ปิดใช้งานผู้ใช้สำเร็จ");
+      toast.success("ลบผู้ใช้สำเร็จ");
       fetchUsers();
-    } catch (error: any) {
-      toast.error(error.message || "ไม่สามารถลบผู้ใช้ได้");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "ไม่สามารถลบผู้ใช้ได้";
+      toast.error(message);
     }
   };
 
@@ -380,7 +381,7 @@ export default function UsersPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => handleDelete(user.id)}
+                          onClick={() => handleDelete(user.id, user.name)}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
