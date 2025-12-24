@@ -1,8 +1,11 @@
+"use client";
+
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RefreshButton } from "@/components/ui/refresh-button";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 import {
   Inbox,
   AlertCircle,
@@ -13,8 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import prisma from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { useDashboard } from "@/hooks";
 import { formatDistanceToNow } from "date-fns";
 import { th } from "date-fns/locale";
 
@@ -25,7 +27,7 @@ interface RecentCase {
   customerName: string | null;
   severity: string;
   status: string;
-  createdAt: Date;
+  createdAt: string;
   caseType: { name: string };
   owner: { name: string | null } | null;
 }
@@ -34,7 +36,7 @@ interface CriticalCase {
   id: string;
   caseNumber: string;
   title: string;
-  slaDeadline: Date | null;
+  slaDeadline: string | null;
 }
 
 interface ProviderWithIssues {
@@ -44,11 +46,15 @@ interface ProviderWithIssues {
   _count: { cases: number };
 }
 
-interface Stat {
-  title: string;
-  value: string;
-  icon: typeof Inbox;
-  color: string;
+interface DashboardData {
+  totalCases: number;
+  newCases: number;
+  inProgressCases: number;
+  resolvedToday: number;
+  slaMissed: number;
+  recentCases: RecentCase[];
+  criticalCases: CriticalCase[];
+  providersWithIssues: ProviderWithIssues[];
 }
 
 const statusLabels: Record<string, { label: string; className: string }> = {
@@ -68,119 +74,37 @@ const severityLabels: Record<string, { label: string; className: string }> = {
   LOW: { label: "ต่ำ", className: "bg-gray-500/10 text-gray-500 border-gray-500/20" },
 };
 
-async function getDashboardData() {
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+export default function DashboardPage() {
+  const { data, isLoading } = useDashboard();
 
-  const [
-    totalCases,
-    newCases,
-    inProgressCases,
-    resolvedToday,
-    slaMissed,
-    recentCases,
-    criticalCases,
-    providersWithIssues,
-  ] = await Promise.all([
-    prisma.case.count(),
-    prisma.case.count({ where: { status: "NEW" } }),
-    prisma.case.count({
-      where: {
-        status: { in: ["INVESTIGATING", "WAITING_CUSTOMER", "WAITING_PROVIDER", "FIXING"] },
-      },
-    }),
-    prisma.case.count({
-      where: { resolvedAt: { gte: todayStart } },
-    }),
-    prisma.case.count({
-      where: {
-        slaMissed: true,
-        status: { notIn: ["RESOLVED", "CLOSED"] },
-      },
-    }),
-    prisma.case.findMany({
-      take: 5,
-      orderBy: { createdAt: "desc" },
-      include: {
-        caseType: { select: { name: true } },
-        owner: { select: { name: true } },
-      },
-    }),
-    prisma.case.findMany({
-      where: {
-        severity: "CRITICAL",
-        status: { notIn: ["RESOLVED", "CLOSED"] },
-      },
-      take: 3,
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.provider.findMany({
-      where: {
-        cases: {
-          some: {
-            status: { notIn: ["RESOLVED", "CLOSED"] },
-          },
-        },
-      },
-      select: {
-        id: true,
-        name: true,
-        riskLevel: true,
-        _count: {
-          select: {
-            cases: {
-              where: {
-                status: { notIn: ["RESOLVED", "CLOSED"] },
-              },
-            },
-          },
-        },
-      },
-      orderBy: {
-        cases: { _count: "desc" },
-      },
-      take: 5,
-    }),
-  ]);
+  if (isLoading || !data) {
+    return <LoadingScreen variant="dots" />;
+  }
 
-  return {
-    totalCases,
-    newCases,
-    inProgressCases,
-    resolvedToday,
-    slaMissed,
-    recentCases,
-    criticalCases,
-    providersWithIssues,
-  };
-}
-
-export default async function DashboardPage() {
-  const user = await getCurrentUser();
-  const data = await getDashboardData();
+  const dashboardData = data as DashboardData;
 
   const stats = [
     {
       title: "เคสทั้งหมด",
-      value: data.totalCases.toString(),
+      value: dashboardData.totalCases.toString(),
       icon: Inbox,
       color: "text-primary",
     },
     {
       title: "กำลังดำเนินการ",
-      value: data.inProgressCases.toString(),
+      value: dashboardData.inProgressCases.toString(),
       icon: Clock,
       color: "text-amber-500",
     },
     {
       title: "แก้ไขแล้ววันนี้",
-      value: data.resolvedToday.toString(),
+      value: dashboardData.resolvedToday.toString(),
       icon: CheckCircle2,
       color: "text-green-500",
     },
     {
       title: "SLA เกินกำหนด",
-      value: data.slaMissed.toString(),
+      value: dashboardData.slaMissed.toString(),
       icon: AlertCircle,
       color: "text-red-500",
     },
@@ -195,7 +119,7 @@ export default async function DashboardPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-semibold tracking-tight">
-              สวัสดี, {user?.name || "User"} 👋
+              ภาพรวมระบบ 👋
             </h2>
             <p className="text-muted-foreground">
               ภาพรวมระบบจัดการเคสวันนี้
@@ -214,7 +138,7 @@ export default async function DashboardPage() {
 
         {/* Stats Grid */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat: Stat) => (
+          {stats.map((stat) => (
             <Card key={stat.title} className="relative overflow-hidden">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -246,12 +170,12 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {data.recentCases.length === 0 ? (
+                {dashboardData.recentCases.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">
                     ยังไม่มีเคส
                   </p>
                 ) : (
-                  data.recentCases.map((caseItem: RecentCase) => (
+                  dashboardData.recentCases.map((caseItem: RecentCase) => (
                     <Link
                       key={caseItem.id}
                       href={`/cases/${caseItem.id}`}
@@ -288,7 +212,7 @@ export default async function DashboardPage() {
                           {statusLabels[caseItem.status]?.label}
                         </Badge>
                         <span className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(caseItem.createdAt, {
+                          {formatDistanceToNow(new Date(caseItem.createdAt), {
                             addSuffix: true,
                             locale: th,
                           })}
@@ -308,17 +232,17 @@ export default async function DashboardPage() {
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg font-semibold text-red-600 dark:text-red-400">
                   <AlertCircle className="h-5 w-5" />
-                  เคสวิกฤต ({data.criticalCases.length})
+                  เคสวิกฤต ({dashboardData.criticalCases.length})
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {data.criticalCases.length === 0 ? (
+                  {dashboardData.criticalCases.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-4">
                       ไม่มีเคสวิกฤต 🎉
                     </p>
                   ) : (
-                    data.criticalCases.map((caseItem: CriticalCase) => (
+                    dashboardData.criticalCases.map((caseItem: CriticalCase) => (
                       <Link
                         key={caseItem.id}
                         href={`/cases/${caseItem.id}`}
@@ -332,7 +256,7 @@ export default async function DashboardPage() {
                         </div>
                         {caseItem.slaDeadline && (
                           <Badge variant="destructive" className="text-xs">
-                            SLA: {formatDistanceToNow(caseItem.slaDeadline, { locale: th })}
+                            SLA: {formatDistanceToNow(new Date(caseItem.slaDeadline), { locale: th })}
                           </Badge>
                         )}
                       </Link>
@@ -351,12 +275,12 @@ export default async function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {data.providersWithIssues.length === 0 ? (
+                  {dashboardData.providersWithIssues.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-4">
                       ไม่มี Provider ที่มีปัญหา
                     </p>
                   ) : (
-                    data.providersWithIssues.map((provider: ProviderWithIssues) => (
+                    dashboardData.providersWithIssues.map((provider: ProviderWithIssues) => (
                       <div
                         key={provider.id}
                         className="flex items-center justify-between"

@@ -1,7 +1,10 @@
+"use client";
+
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RefreshButton } from "@/components/ui/refresh-button";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 import {
   Table,
   TableBody,
@@ -14,10 +17,11 @@ import { Card } from "@/components/ui/card";
 import { Plus, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import prisma from "@/lib/prisma";
+import { useCases } from "@/hooks";
 import { formatDistanceToNow, differenceInMinutes } from "date-fns";
 import { th } from "date-fns/locale";
 import { CasesFilters } from "./cases-filters";
+import { useSearchParams } from "next/navigation";
 
 const statusLabels: Record<string, { label: string; className: string }> = {
   NEW: { label: "ใหม่", className: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800" },
@@ -36,11 +40,12 @@ const severityLabels: Record<string, { label: string; dotColor: string }> = {
   LOW: { label: "ต่ำ", dotColor: "bg-gray-500" },
 };
 
-function formatSlaRemaining(deadline: Date | null): { text: string; isUrgent: boolean; isMissed: boolean } {
+function formatSlaRemaining(deadline: Date | string | null): { text: string; isUrgent: boolean; isMissed: boolean } {
   if (!deadline) return { text: "-", isUrgent: false, isMissed: false };
   
   const now = new Date();
-  const diffMins = differenceInMinutes(deadline, now);
+  const deadlineDate = typeof deadline === "string" ? new Date(deadline) : deadline;
+  const diffMins = differenceInMinutes(deadlineDate, now);
   
   if (diffMins < 0) {
     return { text: `เกิน ${Math.abs(diffMins)} นาที`, isUrgent: false, isMissed: true };
@@ -66,68 +71,37 @@ interface CaseItem {
   customerName: string | null;
   severity: string;
   status: string;
-  slaDeadline: Date | null;
-  createdAt: Date;
+  slaDeadline: Date | string | null;
+  createdAt: Date | string;
   caseType: { name: string };
   owner: { name: string | null } | null;
-  provider: { name: string } | null;
+  provider: { name: string | null } | null;
 }
 
-interface CasesPageProps {
-  searchParams: Promise<{
-    status?: string;
-    severity?: string;
-    search?: string;
-    page?: string;
-  }>;
-}
-
-export default async function CasesPage({ searchParams }: CasesPageProps) {
-  const params = await searchParams;
-  const status = params.status;
-  const severity = params.severity;
-  const search = params.search;
-  const page = parseInt(params.page || "1");
+export default function CasesPage() {
+  const searchParams = useSearchParams();
+  
+  const status = searchParams.get("status") || undefined;
+  const severity = searchParams.get("severity") || undefined;
+  const search = searchParams.get("search") || undefined;
+  const page = parseInt(searchParams.get("page") || "1");
   const limit = 20;
 
-  // Build where clause
-  const where: Record<string, unknown> = {};
-  
-  if (status && status !== "all") {
-    where.status = status;
-  }
-  
-  if (severity && severity !== "all") {
-    where.severity = severity;
-  }
-  
-  if (search) {
-    where.OR = [
-      { caseNumber: { contains: search, mode: "insensitive" } },
-      { title: { contains: search, mode: "insensitive" } },
-      { customerName: { contains: search, mode: "insensitive" } },
-    ];
+  const { data, isLoading } = useCases({
+    status: status !== "all" ? status : undefined,
+    severity: severity !== "all" ? severity : undefined,
+    search,
+    page,
+    limit,
+  });
+
+  if (isLoading || !data) {
+    return <LoadingScreen variant="pulse" />;
   }
 
-  const [cases, total] = await Promise.all([
-    prisma.case.findMany({
-      where,
-      include: {
-        caseType: { select: { name: true } },
-        owner: { select: { name: true } },
-        provider: { select: { name: true } },
-      },
-      orderBy: [
-        { severity: "asc" },
-        { createdAt: "desc" },
-      ],
-      skip: (page - 1) * limit,
-      take: limit,
-    }),
-    prisma.case.count({ where }),
-  ]);
-
-  const totalPages = Math.ceil(total / limit);
+  const cases = data.cases || [];
+  const total = data.pagination?.total || 0;
+  const totalPages = data.pagination?.totalPages || 1;
 
   return (
     <div className="min-h-screen">
@@ -227,7 +201,7 @@ export default async function CasesPage({ searchParams }: CasesPageProps) {
                         )}
                       </TableCell>
                       <TableCell className="text-right text-sm text-muted-foreground">
-                        {formatDistanceToNow(caseItem.createdAt, { addSuffix: true, locale: th })}
+                        {formatDistanceToNow(new Date(caseItem.createdAt), { addSuffix: true, locale: th })}
                       </TableCell>
                     </TableRow>
                   );
@@ -238,41 +212,43 @@ export default async function CasesPage({ searchParams }: CasesPageProps) {
         </Card>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            แสดง {(page - 1) * limit + 1}-{Math.min(page * limit, total)} จาก {total} เคส
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              asChild={page > 1}
-            >
-              {page > 1 ? (
-                <Link href={`/cases?page=${page - 1}${status ? `&status=${status}` : ""}${severity ? `&severity=${severity}` : ""}${search ? `&search=${search}` : ""}`}>
-                  ก่อนหน้า
-                </Link>
-              ) : (
-                "ก่อนหน้า"
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages}
-              asChild={page < totalPages}
-            >
-              {page < totalPages ? (
-                <Link href={`/cases?page=${page + 1}${status ? `&status=${status}` : ""}${severity ? `&severity=${severity}` : ""}${search ? `&search=${search}` : ""}`}>
-                  ถัดไป
-                </Link>
-              ) : (
-                "ถัดไป"
-              )}
-            </Button>
+        {total > 0 && (
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              แสดง {(page - 1) * limit + 1}-{Math.min(page * limit, total)} จาก {total} เคส
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                asChild={page > 1}
+              >
+                {page > 1 ? (
+                  <Link href={`/cases?page=${page - 1}${status ? `&status=${status}` : ""}${severity ? `&severity=${severity}` : ""}${search ? `&search=${search}` : ""}`}>
+                    ก่อนหน้า
+                  </Link>
+                ) : (
+                  "ก่อนหน้า"
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages}
+                asChild={page < totalPages}
+              >
+                {page < totalPages ? (
+                  <Link href={`/cases?page=${page + 1}${status ? `&status=${status}` : ""}${severity ? `&severity=${severity}` : ""}${search ? `&search=${search}` : ""}`}>
+                    ถัดไป
+                  </Link>
+                ) : (
+                  "ถัดไป"
+                )}
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

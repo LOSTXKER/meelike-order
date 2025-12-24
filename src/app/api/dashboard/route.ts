@@ -17,6 +17,8 @@ export async function GET() {
       casesByStatus,
       casesBySeverity,
       recentCases,
+      criticalCases,
+      providersWithIssues,
     ] = await Promise.all([
       // Total cases
       prisma.case.count(),
@@ -67,6 +69,45 @@ export async function GET() {
           owner: { select: { name: true } },
         },
       }),
+
+      // Critical cases
+      prisma.case.findMany({
+        where: {
+          severity: "CRITICAL",
+          status: { notIn: ["RESOLVED", "CLOSED"] },
+        },
+        take: 3,
+        orderBy: { createdAt: "desc" },
+      }),
+
+      // Providers with issues
+      prisma.provider.findMany({
+        where: {
+          cases: {
+            some: {
+              status: { notIn: ["RESOLVED", "CLOSED"] },
+            },
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+          riskLevel: true,
+          _count: {
+            select: {
+              cases: {
+                where: {
+                  status: { notIn: ["RESOLVED", "CLOSED"] },
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          cases: { _count: "desc" },
+        },
+        take: 5,
+      }),
     ]);
 
     // Transform data
@@ -89,6 +130,8 @@ export async function GET() {
       casesByStatus: statusCounts,
       casesBySeverity: severityCounts,
       recentCases,
+      criticalCases,
+      providersWithIssues,
     });
   } catch (error) {
     console.error("Error fetching dashboard:", error);
