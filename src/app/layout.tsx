@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthSessionProvider } from "@/components/providers/session-provider";
+import { QueryProvider } from "@/components/providers/query-provider";
 import { NavigationProgress } from "@/components/ui/nprogress";
 import "./globals.css";
 
@@ -35,11 +36,13 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthSessionProvider>
-          <Suspense fallback={null}>
-            <NavigationProgress />
-          </Suspense>
-          {children}
-          <Toaster position="top-right" />
+          <QueryProvider>
+            <Suspense fallback={null}>
+              <NavigationProgress />
+            </Suspense>
+            {children}
+            <Toaster position="top-right" />
+          </QueryProvider>
         </AuthSessionProvider>
       </body>
     </html>

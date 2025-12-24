@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,20 +39,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Plus, Trash2, Shield, Mail, Calendar } from "lucide-react";
+import { Plus, Trash2, Shield, Mail, Calendar, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
-
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  isActive: boolean;
-  createdAt: string;
-  _count: {
-    ownedCases: number;
-  };
-}
+import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from "@/hooks/use-users";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 const ROLES = [
   { value: "ADMIN", label: "Admin", color: "bg-red-500" },
@@ -62,34 +52,18 @@ const ROLES = [
 ];
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: users = [], isLoading, refetch, isFetching } = useUsers();
+  const createUser = useCreateUser();
+  const updateUser = useUpdateUser();
+  const deleteUser = useDeleteUser();
+  
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-
-  // Form state
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     role: "SUPPORT",
   });
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
-    try {
-      const res = await fetch("/api/users");
-      if (!res.ok) throw new Error("Failed to fetch");
-      const data = await res.json();
-      setUsers(data);
-    } catch (error) {
-      toast.error("ไม่สามารถโหลดข้อมูลผู้ใช้ได้");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleSubmit = async () => {
     if (!formData.name || !formData.email || !formData.password) {
@@ -98,41 +72,21 @@ export default function UsersPage() {
     }
 
     try {
-      const res = await fetch("/api/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to create");
-      }
-
-      const newUser = await res.json();
+      await createUser.mutateAsync(formData);
       toast.success("สร้างผู้ใช้สำเร็จ");
-
-      setUsers([newUser, ...users]);
       setIsDialogOpen(false);
       setFormData({ name: "", email: "", password: "", role: "SUPPORT" });
-    } catch (error: any) {
-      toast.error(error.message || "ไม่สามารถสร้างผู้ใช้ได้");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "ไม่สามารถสร้างผู้ใช้ได้";
+      toast.error(message);
     }
   };
 
   const handleToggleActive = async (id: string, isActive: boolean) => {
     try {
-      const res = await fetch(`/api/users/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive }),
-      });
-
-      if (!res.ok) throw new Error("Failed to update");
-
+      await updateUser.mutateAsync({ id, data: { isActive } });
       toast.success(isActive ? "เปิดใช้งานผู้ใช้แล้ว" : "ปิดใช้งานผู้ใช้แล้ว");
-      fetchUsers();
-    } catch (error) {
+    } catch {
       toast.error("ไม่สามารถอัพเดทสถานะได้");
     }
   };
@@ -141,17 +95,8 @@ export default function UsersPage() {
     if (!confirm(`คุณแน่ใจว่าต้องการลบผู้ใช้ "${name}" ออกจากระบบถาวร?\n\nการดำเนินการนี้ไม่สามารถย้อนกลับได้`)) return;
 
     try {
-      const res = await fetch(`/api/users/${id}`, {
-        method: "DELETE",
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error);
-      }
-
+      await deleteUser.mutateAsync(id);
       toast.success("ลบผู้ใช้สำเร็จ");
-      fetchUsers();
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "ไม่สามารถลบผู้ใช้ได้";
       toast.error(message);
@@ -163,14 +108,7 @@ export default function UsersPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen">
-        <Header title="จัดการผู้ใช้งาน" />
-        <div className="p-6">
-          <div className="text-center py-12">Loading...</div>
-        </div>
-      </div>
-    );
+    return <LoadingScreen title="กำลังโหลดข้อมูลผู้ใช้" variant="dots" />;
   }
 
   return (
@@ -180,96 +118,108 @@ export default function UsersPage() {
       <div className="p-6 max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
-          <div>
+          <div className="flex items-center gap-3">
             <p className="text-muted-foreground">
               จัดการผู้ใช้งานและสิทธิ์การเข้าถึงระบบ
             </p>
+            {isFetching && (
+              <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
+            )}
           </div>
 
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                เพิ่มผู้ใช้
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>เพิ่มผู้ใช้ใหม่</DialogTitle>
-                <DialogDescription>
-                  สร้างบัญชีผู้ใช้งานใหม่ในระบบ
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>ชื่อ-นามสกุล *</Label>
-                  <Input
-                    placeholder="นายสมชาย ใจดี"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>อีเมล *</Label>
-                  <Input
-                    type="email"
-                    placeholder="user@meelike.com"
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>รหัสผ่าน *</Label>
-                  <Input
-                    type="password"
-                    placeholder="••••••••"
-                    value={formData.password}
-                    onChange={(e) =>
-                      setFormData({ ...formData, password: e.target.value })
-                    }
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    รหัสผ่านควรมีความยาวอย่างน้อย 8 ตัวอักษร
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>บทบาท</Label>
-                  <Select
-                    value={formData.role}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, role: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ROLES.map((role) => (
-                        <SelectItem key={role.value} value={role.value}>
-                          {role.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  ยกเลิก
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              รีเฟรช
+            </Button>
+            
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  เพิ่มผู้ใช้
                 </Button>
-                <Button onClick={handleSubmit}>สร้างผู้ใช้</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>เพิ่มผู้ใช้ใหม่</DialogTitle>
+                  <DialogDescription>
+                    สร้างบัญชีผู้ใช้งานใหม่ในระบบ
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>ชื่อ-นามสกุล *</Label>
+                    <Input
+                      placeholder="นายสมชาย ใจดี"
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>อีเมล *</Label>
+                    <Input
+                      type="email"
+                      placeholder="user@meelike.com"
+                      value={formData.email}
+                      onChange={(e) =>
+                        setFormData({ ...formData, email: e.target.value })
+                      }
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>รหัสผ่าน *</Label>
+                    <Input
+                      type="password"
+                      placeholder="••••••••"
+                      value={formData.password}
+                      onChange={(e) =>
+                        setFormData({ ...formData, password: e.target.value })
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      รหัสผ่านควรมีความยาวอย่างน้อย 8 ตัวอักษร
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>บทบาท</Label>
+                    <Select
+                      value={formData.role}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, role: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ROLES.map((role) => (
+                          <SelectItem key={role.value} value={role.value}>
+                            {role.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    ยกเลิก
+                  </Button>
+                  <Button onClick={handleSubmit} disabled={createUser.isPending}>
+                    {createUser.isPending ? "กำลังสร้าง..." : "สร้างผู้ใช้"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         {/* Stats */}
@@ -382,6 +332,7 @@ export default function UsersPage() {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleDelete(user.id, user.name)}
+                          disabled={deleteUser.isPending}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
@@ -397,4 +348,3 @@ export default function UsersPage() {
     </div>
   );
 }
-
