@@ -1,6 +1,7 @@
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { RefreshButton } from "@/components/ui/refresh-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -64,6 +65,12 @@ export default async function ProvidersPage() {
       <Header title="Providers" />
       
       <div className="p-6 space-y-6">
+        {/* Header with Refresh */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">ภาพรวม Provider</h2>
+          <RefreshButton invalidateKeys={["providers"]} />
+        </div>
+
         {/* Stats */}
         <div className="grid gap-4 md:grid-cols-4">
           <Card>

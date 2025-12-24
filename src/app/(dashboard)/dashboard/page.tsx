@@ -2,6 +2,7 @@ import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { RefreshButton } from "@/components/ui/refresh-button";
 import {
   Inbox,
   AlertCircle,
@@ -200,12 +201,15 @@ export default async function DashboardPage() {
               ภาพรวมระบบจัดการเคสวันนี้
             </p>
           </div>
-          <Link href="/cases/new">
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              สร้างเคสใหม่
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <RefreshButton invalidateKeys={["dashboard"]} />
+            <Link href="/cases/new">
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                สร้างเคสใหม่
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Stats Grid */}

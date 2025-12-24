@@ -1,6 +1,7 @@
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { RefreshButton } from "@/components/ui/refresh-button";
 import {
   Table,
   TableBody,
@@ -136,12 +137,15 @@ export default async function CasesPage({ searchParams }: CasesPageProps) {
         {/* Filters */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <CasesFilters />
-          <Link href="/cases/new">
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              สร้างเคสใหม่
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <RefreshButton invalidateKeys={["cases"]} />
+            <Link href="/cases/new">
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                สร้างเคสใหม่
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Cases Table */}
