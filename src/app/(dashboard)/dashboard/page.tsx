@@ -18,6 +18,9 @@ import {
   Package,
   Settings,
   Timer,
+  Loader2,
+  RefreshCcw,
+  XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -69,6 +72,13 @@ interface DashboardData {
   criticalCases: CriticalCase[];
   providersWithIssues: ProviderWithIssues[];
   urgentSlaCases?: UrgentSlaCase[];
+  // Order stats
+  totalOrders?: number;
+  pendingOrders?: number;
+  processingOrders?: number;
+  completedOrders?: number;
+  refundedOrders?: number;
+  failedOrders?: number;
 }
 
 // Quick Create options - ประเภทเคสที่ใช้บ่อย
@@ -252,6 +262,74 @@ export default function DashboardPage() {
             </Card>
           ))}
         </div>
+
+        {/* Order Stats */}
+        {(dashboardData.totalOrders ?? 0) > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                <Package className="h-5 w-5 text-blue-500" />
+                สถิติ Orders
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                ภาพรวม Orders ทั้งหมดในระบบ
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-900/50">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-800">
+                    <Clock className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{dashboardData.pendingOrders || 0}</p>
+                    <p className="text-xs text-muted-foreground">รอดำเนินการ</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-200 dark:bg-blue-800">
+                    <Loader2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{dashboardData.processingOrders || 0}</p>
+                    <p className="text-xs text-muted-foreground">กำลังดำเนินการ</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-900/20">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-200 dark:bg-green-800">
+                    <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{dashboardData.completedOrders || 0}</p>
+                    <p className="text-xs text-muted-foreground">สำเร็จ</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-200 dark:bg-purple-800">
+                    <RefreshCcw className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{dashboardData.refundedOrders || 0}</p>
+                    <p className="text-xs text-muted-foreground">คืนเงิน</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-900/20">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-200 dark:bg-red-800">
+                    <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{dashboardData.failedOrders || 0}</p>
+                    <p className="text-xs text-muted-foreground">ไม่สำเร็จ</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Main content grid */}
         <div className="grid gap-6 lg:grid-cols-3">

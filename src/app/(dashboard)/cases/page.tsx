@@ -14,7 +14,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
-import { Plus, Clock, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Clock, ArrowUpDown, ArrowUp, ArrowDown, MoreHorizontal, ChevronRight, UserPlus } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useCases } from "@/hooks";
@@ -79,10 +88,34 @@ interface CaseItem {
   provider: { name: string | null } | null;
 }
 
+// Quick Status Change function
+async function quickStatusChange(
+  caseId: string, 
+  newStatus: string, 
+  queryClient: ReturnType<typeof useQueryClient>
+) {
+  try {
+    const res = await fetch(`/api/cases/${caseId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: newStatus }),
+    });
+
+    if (!res.ok) throw new Error("Failed");
+
+    toast.success("อัพเดทสถานะเรียบร้อย");
+    queryClient.invalidateQueries({ queryKey: ["cases"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+  } catch {
+    toast.error("ไม่สามารถอัพเดทสถานะได้");
+  }
+}
+
 export default function CasesPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const queryClient = useQueryClient();
   
   const status = searchParams.get("status") || undefined;
   const severity = searchParams.get("severity") || undefined;
@@ -223,12 +256,12 @@ export default function CasesPage() {
                     {getSortIcon("slaDeadline")}
                   </Button>
                 </TableHead>
-                <TableHead className="w-[140px] text-right">
+                <TableHead className="w-[120px]">
                   <Button
                     variant="ghost"
                     size="sm"
                     className={cn(
-                      "h-8 px-2 -mr-2 gap-1.5 hover:bg-muted/50",
+                      "h-8 px-2 -ml-2 gap-1.5 hover:bg-muted/50",
                       isSortActive("createdAt") && "text-primary font-semibold"
                     )}
                     onClick={() => handleSort("createdAt")}
@@ -238,12 +271,13 @@ export default function CasesPage() {
                     {getSortIcon("createdAt")}
                   </Button>
                 </TableHead>
+                <TableHead className="w-[60px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {cases.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
                     ไม่พบเคส
                   </TableCell>
                 </TableRow>
@@ -304,8 +338,61 @@ export default function CasesPage() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="text-right text-sm text-muted-foreground">
+                      <TableCell className="text-sm text-muted-foreground">
                         {formatDistanceToNow(new Date(caseItem.createdAt), { addSuffix: true, locale: th })}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/cases/${caseItem.id}`} className="cursor-pointer">
+                                ดูรายละเอียด
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            {caseItem.status === "NEW" && (
+                              <DropdownMenuItem 
+                                onClick={() => quickStatusChange(caseItem.id, "INVESTIGATING", queryClient)}
+                                className="cursor-pointer"
+                              >
+                                <ChevronRight className="h-4 w-4 mr-2" />
+                                รับเรื่อง (ตรวจสอบ)
+                              </DropdownMenuItem>
+                            )}
+                            {(caseItem.status === "INVESTIGATING" || caseItem.status === "NEW") && (
+                              <DropdownMenuItem 
+                                onClick={() => quickStatusChange(caseItem.id, "FIXING", queryClient)}
+                                className="cursor-pointer"
+                              >
+                                <ChevronRight className="h-4 w-4 mr-2" />
+                                กำลังแก้ไข
+                              </DropdownMenuItem>
+                            )}
+                            {caseItem.status !== "RESOLVED" && caseItem.status !== "CLOSED" && (
+                              <>
+                                <DropdownMenuItem 
+                                  onClick={() => quickStatusChange(caseItem.id, "WAITING_CUSTOMER", queryClient)}
+                                  className="cursor-pointer"
+                                >
+                                  <ChevronRight className="h-4 w-4 mr-2" />
+                                  รอลูกค้า
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => quickStatusChange(caseItem.id, "WAITING_PROVIDER", queryClient)}
+                                  className="cursor-pointer"
+                                >
+                                  <ChevronRight className="h-4 w-4 mr-2" />
+                                  รอ Provider
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   );

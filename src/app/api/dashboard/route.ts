@@ -19,6 +19,9 @@ export async function GET() {
       recentCases,
       criticalCases,
       providersWithIssues,
+      // Order stats
+      totalOrders,
+      ordersByStatus,
     ] = await Promise.all([
       // Total cases
       prisma.case.count(),
@@ -108,6 +111,15 @@ export async function GET() {
         },
         take: 5,
       }),
+
+      // Total orders
+      prisma.order.count(),
+
+      // Orders by status
+      prisma.order.groupBy({
+        by: ["status"],
+        _count: { id: true },
+      }),
     ]);
 
     // Transform data
@@ -121,6 +133,12 @@ export async function GET() {
       severityCounts[item.severity] = item._count.id;
     });
 
+    // Transform order stats
+    const orderStatusCounts: Record<string, number> = {};
+    ordersByStatus.forEach((item) => {
+      orderStatusCounts[item.status] = item._count.id;
+    });
+
     return NextResponse.json({
       totalCases,
       newCases,
@@ -132,6 +150,14 @@ export async function GET() {
       recentCases,
       criticalCases,
       providersWithIssues,
+      // Order stats
+      totalOrders,
+      ordersByStatus: orderStatusCounts,
+      pendingOrders: orderStatusCounts["PENDING"] || 0,
+      processingOrders: orderStatusCounts["PROCESSING"] || 0,
+      completedOrders: orderStatusCounts["COMPLETED"] || 0,
+      refundedOrders: orderStatusCounts["REFUNDED"] || 0,
+      failedOrders: orderStatusCounts["FAILED"] || 0,
     });
   } catch (error) {
     console.error("Error fetching dashboard:", error);

@@ -205,3 +205,92 @@ export function OrderStatusBadge({ status }: { status: string }) {
   );
 }
 
+// Bulk Order Actions
+interface BulkOrderActionsProps {
+  orders: Order[];
+  caseId: string;
+  onUpdate?: () => void;
+}
+
+export function BulkOrderActions({ orders, caseId, onUpdate }: BulkOrderActionsProps) {
+  const [isUpdating, setIsUpdating] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Count orders by status
+  const pendingCount = orders.filter((o) => o.status === "PENDING" || o.status === "PROCESSING").length;
+
+  const handleBulkUpdate = async (newStatus: string) => {
+    // Only update PENDING and PROCESSING orders
+    const ordersToUpdate = orders.filter((o) => o.status === "PENDING" || o.status === "PROCESSING");
+    
+    if (ordersToUpdate.length === 0) {
+      toast.info("ไม่มี Order ที่ต้องอัพเดท");
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      // Update all orders in parallel
+      await Promise.all(
+        ordersToUpdate.map((order) =>
+          fetch(`/api/orders/${order.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: newStatus }),
+          })
+        )
+      );
+
+      toast.success(`อัพเดท ${ordersToUpdate.length} Orders สำเร็จ`, {
+        description: `เปลี่ยนเป็น "${orderStatusConfig[newStatus]?.label}"`,
+      });
+
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: [`case-${caseId}`] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      onUpdate?.();
+    } catch (error) {
+      console.error(error);
+      toast.error("ไม่สามารถอัพเดทได้", {
+        description: "กรุณาลองใหม่อีกครั้ง",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  if (pendingCount === 0) {
+    return null;
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" disabled={isUpdating}>
+          {isUpdating ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-1" />
+          ) : (
+            <CheckCircle2 className="h-4 w-4 mr-1" />
+          )}
+          ทำเครื่องหมายทั้งหมด
+          <ChevronDown className="h-3 w-3 ml-1" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuItem onClick={() => handleBulkUpdate("COMPLETED")} className="cursor-pointer">
+          <CheckCircle2 className="h-4 w-4 mr-2 text-green-600" />
+          สำเร็จทั้งหมด
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleBulkUpdate("REFUNDED")} className="cursor-pointer">
+          <RefreshCcw className="h-4 w-4 mr-2 text-purple-600" />
+          คืนเงินทั้งหมด
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleBulkUpdate("FAILED")} className="cursor-pointer">
+          <XCircle className="h-4 w-4 mr-2 text-red-600" />
+          ไม่สำเร็จทั้งหมด
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+

@@ -34,7 +34,7 @@ import { formatDistanceToNow, differenceInMinutes, format } from "date-fns";
 import { th } from "date-fns/locale";
 import { CaseActions } from "./case-actions";
 import { FileAttachments } from "./file-attachments";
-import { OrderStatusSelect, OrderStatusBadge } from "./order-status-select";
+import { OrderStatusSelect, OrderStatusBadge, BulkOrderActions } from "./order-status-select";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 
@@ -159,7 +159,11 @@ export default function CaseDetailPage() {
             </div>
             <div className="flex items-center gap-2">
               <RefreshButton invalidateKeys={[`case-${id}`]} size="sm" />
-              <CaseActions caseId={caseDetail.id} currentStatus={caseDetail.status} />
+              <CaseActions 
+                caseId={caseDetail.id} 
+                currentStatus={caseDetail.status} 
+                currentOwnerId={caseDetail.ownerId}
+              />
             </div>
           </div>
         </div>
@@ -192,6 +196,27 @@ export default function CaseDetailPage() {
                 Action Required
               </Badge>
             )}
+          </div>
+        )}
+
+        {/* Smart Suggest: All Orders Handled */}
+        {caseDetail.orders && 
+         caseDetail.orders.length > 0 && 
+         caseDetail.status !== "RESOLVED" && 
+         caseDetail.status !== "CLOSED" &&
+         !caseDetail.orders.some((o: Order) => o.status === "PENDING" || o.status === "PROCESSING") && (
+          <div className="mb-6 flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-4 py-3 dark:border-green-800 dark:bg-green-950/30">
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
+              <div>
+                <p className="font-semibold text-sm text-green-900 dark:text-green-100">
+                  Orders ทั้งหมดจัดการแล้ว!
+                </p>
+                <p className="text-xs text-green-700 dark:text-green-300">
+                  พิจารณาปิดเคสหรือเปลี่ยนสถานะเป็น &quot;แก้ไขแล้ว&quot;
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
@@ -273,15 +298,25 @@ export default function CaseDetailPage() {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-base font-semibold flex items-center gap-2">
-                      <Package className="h-4 w-4" />
-                      ออเดอร์ที่เกี่ยวข้อง
-                      {caseDetail.orders && caseDetail.orders.length > 0 && (
-                        <Badge variant="secondary" className="ml-auto text-xs">
-                          {caseDetail.orders.length} รายการ
-                        </Badge>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base font-semibold flex items-center gap-2">
+                        <Package className="h-4 w-4" />
+                        ออเดอร์ที่เกี่ยวข้อง
+                        {caseDetail.orders && caseDetail.orders.length > 0 && (
+                          <Badge variant="secondary" className="text-xs">
+                            {caseDetail.orders.length} รายการ
+                          </Badge>
+                        )}
+                      </CardTitle>
+                      {/* Bulk Actions */}
+                      {caseDetail.orders && caseDetail.orders.length > 1 && (
+                        <BulkOrderActions 
+                          orders={caseDetail.orders} 
+                          caseId={caseDetail.id}
+                          onUpdate={() => refetch()}
+                        />
                       )}
-                    </CardTitle>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     {caseDetail.orders && caseDetail.orders.length > 0 ? (
