@@ -12,7 +12,17 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Optional filter: ?active=true (default shows all)
+    const searchParams = request.nextUrl.searchParams;
+    const activeOnly = searchParams.get("active");
+
+    const where: any = {};
+    if (activeOnly === "true") {
+      where.isActive = true;
+    }
+
     const users = await prisma.user.findMany({
+      where,
       select: {
         id: true,
         email: true,

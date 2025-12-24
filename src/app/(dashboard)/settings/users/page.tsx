@@ -320,12 +320,25 @@ export default function UsersPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Switch
-                          checked={user.isActive}
-                          onCheckedChange={(checked) =>
-                            handleToggleActive(user.id, checked)
-                          }
-                        />
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={user.isActive}
+                            onCheckedChange={(checked) =>
+                              handleToggleActive(user.id, checked)
+                            }
+                          />
+                          <span className="text-sm">
+                            {user.isActive ? (
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                ใช้งาน
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200">
+                                ปิดใช้งาน
+                              </Badge>
+                            )}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <Button
