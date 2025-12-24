@@ -237,20 +237,22 @@ export default function UsersPage() {
                       }
                     >
                       <SelectTrigger>
-                        <div className="flex items-center gap-2">
-                          {(() => {
-                            const selectedRole = ROLES.find(r => r.value === formData.role);
-                            const IconComponent = selectedRole?.icon || Shield;
-                            return (
-                              <>
-                                <div className={`h-6 w-6 rounded-full ${selectedRole?.color} flex items-center justify-center text-white`}>
-                                  <IconComponent className="h-3.5 w-3.5" />
-                                </div>
-                                <span>{selectedRole?.label}</span>
-                              </>
-                            );
-                          })()}
-                        </div>
+                        <SelectValue>
+                          <div className="flex items-center gap-2">
+                            {(() => {
+                              const selectedRole = ROLES.find(r => r.value === formData.role);
+                              const IconComponent = selectedRole?.icon || Shield;
+                              return (
+                                <>
+                                  <div className={`h-6 w-6 rounded-full ${selectedRole?.color} flex items-center justify-center text-white`}>
+                                    <IconComponent className="h-3.5 w-3.5" />
+                                  </div>
+                                  <span>{selectedRole?.label}</span>
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent className="w-[350px]">
                         {ROLES.map((role) => {
@@ -383,13 +385,15 @@ export default function UsersPage() {
                             disabled={updateUser.isPending}
                           >
                             <SelectTrigger className="w-[130px] h-8">
-                              <div className="flex items-center gap-1.5">
-                                {(() => {
-                                  const RoleIcon = roleInfo.icon;
-                                  return RoleIcon ? <RoleIcon className="h-3.5 w-3.5" /> : <Shield className="h-3.5 w-3.5" />;
-                                })()}
-                                <span className="text-sm">{roleInfo.label}</span>
-                              </div>
+                              <SelectValue>
+                                <div className="flex items-center gap-1.5">
+                                  {(() => {
+                                    const RoleIcon = roleInfo.icon;
+                                    return RoleIcon ? <RoleIcon className="h-3.5 w-3.5" /> : <Shield className="h-3.5 w-3.5" />;
+                                  })()}
+                                  <span className="text-sm">{roleInfo.label}</span>
+                                </div>
+                              </SelectValue>
                             </SelectTrigger>
                             <SelectContent className="w-[300px]">
                               {ROLES.map((role) => {
