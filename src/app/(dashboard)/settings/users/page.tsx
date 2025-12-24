@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,10 +77,14 @@ const ROLES = [
 ];
 
 export default function UsersPage() {
+  const { data: session } = useSession();
   const { data: users = [], isLoading, refetch, isFetching } = useUsers();
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
   const deleteUser = useDeleteUser();
+
+  // เฉพาะ CEO และ ADMIN เท่านั้นที่แก้ไข Role ได้
+  const canEditRole = session?.user?.role === "CEO" || session?.user?.role === "ADMIN";
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -232,20 +237,41 @@ export default function UsersPage() {
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue />
+                        <div className="flex items-center gap-2">
+                          {(() => {
+                            const selectedRole = ROLES.find(r => r.value === formData.role);
+                            const IconComponent = selectedRole?.icon || Shield;
+                            return (
+                              <>
+                                <div className={`h-6 w-6 rounded-full ${selectedRole?.color} flex items-center justify-center text-white`}>
+                                  <IconComponent className="h-3.5 w-3.5" />
+                                </div>
+                                <span>{selectedRole?.label}</span>
+                              </>
+                            );
+                          })()}
+                        </div>
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="w-[350px]">
                         {ROLES.map((role) => {
                           const IconComponent = role.icon;
+                          const isSelected = role.value === formData.role;
                           return (
-                            <SelectItem key={role.value} value={role.value}>
-                              <div className="flex items-start gap-2">
-                                <IconComponent className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                                <div>
-                                  <div className="font-medium">{role.label}</div>
-                                  <div className="text-xs text-muted-foreground max-w-[250px]">
-                                    {role.description}
+                            <SelectItem key={role.value} value={role.value} className="py-3">
+                              <div className="flex items-start gap-3">
+                                <div className={`h-9 w-9 rounded-full ${role.color} flex items-center justify-center text-white flex-shrink-0`}>
+                                  <IconComponent className="h-4 w-4" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold">{role.label}</span>
+                                    {isSelected && (
+                                      <Badge variant="secondary" className="text-xs">เลือก</Badge>
+                                    )}
                                   </div>
+                                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                                    {role.description}
+                                  </p>
                                 </div>
                               </div>
                             </SelectItem>
@@ -253,13 +279,6 @@ export default function UsersPage() {
                         })}
                       </SelectContent>
                     </Select>
-                    {/* แสดงคำอธิบาย Role ที่เลือก */}
-                    {formData.role && (
-                      <p className="text-xs text-muted-foreground mt-1 flex items-start gap-1.5 p-2 bg-muted/50 rounded">
-                        <Shield className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
-                        {ROLES.find(r => r.value === formData.role)?.description}
-                      </p>
-                    )}
                   </div>
                 </div>
 
@@ -357,39 +376,57 @@ export default function UsersPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Select
-                          value={user.role}
-                          onValueChange={(value) => handleRoleChange(user.id, value)}
-                          disabled={updateUser.isPending}
-                        >
-                          <SelectTrigger className="w-[140px] h-8">
-                            <div className="flex items-center gap-1.5">
-                              {(() => {
-                                const RoleIcon = roleInfo.icon;
-                                return RoleIcon ? <RoleIcon className="h-3.5 w-3.5" /> : <Shield className="h-3.5 w-3.5" />;
-                              })()}
-                              <span className="text-sm">{roleInfo.label}</span>
-                            </div>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {ROLES.map((role) => {
-                              const IconComponent = role.icon;
-                              return (
-                                <SelectItem key={role.value} value={role.value}>
-                                  <div className="flex items-start gap-2">
-                                    <IconComponent className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                                    <div>
-                                      <div className="font-medium">{role.label}</div>
-                                      <div className="text-xs text-muted-foreground max-w-[220px]">
-                                        {role.description}
+                        {canEditRole ? (
+                          <Select
+                            value={user.role}
+                            onValueChange={(value) => handleRoleChange(user.id, value)}
+                            disabled={updateUser.isPending}
+                          >
+                            <SelectTrigger className="w-[130px] h-8">
+                              <div className="flex items-center gap-1.5">
+                                {(() => {
+                                  const RoleIcon = roleInfo.icon;
+                                  return RoleIcon ? <RoleIcon className="h-3.5 w-3.5" /> : <Shield className="h-3.5 w-3.5" />;
+                                })()}
+                                <span className="text-sm">{roleInfo.label}</span>
+                              </div>
+                            </SelectTrigger>
+                            <SelectContent className="w-[300px]">
+                              {ROLES.map((role) => {
+                                const IconComponent = role.icon;
+                                const isSelected = role.value === user.role;
+                                return (
+                                  <SelectItem key={role.value} value={role.value} className="py-2.5">
+                                    <div className="flex items-start gap-3">
+                                      <div className={`h-8 w-8 rounded-full ${role.color} flex items-center justify-center text-white flex-shrink-0`}>
+                                        <IconComponent className="h-4 w-4" />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                          <span className="font-medium">{role.label}</span>
+                                          {isSelected && (
+                                            <Badge variant="secondary" className="text-xs">ปัจจุบัน</Badge>
+                                          )}
+                                        </div>
+                                        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                                          {role.description}
+                                        </p>
                                       </div>
                                     </div>
-                                  </div>
-                                </SelectItem>
-                              );
-                            })}
-                          </SelectContent>
-                        </Select>
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge variant="outline" className="gap-1.5">
+                            {(() => {
+                              const RoleIcon = roleInfo.icon;
+                              return RoleIcon ? <RoleIcon className="h-3 w-3" /> : <Shield className="h-3 w-3" />;
+                            })()}
+                            {roleInfo.label}
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell>
                         <span className="text-sm">
