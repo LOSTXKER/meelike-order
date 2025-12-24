@@ -1,44 +1,51 @@
-import { withAuth } from "next-auth/middleware";
+import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-export default withAuth(
-  function middleware(req) {
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Public routes - no auth needed
+  const publicRoutes = ["/login", "/api/auth", "/api/cron"];
+  const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
+
+  if (isPublicRoute) {
     return NextResponse.next();
-  },
-  {
-    callbacks: {
-      authorized: ({ token, req }) => {
-        // Check if user is authenticated for protected routes
-        const isAuthPage = req.nextUrl.pathname.startsWith("/login");
-        const isApiAuth = req.nextUrl.pathname.startsWith("/api/auth");
-        const isPublicApi = req.nextUrl.pathname.startsWith("/api/cron");
-
-        // Allow public routes
-        if (isAuthPage || isApiAuth || isPublicApi) {
-          return true;
-        }
-
-        // Require token for all other routes
-        return !!token;
-      },
-    },
-    pages: {
-      signIn: "/login",
-    },
   }
-);
 
-// Protect all routes except public ones
+  // Check for session token
+  const token = await getToken({
+    req: request,
+    secret: process.env.NEXTAUTH_SECRET,
+  });
+
+  // If no token and trying to access protected route, redirect to login
+  if (!token) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("callbackUrl", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  return NextResponse.next();
+}
+
+// Only run middleware on specific routes (exclude static files, api, etc)
 export const config = {
   matcher: [
     /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
+     * Match dashboard routes only:
+     * - /dashboard
+     * - /cases
+     * - /providers
+     * - /team
+     * - /reports
+     * - /settings
      */
-    "/((?!_next/static|_next/image|favicon.ico|public).*)",
+    "/dashboard/:path*",
+    "/cases/:path*",
+    "/providers/:path*",
+    "/team/:path*",
+    "/reports/:path*",
+    "/settings/:path*",
   ],
 };
-
