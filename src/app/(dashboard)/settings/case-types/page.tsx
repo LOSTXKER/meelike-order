@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -29,7 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Trash2, RefreshCw, Settings2, X, CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -49,13 +50,23 @@ interface CaseType {
   isActive: boolean;
 }
 
-const categoryLabels: Record<string, { label: string; className: string }> = {
-  PAYMENT: { label: "การชำระเงิน", className: "bg-green-500/10 text-green-600 dark:text-green-400" },
-  ORDER: { label: "ออเดอร์", className: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
-  SYSTEM: { label: "ระบบ", className: "bg-purple-500/10 text-purple-600 dark:text-purple-400" },
-  PROVIDER: { label: "Provider", className: "bg-orange-500/10 text-orange-600 dark:text-orange-400" },
-  TECHNICAL: { label: "เทคนิค", className: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400" },
-  OTHER: { label: "อื่นๆ", className: "bg-gray-500/10 text-gray-600 dark:text-gray-400" },
+const categoryOptions = [
+  { value: "all", label: "ทั้งหมด", emoji: "📋" },
+  { value: "PAYMENT", label: "การชำระเงิน", emoji: "💰" },
+  { value: "ORDER", label: "ออเดอร์", emoji: "📦" },
+  { value: "SYSTEM", label: "ระบบ", emoji: "⚙️" },
+  { value: "PROVIDER", label: "Provider", emoji: "🏢" },
+  { value: "TECHNICAL", label: "เทคนิค", emoji: "🔧" },
+  { value: "OTHER", label: "อื่นๆ", emoji: "📝" },
+];
+
+const categoryLabels: Record<string, { label: string; className: string; emoji: string }> = {
+  PAYMENT: { label: "การชำระเงิน", className: "bg-green-500/10 text-green-600 dark:text-green-400", emoji: "💰" },
+  ORDER: { label: "ออเดอร์", className: "bg-blue-500/10 text-blue-600 dark:text-blue-400", emoji: "📦" },
+  SYSTEM: { label: "ระบบ", className: "bg-purple-500/10 text-purple-600 dark:text-purple-400", emoji: "⚙️" },
+  PROVIDER: { label: "Provider", className: "bg-orange-500/10 text-orange-600 dark:text-orange-400", emoji: "🏢" },
+  TECHNICAL: { label: "เทคนิค", className: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400", emoji: "🔧" },
+  OTHER: { label: "อื่นๆ", className: "bg-gray-500/10 text-gray-600 dark:text-gray-400", emoji: "📝" },
 };
 
 const severityLabels: Record<string, string> = {
@@ -73,6 +84,19 @@ export default function CaseTypesPage() {
   // Filter state
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false);
+  
+  // Bulk edit form state
+  const [bulkCategory, setBulkCategory] = useState<string>("");
+  const [bulkSeverity, setBulkSeverity] = useState<string>("");
+  const [bulkSlaMinutes, setBulkSlaMinutes] = useState<string>("");
+  const [bulkRequireProvider, setBulkRequireProvider] = useState<string>("");
+  const [bulkRequireOrderId, setBulkRequireOrderId] = useState<string>("");
+  const [bulkLineNotification, setBulkLineNotification] = useState<string>("");
+  const [bulkIsActive, setBulkIsActive] = useState<string>("");
 
   // Form state
   const [name, setName] = useState("");
@@ -92,6 +116,42 @@ export default function CaseTypesPage() {
     if (filterStatus === "inactive" && type.isActive) return false;
     return true;
   });
+
+  // Bulk selection helpers
+  const isAllSelected = filteredCaseTypes.length > 0 && 
+    filteredCaseTypes.every(type => selectedIds.has(type.id));
+  
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredCaseTypes.map(type => type.id)));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedIds(newSet);
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+  };
+
+  const resetBulkForm = () => {
+    setBulkCategory("");
+    setBulkSeverity("");
+    setBulkSlaMinutes("");
+    setBulkRequireProvider("");
+    setBulkRequireOrderId("");
+    setBulkLineNotification("");
+    setBulkIsActive("");
+  };
 
   // Removed useEffect and loadCaseTypes - using React Query hook now
 
@@ -180,6 +240,70 @@ export default function CaseTypesPage() {
       if (!res.ok) throw new Error("Failed");
 
       toast.success("ลบประเภทเคสเรียบร้อย");
+      refetch();
+    } catch (error) {
+      console.error(error);
+      toast.error("ไม่สามารถลบประเภทเคสได้");
+    }
+  };
+
+  const handleBulkSubmit = async () => {
+    // Build payload with only changed fields
+    const payload: Record<string, unknown> = {};
+    if (bulkCategory) payload.category = bulkCategory;
+    if (bulkSeverity) payload.defaultSeverity = bulkSeverity;
+    if (bulkSlaMinutes) payload.defaultSlaMinutes = parseInt(bulkSlaMinutes);
+    if (bulkRequireProvider) payload.requireProvider = bulkRequireProvider === "true";
+    if (bulkRequireOrderId) payload.requireOrderId = bulkRequireOrderId === "true";
+    if (bulkLineNotification) payload.lineNotification = bulkLineNotification === "true";
+    if (bulkIsActive) payload.isActive = bulkIsActive === "true";
+
+    if (Object.keys(payload).length === 0) {
+      toast.error("กรุณาเลือกค่าที่ต้องการแก้ไขอย่างน้อย 1 รายการ");
+      return;
+    }
+
+    try {
+      const ids = Array.from(selectedIds);
+      let successCount = 0;
+      
+      for (const id of ids) {
+        const res = await fetch(`/api/case-types/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) successCount++;
+      }
+
+      toast.success(`อัพเดท ${successCount} รายการเรียบร้อย`);
+      setIsBulkDialogOpen(false);
+      resetBulkForm();
+      clearSelection();
+      refetch();
+    } catch (error) {
+      console.error(error);
+      toast.error("ไม่สามารถอัพเดทประเภทเคสได้");
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const count = selectedIds.size;
+    if (!confirm(`ต้องการลบ ${count} รายการหรือไม่?`)) return;
+
+    try {
+      const ids = Array.from(selectedIds);
+      let successCount = 0;
+      
+      for (const id of ids) {
+        const res = await fetch(`/api/case-types/${id}`, {
+          method: "DELETE",
+        });
+        if (res.ok) successCount++;
+      }
+
+      toast.success(`ลบ ${successCount} รายการเรียบร้อย`);
+      clearSelection();
       refetch();
     } catch (error) {
       console.error(error);
@@ -377,61 +501,270 @@ export default function CaseTypesPage() {
           </div>
         </div>
 
-        {/* Filters */}
-        <Card className="p-4">
+        {/* Filter Tabs - Category */}
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            {categoryOptions.map((cat) => (
+              <Button
+                key={cat.value}
+                variant={filterCategory === cat.value ? "default" : "outline"}
+                size="sm"
+                className={cn(
+                  "gap-1.5 transition-all",
+                  filterCategory === cat.value && "shadow-md"
+                )}
+                onClick={() => setFilterCategory(cat.value)}
+              >
+                <span>{cat.emoji}</span>
+                <span>{cat.label}</span>
+                {cat.value !== "all" && (
+                  <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                    {caseTypes.filter(t => t.category === cat.value).length}
+                  </Badge>
+                )}
+              </Button>
+            ))}
+          </div>
+
+          {/* Status Filter Tabs */}
           <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <Label className="text-sm font-medium mb-2 block">กรองตามหมวดหมู่</Label>
-              <Select value={filterCategory} onValueChange={setFilterCategory}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">ทั้งหมด</SelectItem>
-                  <SelectItem value="PAYMENT">การชำระเงิน</SelectItem>
-                  <SelectItem value="ORDER">ออเดอร์</SelectItem>
-                  <SelectItem value="SYSTEM">ระบบ</SelectItem>
-                  <SelectItem value="PROVIDER">Provider</SelectItem>
-                  <SelectItem value="TECHNICAL">เทคนิค</SelectItem>
-                  <SelectItem value="OTHER">อื่นๆ</SelectItem>
-                </SelectContent>
-              </Select>
+            <span className="text-sm text-muted-foreground">สถานะ:</span>
+            <div className="flex gap-1 rounded-lg bg-muted p-1">
+              <Button
+                variant={filterStatus === "all" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 px-3"
+                onClick={() => setFilterStatus("all")}
+              >
+                ทั้งหมด
+              </Button>
+              <Button
+                variant={filterStatus === "active" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 px-3 gap-1"
+                onClick={() => setFilterStatus("active")}
+              >
+                <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                เปิดใช้งาน
+              </Button>
+              <Button
+                variant={filterStatus === "inactive" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 px-3 gap-1"
+                onClick={() => setFilterStatus("inactive")}
+              >
+                <XCircle className="h-3.5 w-3.5 text-gray-400" />
+                ปิดใช้งาน
+              </Button>
             </div>
-            <div className="flex-1">
-              <Label className="text-sm font-medium mb-2 block">กรองตามสถานะ</Label>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">ทั้งหมด</SelectItem>
-                  <SelectItem value="active">เปิดใช้งาน</SelectItem>
-                  <SelectItem value="inactive">ปิดใช้งาน</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            
             {(filterCategory !== "all" || filterStatus !== "all") && (
               <Button
                 variant="ghost"
-                className="self-end"
+                size="sm"
+                className="h-7 text-muted-foreground hover:text-foreground"
                 onClick={() => {
                   setFilterCategory("all");
                   setFilterStatus("all");
                 }}
               >
+                <X className="h-3.5 w-3.5 mr-1" />
                 ล้างตัวกรอง
               </Button>
             )}
           </div>
-        </Card>
+        </div>
+
+        {/* Bulk Action Toolbar */}
+        {selectedIds.size > 0 && (
+          <Card className="border-primary/50 bg-primary/5 p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-medium text-sm">
+                    {selectedIds.size}
+                  </div>
+                  <span className="font-medium">รายการที่เลือก</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearSelection}
+                  className="h-7 text-muted-foreground"
+                >
+                  <X className="h-3.5 w-3.5 mr-1" />
+                  ยกเลิกการเลือก
+                </Button>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Dialog open={isBulkDialogOpen} onOpenChange={(open) => {
+                  setIsBulkDialogOpen(open);
+                  if (!open) resetBulkForm();
+                }}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="gap-1.5">
+                      <Settings2 className="h-4 w-4" />
+                      แก้ไขพร้อมกัน
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                      <DialogTitle>แก้ไข {selectedIds.size} รายการพร้อมกัน</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <p className="text-sm text-muted-foreground">
+                        เลือกค่าที่ต้องการเปลี่ยน (ค่าที่ไม่ได้เลือกจะคงเดิม)
+                      </p>
+
+                      <div className="grid gap-4">
+                        <div className="space-y-2">
+                          <Label>หมวดหมู่</Label>
+                          <Select value={bulkCategory} onValueChange={setBulkCategory}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="ไม่เปลี่ยน" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="PAYMENT">💰 การชำระเงิน</SelectItem>
+                              <SelectItem value="ORDER">📦 ออเดอร์</SelectItem>
+                              <SelectItem value="SYSTEM">⚙️ ระบบ</SelectItem>
+                              <SelectItem value="PROVIDER">🏢 Provider</SelectItem>
+                              <SelectItem value="TECHNICAL">🔧 เทคนิค</SelectItem>
+                              <SelectItem value="OTHER">📝 อื่นๆ</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>ความรุนแรงเริ่มต้น</Label>
+                          <Select value={bulkSeverity} onValueChange={setBulkSeverity}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="ไม่เปลี่ยน" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="CRITICAL">🔴 วิกฤต</SelectItem>
+                              <SelectItem value="HIGH">🟠 สูง</SelectItem>
+                              <SelectItem value="NORMAL">🟡 ปกติ</SelectItem>
+                              <SelectItem value="LOW">🟢 ต่ำ</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>SLA (นาที)</Label>
+                          <Input
+                            type="number"
+                            value={bulkSlaMinutes}
+                            onChange={(e) => setBulkSlaMinutes(e.target.value)}
+                            placeholder="ไม่เปลี่ยน"
+                            min="1"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>ต้องระบุ Provider</Label>
+                            <Select value={bulkRequireProvider} onValueChange={setBulkRequireProvider}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="ไม่เปลี่ยน" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="true">✅ ต้องระบุ</SelectItem>
+                                <SelectItem value="false">❌ ไม่ต้องระบุ</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>ต้องระบุ Order ID</Label>
+                            <Select value={bulkRequireOrderId} onValueChange={setBulkRequireOrderId}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="ไม่เปลี่ยน" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="true">✅ ต้องระบุ</SelectItem>
+                                <SelectItem value="false">❌ ไม่ต้องระบุ</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>แจ้งเตือน Line</Label>
+                            <Select value={bulkLineNotification} onValueChange={setBulkLineNotification}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="ไม่เปลี่ยน" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="true">✅ เปิด</SelectItem>
+                                <SelectItem value="false">❌ ปิด</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>สถานะ</Label>
+                            <Select value={bulkIsActive} onValueChange={setBulkIsActive}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="ไม่เปลี่ยน" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="true">✅ เปิดใช้งาน</SelectItem>
+                                <SelectItem value="false">❌ ปิดใช้งาน</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-3 pt-4">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setIsBulkDialogOpen(false);
+                            resetBulkForm();
+                          }}
+                        >
+                          ยกเลิก
+                        </Button>
+                        <Button onClick={handleBulkSubmit}>
+                          บันทึกการแก้ไข
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={handleBulkDelete}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  ลบทั้งหมด
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* Case Types Table */}
         <Card>
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
+                <TableHead className="w-[50px]">
+                  <Checkbox
+                    checked={isAllSelected}
+                    onCheckedChange={toggleSelectAll}
+                    aria-label="เลือกทั้งหมด"
+                  />
+                </TableHead>
                 <TableHead>ชื่อ</TableHead>
-                <TableHead className="w-[120px]">หมวดหมู่</TableHead>
+                <TableHead className="w-[130px]">หมวดหมู่</TableHead>
                 <TableHead className="w-[100px]">ความรุนแรง</TableHead>
                 <TableHead className="w-[100px] text-right">SLA</TableHead>
                 <TableHead className="w-[200px]">การตั้งค่า</TableHead>
@@ -442,13 +775,23 @@ export default function CaseTypesPage() {
             <TableBody>
               {filteredCaseTypes.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
                     {caseTypes.length === 0 ? "ไม่พบประเภทเคส" : "ไม่พบประเภทเคสที่ตรงกับตัวกรอง"}
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredCaseTypes.map((type) => (
-                  <TableRow key={type.id}>
+                  <TableRow 
+                    key={type.id}
+                    className={cn(selectedIds.has(type.id) && "bg-primary/5")}
+                  >
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.has(type.id)}
+                        onCheckedChange={() => toggleSelect(type.id)}
+                        aria-label={`เลือก ${type.name}`}
+                      />
+                    </TableCell>
                     <TableCell>
                       <div>
                         <p className="font-medium">{type.name}</p>
@@ -462,8 +805,9 @@ export default function CaseTypesPage() {
                     <TableCell>
                       <Badge
                         variant="outline"
-                        className={cn("text-xs", categoryLabels[type.category]?.className)}
+                        className={cn("text-xs gap-1", categoryLabels[type.category]?.className)}
                       >
+                        <span>{categoryLabels[type.category]?.emoji}</span>
                         {categoryLabels[type.category]?.label}
                       </Badge>
                     </TableCell>
@@ -477,26 +821,33 @@ export default function CaseTypesPage() {
                       <div className="flex flex-wrap gap-1">
                         {type.requireProvider && (
                           <Badge variant="outline" className="text-xs">
-                            Provider
+                            🏢 Provider
                           </Badge>
                         )}
                         {type.requireOrderId && (
                           <Badge variant="outline" className="text-xs">
-                            Order ID
+                            📋 Order
                           </Badge>
                         )}
                         {type.lineNotification && (
                           <Badge variant="outline" className="text-xs">
-                            Line
+                            💬 Line
                           </Badge>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className={cn(
-                        "h-2 w-2 rounded-full",
-                        type.isActive ? "bg-green-500" : "bg-gray-400"
-                      )} />
+                        "flex items-center gap-1.5",
+                      )}>
+                        <div className={cn(
+                          "h-2 w-2 rounded-full",
+                          type.isActive ? "bg-green-500" : "bg-gray-400"
+                        )} />
+                        <span className="text-xs text-muted-foreground">
+                          {type.isActive ? "เปิด" : "ปิด"}
+                        </span>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
