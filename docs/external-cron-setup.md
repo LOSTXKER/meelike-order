@@ -92,3 +92,4 @@ jobs:
 - ไม่ต้องมี authentication (แต่ควรเพิ่มใน production)
 - Vercel cron ยังคงใช้ได้ (รันทุกชั่วโมง) แต่ช้ากว่า external service
 
+

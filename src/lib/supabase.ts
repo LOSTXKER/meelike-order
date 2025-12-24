@@ -63,3 +63,4 @@ export function getPublicUrl(bucket: string, path: string): string {
   return data.publicUrl
 }
 
+

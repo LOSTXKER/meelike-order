@@ -6,3 +6,4 @@ export default function ReportsLoading() {
   return <LoadingScreen title="กำลังโหลดรายงาน" variant="default" />;
 }
 
+

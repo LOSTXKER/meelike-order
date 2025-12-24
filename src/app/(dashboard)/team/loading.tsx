@@ -6,3 +6,4 @@ export default function TeamLoading() {
   return <LoadingScreen title="กำลังโหลดข้อมูลทีม" variant="dots" />;
 }
 
+

@@ -79,3 +79,4 @@ export function AttachmentsTab({ caseId }: AttachmentsTabProps) {
   );
 }
 
+

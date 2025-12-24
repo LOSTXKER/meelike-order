@@ -34,6 +34,7 @@ import { formatDistanceToNow, differenceInMinutes, format } from "date-fns";
 import { th } from "date-fns/locale";
 import { CaseActions } from "./case-actions";
 import { FileAttachments } from "./file-attachments";
+import { OrderStatusSelect, OrderStatusBadge } from "./order-status-select";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 
@@ -107,6 +108,7 @@ interface Order {
   amount: unknown;
   status: string;
   createdAt: Date | string;
+  provider?: { id: string; name: string } | null;
 }
 
 interface Activity {
@@ -274,24 +276,23 @@ export default function CaseDetailPage() {
                     <CardTitle className="text-base font-semibold flex items-center gap-2">
                       <Package className="h-4 w-4" />
                       ออเดอร์ที่เกี่ยวข้อง
+                      {caseDetail.orders && caseDetail.orders.length > 0 && (
+                        <Badge variant="secondary" className="ml-auto text-xs">
+                          {caseDetail.orders.length} รายการ
+                        </Badge>
+                      )}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     {caseDetail.orders && caseDetail.orders.length > 0 ? (
                       <div className="space-y-2">
                         {caseDetail.orders.map((order: Order) => (
-                          <div key={order.id} className="flex items-center justify-between p-3 rounded-md border bg-muted/20">
-                            <div className="flex items-center gap-3">
-                              <Package className="h-8 w-8 p-1.5 rounded bg-background border text-muted-foreground" />
-                              <div>
-                                <p className="font-mono text-sm font-medium">{order.orderId}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {format(typeof order.createdAt === "string" ? new Date(order.createdAt) : order.createdAt, "d MMM yyyy", { locale: th })}
-                                </p>
-                              </div>
-                            </div>
-                            <Badge variant="outline">{order.status}</Badge>
-                          </div>
+                          <OrderStatusSelect
+                            key={order.id}
+                            order={order}
+                            caseId={caseDetail.id}
+                            onUpdate={() => refetch()}
+                          />
                         ))}
                       </div>
                     ) : (
@@ -396,22 +397,23 @@ export default function CaseDetailPage() {
                     </div>
                   </div>
 
-                  {/* Order IDs */}
+                  {/* Orders Summary */}
                   <div className="p-4 flex gap-3">
                     <Package className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-muted-foreground mb-0.5">Order ID</p>
+                      <p className="text-xs font-medium text-muted-foreground mb-1">Orders ({caseDetail.orders?.length || 0})</p>
                       {caseDetail.orders && caseDetail.orders.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
+                        <div className="space-y-1.5">
                           {caseDetail.orders.slice(0, 3).map((order: Order) => (
-                            <Badge key={order.id} variant="secondary" className="text-xs font-mono">
-                              {order.orderId}
-                            </Badge>
+                            <div key={order.id} className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-mono truncate">{order.orderId}</span>
+                              <OrderStatusBadge status={order.status} />
+                            </div>
                           ))}
                           {caseDetail.orders.length > 3 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{caseDetail.orders.length - 3} อื่น
-                            </Badge>
+                            <p className="text-xs text-muted-foreground">
+                              +{caseDetail.orders.length - 3} อื่นๆ
+                            </p>
                           )}
                         </div>
                       ) : (
