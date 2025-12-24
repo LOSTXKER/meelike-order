@@ -77,6 +77,23 @@ function formatSlaRemaining(deadline: Date | null): { text: string; isUrgent: bo
   return { text: `${hours}:${mins.toString().padStart(2, "0")} ชม.`, isUrgent: false, isMissed: false };
 }
 
+interface Order {
+  id: string;
+  orderId: string;
+  amount: unknown;
+  status: string;
+  createdAt: Date;
+}
+
+interface Activity {
+  id: string;
+  type: string;
+  title: string;
+  description: string | null;
+  createdAt: Date;
+  user: { id: string; name: string | null } | null;
+}
+
 interface CaseDetailPageProps {
   params: Promise<{ id: string }>;
 }
@@ -168,7 +185,7 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {caseDetail.orders.map((order: { id: string; orderId: string; amount: number; status: string; createdAt: Date }) => (
+                    {caseDetail.orders.map((order: Order) => (
                       <div
                         key={order.id}
                         className="flex items-center justify-between rounded-lg border border-border p-4"
@@ -199,7 +216,7 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {caseDetail.activities.map((activity, index) => {
+                  {caseDetail.activities.map((activity: Activity, index: number) => {
                     const Icon = activityIcons[activity.type] || MessageSquare;
                     return (
                       <div key={activity.id} className="flex gap-4">
