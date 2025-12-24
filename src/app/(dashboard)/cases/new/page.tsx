@@ -24,6 +24,8 @@ interface CaseType {
   name: string;
   category: string;
   defaultSeverity: string;
+  requireProvider: boolean;
+  requireOrderId: boolean;
 }
 
 interface Provider {
@@ -47,6 +49,11 @@ export default function NewCasePage() {
   const [customerName, setCustomerName] = useState("");
   const [customerId, setCustomerId] = useState("");
   const [customerContact, setCustomerContact] = useState("");
+  const [orderId, setOrderId] = useState("");
+  const [amount, setAmount] = useState("");
+
+  // Get selected case type to check requirements
+  const selectedCaseType = caseTypes.find((t) => t.id === caseTypeId);
 
   useEffect(() => {
     // Load case types and providers
@@ -59,11 +66,44 @@ export default function NewCasePage() {
     });
   }, []);
 
+  // Auto-set severity when case type changes
+  useEffect(() => {
+    if (selectedCaseType) {
+      setSeverity(selectedCaseType.defaultSeverity);
+    }
+  }, [selectedCaseType]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
+    // Validate required fields based on case type
+    if (selectedCaseType?.requireProvider && (!providerId || providerId === "none")) {
+      toast.error("กรุณาเลือก Provider", {
+        description: "ประเภทเคสนี้ต้องระบุ Provider",
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    if (selectedCaseType?.requireOrderId && !orderId) {
+      toast.error("กรุณากรอก Order ID", {
+        description: "ประเภทเคสนี้ต้องระบุ Order ID",
+      });
+      setIsLoading(false);
+      return;
+    }
+
     try {
+      const orders = [];
+      if (orderId && providerId && providerId !== "none") {
+        orders.push({
+          orderId,
+          amount: amount ? parseFloat(amount) : 0,
+          providerId,
+        });
+      }
+
       const res = await fetch("/api/cases", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -77,6 +117,7 @@ export default function NewCasePage() {
           customerName: customerName || undefined,
           customerId: customerId || undefined,
           customerContact: customerContact || undefined,
+          orders: orders.length > 0 ? orders : undefined,
         }),
       });
 
@@ -212,17 +253,20 @@ export default function NewCasePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Provider</Label>
+                  <Label>
+                    Provider {selectedCaseType?.requireProvider && <span className="text-red-500">*</span>}
+                  </Label>
                   <Select 
                     value={providerId} 
                     onValueChange={setProviderId}
                     disabled={isLoading}
+                    required={selectedCaseType?.requireProvider}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="เลือก Provider (ถ้ามี)" />
+                    <SelectTrigger className={selectedCaseType?.requireProvider && !providerId ? "border-red-500" : ""}>
+                      <SelectValue placeholder={selectedCaseType?.requireProvider ? "เลือก Provider" : "เลือก Provider (ถ้ามี)"} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">ไม่ระบุ</SelectItem>
+                      {!selectedCaseType?.requireProvider && <SelectItem value="none">ไม่ระบุ</SelectItem>}
                       {providers.map((provider) => (
                         <SelectItem key={provider.id} value={provider.id}>
                           {provider.name}
@@ -232,6 +276,42 @@ export default function NewCasePage() {
                   </Select>
                 </div>
               </div>
+
+              {/* Order Info - Show if requireOrderId is true */}
+              {selectedCaseType?.requireOrderId && (
+                <div className="pt-4 border-t">
+                  <h3 className="font-medium mb-4">ข้อมูล Order</h3>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="orderId">
+                        Order ID <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="orderId"
+                        placeholder="หมายเลข Order"
+                        value={orderId}
+                        onChange={(e) => setOrderId(e.target.value)}
+                        required={selectedCaseType?.requireOrderId}
+                        disabled={isLoading}
+                        className={selectedCaseType?.requireOrderId && !orderId ? "border-red-500" : ""}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="amount">จำนวนเงิน</Label>
+                      <Input
+                        id="amount"
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        disabled={isLoading}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -285,7 +365,16 @@ export default function NewCasePage() {
                 ยกเลิก
               </Button>
             </Link>
-            <Button type="submit" disabled={isLoading || !caseTypeId || !title}>
+            <Button 
+              type="submit" 
+              disabled={
+                isLoading || 
+                !caseTypeId || 
+                !title ||
+                (selectedCaseType?.requireProvider && (!providerId || providerId === "none")) ||
+                (selectedCaseType?.requireOrderId && !orderId)
+              }
+            >
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
