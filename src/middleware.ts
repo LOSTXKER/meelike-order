@@ -33,19 +33,26 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match dashboard routes only:
-     * - /dashboard
-     * - /cases
-     * - /providers
-     * - /team
-     * - /reports
-     * - /settings
+     * Match dashboard routes:
+     * - /dashboard (root)
+     * - /dashboard/* (sub-paths)
+     * - /cases, /cases/*
+     * - /providers, /providers/*
+     * - /team, /team/*
+     * - /reports, /reports/*
+     * - /settings, /settings/*
      */
+    "/dashboard",
     "/dashboard/:path*",
+    "/cases",
     "/cases/:path*",
+    "/providers",
     "/providers/:path*",
+    "/team",
     "/team/:path*",
+    "/reports",
     "/reports/:path*",
+    "/settings",
     "/settings/:path*",
   ],
 };
