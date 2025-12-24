@@ -149,7 +149,34 @@ export async function POST(request: NextRequest) {
       Date.now() + caseType.defaultSlaMinutes * 60 * 1000
     );
 
-    // Create case
+    // Handle orders - connect existing or create new
+    const ordersConnect: { id: string }[] = [];
+    const ordersCreate: { orderId: string; amount: number; providerId?: string }[] = [];
+    
+    if (body.orders && Array.isArray(body.orders)) {
+      for (const orderData of body.orders) {
+        if (orderData.orderId) {
+          // Check if order already exists
+          const existingOrder = await prisma.order.findUnique({
+            where: { orderId: orderData.orderId },
+          });
+          
+          if (existingOrder) {
+            // Connect existing order
+            ordersConnect.push({ id: existingOrder.id });
+          } else {
+            // Create new order
+            ordersCreate.push({
+              orderId: orderData.orderId,
+              amount: orderData.amount || 0,
+              providerId: orderData.providerId || body.providerId,
+            });
+          }
+        }
+      }
+    }
+
+    // Create case with orders
     const newCase = await prisma.case.create({
       data: {
         caseNumber,
@@ -163,11 +190,17 @@ export async function POST(request: NextRequest) {
         customerContact: body.customerContact,
         providerId: body.providerId,
         slaDeadline,
+        // Connect and create orders
+        orders: {
+          connect: ordersConnect,
+          create: ordersCreate,
+        },
       },
       include: {
         caseType: true,
         owner: true,
         provider: true,
+        orders: true,
       },
     });
 

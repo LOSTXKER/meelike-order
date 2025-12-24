@@ -54,6 +54,15 @@ const severityLabels: Record<string, { label: string; className: string }> = {
   LOW: { label: "ต่ำ", className: "bg-gray-500/10 text-gray-600 dark:text-gray-400" },
 };
 
+const categoryLabels: Record<string, string> = {
+  PAYMENT: "การชำระเงิน",
+  ORDER: "ออเดอร์",
+  SYSTEM: "ระบบ",
+  PROVIDER: "Provider",
+  TECHNICAL: "เทคนิค",
+  OTHER: "อื่นๆ",
+};
+
 const activityIcons: Record<string, typeof MessageSquare> = {
   CREATED: FileText,
   STATUS_CHANGED: ChevronRight,
@@ -260,15 +269,15 @@ export default function CaseDetailPage() {
                   </CardContent>
                 </Card>
 
-                {caseDetail.orders && caseDetail.orders.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base font-semibold flex items-center gap-2">
-                        <Package className="h-4 w-4" />
-                        ออเดอร์ที่เกี่ยวข้อง
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <Package className="h-4 w-4" />
+                      ออเดอร์ที่เกี่ยวข้อง
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {caseDetail.orders && caseDetail.orders.length > 0 ? (
                       <div className="space-y-2">
                         {caseDetail.orders.map((order: Order) => (
                           <div key={order.id} className="flex items-center justify-between p-3 rounded-md border bg-muted/20">
@@ -285,9 +294,11 @@ export default function CaseDetailPage() {
                           </div>
                         ))}
                       </div>
-                    </CardContent>
-                  </Card>
-                )}
+                    ) : (
+                      <p className="text-sm text-muted-foreground">-</p>
+                    )}
+                  </CardContent>
+                </Card>
 
                 <FileAttachments caseId={caseDetail.id} onUploadSuccess={() => refetch()} />
               </TabsContent>
@@ -385,6 +396,30 @@ export default function CaseDetailPage() {
                     </div>
                   </div>
 
+                  {/* Order IDs */}
+                  <div className="p-4 flex gap-3">
+                    <Package className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-muted-foreground mb-0.5">Order ID</p>
+                      {caseDetail.orders && caseDetail.orders.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {caseDetail.orders.slice(0, 3).map((order: Order) => (
+                            <Badge key={order.id} variant="secondary" className="text-xs font-mono">
+                              {order.orderId}
+                            </Badge>
+                          ))}
+                          {caseDetail.orders.length > 3 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{caseDetail.orders.length - 3} อื่น
+                            </Badge>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">-</p>
+                      )}
+                    </div>
+                  </div>
+
                   {/* Assignee */}
                   <div className="p-4 flex gap-3">
                     <User className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
@@ -413,7 +448,7 @@ export default function CaseDetailPage() {
                       <span className="text-muted-foreground flex items-center gap-1">
                         <Tag className="h-3 w-3" /> หมวดหมู่
                       </span>
-                      <span className="font-medium">{caseDetail.caseType?.category || "-"}</span>
+                      <span className="font-medium">{categoryLabels[caseDetail.caseType?.category || ""] || caseDetail.caseType?.category || "-"}</span>
                     </div>
                     <div className="flex justify-between text-xs">
                       <span className="text-muted-foreground flex items-center gap-1">

@@ -16,7 +16,7 @@ export async function GET(
       include: {
         caseType: true,
         owner: {
-          select: { id: true, name: true, email: true },
+          select: { id: true, name: true, email: true, role: true },
         },
         provider: true,
         orders: {
