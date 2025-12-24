@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
 
     // Handle orders - connect existing or create new
     const ordersConnect: { id: string }[] = [];
-    const ordersCreate: { orderId: string; amount: number; providerId?: string }[] = [];
+    const ordersCreate: { orderId: string; amount: number; providerId?: string; status: "PENDING" }[] = [];
     
     if (body.orders && Array.isArray(body.orders)) {
       for (const orderData of body.orders) {
@@ -165,11 +165,12 @@ export async function POST(request: NextRequest) {
             // Connect existing order
             ordersConnect.push({ id: existingOrder.id });
           } else {
-            // Create new order
+            // Create new order with PENDING status
             ordersCreate.push({
               orderId: orderData.orderId,
               amount: orderData.amount || 0,
               providerId: orderData.providerId || body.providerId,
+              status: "PENDING",
             });
           }
         }
@@ -204,13 +205,21 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Build activity description
+    const orderCount = ordersConnect.length + ordersCreate.length;
+    let activityDescription = `เคสถูกสร้างจาก ${body.source || "Manual"}`;
+    if (orderCount > 0) {
+      const orderIds = newCase.orders?.map((o) => o.orderId).join(", ") || "";
+      activityDescription += `\nOrders (${orderCount} รายการ): ${orderIds}`;
+    }
+
     // Create activity log
     await prisma.caseActivity.create({
       data: {
         caseId: newCase.id,
         type: "CREATED",
         title: "สร้างเคสใหม่",
-        description: `เคสถูกสร้างจาก ${body.source || "Manual"}`,
+        description: activityDescription,
       },
     });
 
