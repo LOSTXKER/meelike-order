@@ -17,6 +17,39 @@ import { getCurrentUser } from "@/lib/auth";
 import { formatDistanceToNow } from "date-fns";
 import { th } from "date-fns/locale";
 
+interface RecentCase {
+  id: string;
+  caseNumber: string;
+  title: string;
+  customerName: string | null;
+  severity: string;
+  status: string;
+  createdAt: Date;
+  caseType: { name: string };
+  owner: { name: string | null } | null;
+}
+
+interface CriticalCase {
+  id: string;
+  caseNumber: string;
+  title: string;
+  slaDeadline: Date | null;
+}
+
+interface ProviderWithIssues {
+  id: string;
+  name: string;
+  riskLevel: string | null;
+  _count: { cases: number };
+}
+
+interface Stat {
+  title: string;
+  value: string;
+  icon: typeof Inbox;
+  color: string;
+}
+
 const statusLabels: Record<string, { label: string; className: string }> = {
   NEW: { label: "ใหม่", className: "bg-blue-500/10 text-blue-500 border-blue-500/20" },
   INVESTIGATING: { label: "กำลังตรวจสอบ", className: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
@@ -177,7 +210,7 @@ export default async function DashboardPage() {
 
         {/* Stats Grid */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat) => (
+          {stats.map((stat: Stat) => (
             <Card key={stat.title} className="relative overflow-hidden">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -214,7 +247,7 @@ export default async function DashboardPage() {
                     ยังไม่มีเคส
                   </p>
                 ) : (
-                  data.recentCases.map((caseItem) => (
+                  data.recentCases.map((caseItem: RecentCase) => (
                     <Link
                       key={caseItem.id}
                       href={`/cases/${caseItem.id}`}
@@ -281,7 +314,7 @@ export default async function DashboardPage() {
                       ไม่มีเคสวิกฤต 🎉
                     </p>
                   ) : (
-                    data.criticalCases.map((caseItem) => (
+                    data.criticalCases.map((caseItem: CriticalCase) => (
                       <Link
                         key={caseItem.id}
                         href={`/cases/${caseItem.id}`}
@@ -319,7 +352,7 @@ export default async function DashboardPage() {
                       ไม่มี Provider ที่มีปัญหา
                     </p>
                   ) : (
-                    data.providersWithIssues.map((provider) => (
+                    data.providersWithIssues.map((provider: ProviderWithIssues) => (
                       <div
                         key={provider.id}
                         className="flex items-center justify-between"
