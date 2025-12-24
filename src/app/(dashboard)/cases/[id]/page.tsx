@@ -351,35 +351,44 @@ export default function CaseDetailPage() {
                 <div className="divide-y">
                   {/* Customer */}
                   <div className="p-4 flex gap-3">
-                    <UserCircle className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <div>
+                    <UserCircle className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-muted-foreground mb-0.5">ลูกค้า</p>
-                      <p className="text-sm font-medium">{caseDetail.customerName || "ไม่ระบุ"}</p>
-                      {caseDetail.customerId && (
-                        <p className="text-xs text-muted-foreground font-mono">{caseDetail.customerId}</p>
-                      )}
-                      {caseDetail.customerContact && (
-                        <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                          <Phone className="h-3 w-3" />
-                          {caseDetail.customerContact}
-                        </div>
-                      )}
+                      <p className="text-sm font-medium">{caseDetail.customerName || "-"}</p>
+                    </div>
+                  </div>
+
+                  {/* Customer ID */}
+                  <div className="p-4 flex gap-3">
+                    <div className="h-5 w-5 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-muted-foreground mb-0.5">Customer ID</p>
+                      <p className="text-xs font-mono truncate">{caseDetail.customerId || "-"}</p>
+                    </div>
+                  </div>
+
+                  {/* Contact */}
+                  <div className="p-4 flex gap-3">
+                    <Phone className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-muted-foreground mb-0.5">ติดต่อ</p>
+                      <p className="text-xs truncate">{caseDetail.customerContact || "-"}</p>
                     </div>
                   </div>
 
                   {/* Provider */}
                   <div className="p-4 flex gap-3">
-                    <Building2 className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <div>
+                    <Building2 className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-muted-foreground mb-0.5">Provider</p>
-                      <p className="text-sm font-medium">{caseDetail.provider?.name || "ไม่ระบุ"}</p>
+                      <p className="text-sm font-medium">{caseDetail.provider?.name || "-"}</p>
                     </div>
                   </div>
 
                   {/* Assignee */}
                   <div className="p-4 flex gap-3">
-                    <User className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <div>
+                    <User className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-muted-foreground mb-0.5">ผู้รับผิดชอบ</p>
                       {caseDetail.owner ? (
                         <>
@@ -387,7 +396,7 @@ export default function CaseDetailPage() {
                           <p className="text-xs text-muted-foreground">{caseDetail.owner.role}</p>
                         </>
                       ) : (
-                        <p className="text-sm text-muted-foreground italic">ยังไม่มี</p>
+                        <p className="text-sm text-muted-foreground">-</p>
                       )}
                     </div>
                   </div>
@@ -398,7 +407,7 @@ export default function CaseDetailPage() {
                       <span className="text-muted-foreground flex items-center gap-1">
                         <LinkIcon className="h-3 w-3" /> แหล่งที่มา
                       </span>
-                      <span className="font-medium">{caseDetail.source}</span>
+                      <span className="font-medium">{caseDetail.source || "-"}</span>
                     </div>
                     <div className="flex justify-between text-xs">
                       <span className="text-muted-foreground flex items-center gap-1">
