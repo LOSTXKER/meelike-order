@@ -58,6 +58,20 @@ function formatSlaRemaining(deadline: Date | null): { text: string; isUrgent: bo
   return { text: `${hours}:${mins.toString().padStart(2, "0")} ชม.`, isUrgent: false, isMissed: false };
 }
 
+interface CaseItem {
+  id: string;
+  caseNumber: string;
+  title: string;
+  customerName: string | null;
+  severity: string;
+  status: string;
+  slaDeadline: Date | null;
+  createdAt: Date;
+  caseType: { name: string };
+  owner: { name: string | null } | null;
+  provider: { name: string } | null;
+}
+
 interface CasesPageProps {
   searchParams: Promise<{
     status?: string;
@@ -152,7 +166,7 @@ export default async function CasesPage({ searchParams }: CasesPageProps) {
                   </TableCell>
                 </TableRow>
               ) : (
-                cases.map((caseItem) => {
+                cases.map((caseItem: CaseItem) => {
                   const sla = formatSlaRemaining(caseItem.slaDeadline);
                   return (
                     <TableRow key={caseItem.id} className="cursor-pointer">
