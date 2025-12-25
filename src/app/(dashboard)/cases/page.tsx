@@ -13,8 +13,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card } from "@/components/ui/card";
-import { Plus, Clock, ArrowUpDown, ArrowUp, ArrowDown, MoreHorizontal, ChevronRight, UserPlus } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { 
+  Plus, Clock, ArrowUpDown, ArrowUp, ArrowDown, MoreHorizontal, 
+  ChevronRight, AlertCircle, AlertTriangle, CheckCircle2, Info,
+  Filter
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,25 +33,26 @@ import Link from "next/link";
 import { useCases } from "@/hooks";
 import { formatDistanceToNow, differenceInMinutes } from "date-fns";
 import { th } from "date-fns/locale";
-import { CasesFilters, ActiveFilterTags } from "./cases-filters";
+import { CasesFilterSidebar, CaseSearchInput } from "./cases-filters";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useTransition, useState } from "react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const statusLabels: Record<string, { label: string; className: string }> = {
-  NEW: { label: "ใหม่", className: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800" },
-  INVESTIGATING: { label: "กำลังตรวจสอบ", className: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-800" },
-  WAITING_CUSTOMER: { label: "รอลูกค้า", className: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800" },
-  WAITING_PROVIDER: { label: "รอ Provider", className: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800" },
-  FIXING: { label: "กำลังแก้ไข", className: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-200 dark:border-cyan-800" },
-  RESOLVED: { label: "แก้ไขแล้ว", className: "bg-green-500/10 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800" },
-  CLOSED: { label: "ปิดเคส", className: "bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-800" },
+  NEW: { label: "ใหม่", className: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800" },
+  INVESTIGATING: { label: "ตรวจสอบ", className: "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-900/30 dark:text-violet-300 dark:border-violet-800" },
+  WAITING_CUSTOMER: { label: "รอลูกค้า", className: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800" },
+  WAITING_PROVIDER: { label: "รอ Provider", className: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800" },
+  FIXING: { label: "กำลังแก้ไข", className: "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-cyan-800" },
+  RESOLVED: { label: "แก้ไขแล้ว", className: "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800" },
+  CLOSED: { label: "ปิดเคส", className: "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700" },
 };
 
-const severityLabels: Record<string, { label: string; dotColor: string }> = {
-  CRITICAL: { label: "วิกฤต", dotColor: "bg-red-500" },
-  HIGH: { label: "สูง", dotColor: "bg-orange-500" },
-  NORMAL: { label: "ปกติ", dotColor: "bg-blue-500" },
-  LOW: { label: "ต่ำ", dotColor: "bg-gray-500" },
+const severityLabels: Record<string, { label: string; icon: any; color: string }> = {
+  CRITICAL: { label: "วิกฤต", icon: AlertCircle, color: "text-red-600 dark:text-red-400" },
+  HIGH: { label: "สูง", icon: AlertTriangle, color: "text-orange-600 dark:text-orange-400" },
+  NORMAL: { label: "ปกติ", icon: Info, color: "text-blue-600 dark:text-blue-400" },
+  LOW: { label: "ต่ำ", icon: CheckCircle2, color: "text-gray-500" },
 };
 
 function formatSlaRemaining(deadline: Date | string | null): { text: string; isUrgent: boolean; isMissed: boolean } {
@@ -183,263 +188,274 @@ export default function CasesPage() {
 
   return (
     <div className="min-h-screen">
-      <Header title="เคสทั้งหมด" />
+      <Header />
       
-      <div className="p-6 space-y-6">
-        {/* Filters */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <CasesFilters />
-          <div className="flex items-center gap-2">
-            <RefreshButton invalidateKeys={["cases"]} />
-            <Link href="/cases/new">
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                สร้างเคสใหม่
-              </Button>
-            </Link>
-          </div>
-        </div>
+      <div className="p-6 max-w-[1600px] mx-auto">
+        <div className="flex flex-col lg:flex-row gap-8">
+          
+          {/* Sidebar Filters (Desktop) */}
+          <aside className="hidden lg:block w-64 shrink-0 space-y-6">
+            <div className="sticky top-24">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold tracking-tight">เคสทั้งหมด</h2>
+                <p className="text-sm text-muted-foreground">จัดการและติดตามสถานะเคส</p>
+              </div>
+              <CasesFilterSidebar />
+            </div>
+          </aside>
 
-        {/* Active Filter Tags */}
-        <ActiveFilterTags />
+          {/* Main Content */}
+          <main className="flex-1 space-y-6">
+            {/* Top Bar (Mobile Filters + Search + Actions) */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 flex-1">
+                {/* Mobile Filter Sheet */}
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" size="icon" className="lg:hidden shrink-0">
+                      <Filter className="h-4 w-4" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-[300px] sm:w-[350px]">
+                     <div className="py-4">
+                        <h2 className="text-lg font-semibold mb-4">ตัวกรอง</h2>
+                        <CasesFilterSidebar />
+                     </div>
+                  </SheetContent>
+                </Sheet>
+                
+                <CaseSearchInput />
+              </div>
 
-        {/* Cases Table */}
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="w-[140px]">เลขเคส</TableHead>
-                <TableHead>รายละเอียด</TableHead>
-                <TableHead className="w-[120px]">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "h-8 px-2 -ml-2 gap-1.5 hover:bg-muted/50",
-                      isSortActive("severity") && "text-primary font-semibold"
-                    )}
-                    onClick={() => handleSort("severity")}
-                    disabled={isPending}
-                  >
-                    ความรุนแรง
-                    {getSortIcon("severity")}
+              <div className="flex items-center gap-2">
+                <RefreshButton invalidateKeys={["cases"]} />
+                <Link href="/cases/new">
+                  <Button className="gap-2 shadow-sm">
+                    <Plus className="h-4 w-4" />
+                    <span className="hidden sm:inline">สร้างเคสใหม่</span>
+                    <span className="sm:hidden">สร้าง</span>
                   </Button>
-                </TableHead>
-                <TableHead className="w-[140px]">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "h-8 px-2 -ml-2 gap-1.5 hover:bg-muted/50",
-                      isSortActive("status") && "text-primary font-semibold"
-                    )}
-                    onClick={() => handleSort("status")}
-                    disabled={isPending}
-                  >
-                    สถานะ
-                    {getSortIcon("status")}
-                  </Button>
-                </TableHead>
-                <TableHead className="w-[120px]">ผู้รับผิดชอบ</TableHead>
-                <TableHead className="w-[100px]">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "h-8 px-2 -ml-2 gap-1.5 hover:bg-muted/50",
-                      isSortActive("slaDeadline") && "text-primary font-semibold"
-                    )}
-                    onClick={() => handleSort("slaDeadline")}
-                    disabled={isPending}
-                  >
-                    SLA
-                    {getSortIcon("slaDeadline")}
-                  </Button>
-                </TableHead>
-                <TableHead className="w-[120px]">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "h-8 px-2 -ml-2 gap-1.5 hover:bg-muted/50",
-                      isSortActive("createdAt") && "text-primary font-semibold"
-                    )}
-                    onClick={() => handleSort("createdAt")}
-                    disabled={isPending}
-                  >
-                    สร้างเมื่อ
-                    {getSortIcon("createdAt")}
-                  </Button>
-                </TableHead>
-                <TableHead className="w-[60px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {cases.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
-                    ไม่พบเคส
-                  </TableCell>
-                </TableRow>
-              ) : (
-                cases.map((caseItem: CaseItem) => {
-                  const sla = formatSlaRemaining(caseItem.slaDeadline);
-                  return (
-                    <TableRow key={caseItem.id} className="cursor-pointer">
-                      <TableCell className="font-mono text-sm">
-                        <Link href={`/cases/${caseItem.id}`} className="hover:underline">
-                          {caseItem.caseNumber}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <Link href={`/cases/${caseItem.id}`} className="block space-y-1">
-                          <p className="font-medium hover:underline">{caseItem.title}</p>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <span>{caseItem.customerName || "ไม่ระบุลูกค้า"}</span>
-                            {caseItem.provider && (
-                              <>
-                                <span>•</span>
-                                <span>{caseItem.provider.name}</span>
-                              </>
-                            )}
+                </Link>
+              </div>
+            </div>
+
+            {/* Cases Table */}
+            <Card className="border-none shadow-sm overflow-hidden">
+              <Table>
+                <TableHeader className="bg-muted/40">
+                  <TableRow className="hover:bg-transparent border-b border-border/50">
+                    <TableHead className="w-[120px] font-medium">เลขเคส</TableHead>
+                    <TableHead className="font-medium">รายละเอียด</TableHead>
+                    <TableHead className="w-[120px] font-medium">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          "h-8 px-2 -ml-2 gap-1.5 hover:bg-muted/50 font-medium",
+                          isSortActive("severity") && "text-primary"
+                        )}
+                        onClick={() => handleSort("severity")}
+                        disabled={isPending}
+                      >
+                        ระดับ
+                        {getSortIcon("severity")}
+                      </Button>
+                    </TableHead>
+                    <TableHead className="w-[130px] font-medium">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          "h-8 px-2 -ml-2 gap-1.5 hover:bg-muted/50 font-medium",
+                          isSortActive("status") && "text-primary"
+                        )}
+                        onClick={() => handleSort("status")}
+                        disabled={isPending}
+                      >
+                        สถานะ
+                        {getSortIcon("status")}
+                      </Button>
+                    </TableHead>
+                    <TableHead className="w-[140px] font-medium">ผู้รับผิดชอบ</TableHead>
+                    <TableHead className="w-[120px] font-medium">SLA</TableHead>
+                    <TableHead className="w-[60px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {cases.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="h-48 text-center text-muted-foreground">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center">
+                            <Filter className="h-6 w-6 text-muted-foreground/50" />
                           </div>
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className={cn("h-2 w-2 rounded-full", severityLabels[caseItem.severity]?.dotColor)} />
-                          <span className="text-sm">{severityLabels[caseItem.severity]?.label}</span>
+                          <p>ไม่พบข้อมูลเคสที่ตรงกับเงื่อนไข</p>
+                          {(status || category || severity || search) && (
+                            <Button 
+                              variant="link" 
+                              onClick={() => router.push('/cases')}
+                              className="text-primary"
+                            >
+                              ล้างตัวกรองทั้งหมด
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={cn("text-xs font-medium", statusLabels[caseItem.status]?.className)}
-                        >
-                          {statusLabels[caseItem.status]?.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {caseItem.owner ? (
-                          <span className="text-sm">{caseItem.owner.name}</span>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">ยังไม่มี</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {sla.text !== "-" && (
-                          <div className={cn(
-                            "flex items-center gap-1 text-sm",
-                            sla.isMissed && "text-red-600 dark:text-red-400",
-                            sla.isUrgent && !sla.isMissed && "text-amber-600 dark:text-amber-400"
-                          )}>
-                            <Clock className="h-3.5 w-3.5" />
-                            <span>{sla.text}</span>
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {formatDistanceToNow(new Date(caseItem.createdAt), { addSuffix: true, locale: th })}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/cases/${caseItem.id}`} className="cursor-pointer">
-                                ดูรายละเอียด
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            {caseItem.status === "NEW" && (
-                              <DropdownMenuItem 
-                                onClick={() => quickStatusChange(caseItem.id, "INVESTIGATING", queryClient)}
-                                className="cursor-pointer"
-                              >
-                                <ChevronRight className="h-4 w-4 mr-2" />
-                                รับเรื่อง (ตรวจสอบ)
-                              </DropdownMenuItem>
-                            )}
-                            {(caseItem.status === "INVESTIGATING" || caseItem.status === "NEW") && (
-                              <DropdownMenuItem 
-                                onClick={() => quickStatusChange(caseItem.id, "FIXING", queryClient)}
-                                className="cursor-pointer"
-                              >
-                                <ChevronRight className="h-4 w-4 mr-2" />
-                                กำลังแก้ไข
-                              </DropdownMenuItem>
-                            )}
-                            {caseItem.status !== "RESOLVED" && caseItem.status !== "CLOSED" && (
-                              <>
-                                <DropdownMenuItem 
-                                  onClick={() => quickStatusChange(caseItem.id, "WAITING_CUSTOMER", queryClient)}
-                                  className="cursor-pointer"
-                                >
-                                  <ChevronRight className="h-4 w-4 mr-2" />
-                                  รอลูกค้า
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  onClick={() => quickStatusChange(caseItem.id, "WAITING_PROVIDER", queryClient)}
-                                  className="cursor-pointer"
-                                >
-                                  <ChevronRight className="h-4 w-4 mr-2" />
-                                  รอ Provider
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
                     </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </Card>
+                  ) : (
+                    cases.map((caseItem: CaseItem) => {
+                      const sla = formatSlaRemaining(caseItem.slaDeadline);
+                      const SeverityIcon = severityLabels[caseItem.severity]?.icon || Info;
+                      
+                      return (
+                        <TableRow key={caseItem.id} className="cursor-pointer hover:bg-muted/30 transition-colors group">
+                          <TableCell className="font-mono text-sm font-medium text-muted-foreground group-hover:text-foreground">
+                            <Link href={`/cases/${caseItem.id}`} className="block">
+                              {caseItem.caseNumber}
+                            </Link>
+                          </TableCell>
+                          <TableCell>
+                            <Link href={`/cases/${caseItem.id}`} className="block py-1">
+                              <p className="font-medium text-foreground truncate max-w-[300px] lg:max-w-[400px]">
+                                {caseItem.title}
+                              </p>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                <span>{caseItem.customerName || "ไม่ระบุลูกค้า"}</span>
+                                {caseItem.provider && (
+                                  <>
+                                    <span className="w-1 h-1 rounded-full bg-border" />
+                                    <span>{caseItem.provider.name}</span>
+                                  </>
+                                )}
+                                <span className="w-1 h-1 rounded-full bg-border" />
+                                <span>{formatDistanceToNow(new Date(caseItem.createdAt), { addSuffix: true, locale: th })}</span>
+                              </div>
+                            </Link>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <SeverityIcon className={cn("h-4 w-4", severityLabels[caseItem.severity]?.color)} />
+                              <span className="text-sm text-muted-foreground hidden xl:inline">
+                                {severityLabels[caseItem.severity]?.label}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className={cn("h-6 text-xs font-medium border", statusLabels[caseItem.status]?.className)}
+                            >
+                              {statusLabels[caseItem.status]?.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {caseItem.owner ? (
+                              <div className="flex items-center gap-2">
+                                <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-medium text-primary">
+                                  {caseItem.owner.name?.substring(0, 2).toUpperCase()}
+                                </div>
+                                <span className="text-sm truncate max-w-[100px]">{caseItem.owner.name}</span>
+                              </div>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {sla.text !== "-" && (
+                              <div className={cn(
+                                "flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full w-fit",
+                                sla.isMissed 
+                                  ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" 
+                                  : sla.isUrgent
+                                    ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                                    : "bg-muted text-muted-foreground"
+                              )}>
+                                <Clock className="h-3 w-3" />
+                                <span>{sla.text}</span>
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuItem asChild>
+                                  <Link href={`/cases/${caseItem.id}`} className="cursor-pointer font-medium">
+                                    ดูรายละเอียด
+                                  </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                {caseItem.status === "NEW" && (
+                                  <DropdownMenuItem 
+                                    onClick={() => quickStatusChange(caseItem.id, "INVESTIGATING", queryClient)}
+                                    className="cursor-pointer"
+                                  >
+                                    <ChevronRight className="h-4 w-4 mr-2" />
+                                    รับเรื่อง (ตรวจสอบ)
+                                  </DropdownMenuItem>
+                                )}
+                                {caseItem.status !== "RESOLVED" && caseItem.status !== "CLOSED" && (
+                                  <>
+                                    <DropdownMenuItem 
+                                      onClick={() => quickStatusChange(caseItem.id, "WAITING_CUSTOMER", queryClient)}
+                                      className="cursor-pointer"
+                                    >
+                                      <Clock className="h-4 w-4 mr-2" />
+                                      รอลูกค้า
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </Card>
 
-        {/* Pagination */}
-        {total > 0 && (
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              แสดง {(page - 1) * limit + 1}-{Math.min(page * limit, total)} จาก {total} เคส
-            </p>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                asChild={page > 1}
-              >
-                {page > 1 ? (
-                  <Link href={`/cases?page=${page - 1}${status ? `&status=${status}` : ""}${severity ? `&severity=${severity}` : ""}${caseTypeId ? `&caseType=${caseTypeId}` : ""}${search ? `&search=${search}` : ""}`}>
+            {/* Pagination */}
+            {total > 0 && (
+              <div className="flex items-center justify-between pt-4 border-t">
+                <p className="text-sm text-muted-foreground">
+                  แสดง {(page - 1) * limit + 1}-{Math.min(page * limit, total)} จาก {total} เคส
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page <= 1}
+                    onClick={() => {
+                      const params = new URLSearchParams(searchParams.toString());
+                      params.set("page", (page - 1).toString());
+                      router.push(`/cases?${params.toString()}`);
+                    }}
+                  >
                     ก่อนหน้า
-                  </Link>
-                ) : (
-                  "ก่อนหน้า"
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= totalPages}
-                asChild={page < totalPages}
-              >
-                {page < totalPages ? (
-                  <Link href={`/cases?page=${page + 1}${status ? `&status=${status}` : ""}${severity ? `&severity=${severity}` : ""}${caseTypeId ? `&caseType=${caseTypeId}` : ""}${search ? `&search=${search}` : ""}`}>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page >= totalPages}
+                    onClick={() => {
+                      const params = new URLSearchParams(searchParams.toString());
+                      params.set("page", (page + 1).toString());
+                      router.push(`/cases?${params.toString()}`);
+                    }}
+                  >
                     ถัดไป
-                  </Link>
-                ) : (
-                  "ถัดไป"
-                )}
-              </Button>
-            </div>
-          </div>
-        )}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </main>
+        </div>
       </div>
     </div>
   );
