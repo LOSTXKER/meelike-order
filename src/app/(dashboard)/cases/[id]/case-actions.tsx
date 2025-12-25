@@ -2,13 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -16,10 +9,25 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { UserPlus, Loader2, CheckCircle2, MessageSquare } from "lucide-react";
+import { 
+  UserPlus, 
+  Loader2, 
+  CheckCircle2, 
+  MessageSquare, 
+  ChevronRight, 
+  ChevronLeft,
+  MoreVertical,
+  Clock,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -39,20 +47,58 @@ const roleLabels: Record<string, string> = {
   VIEWER: "Viewer",
 };
 
+// Status flow configuration
+const STATUS_FLOW: Record<string, { next?: string; prev?: string; label: string }> = {
+  NEW: { 
+    next: "INVESTIGATING", 
+    label: "ใหม่" 
+  },
+  INVESTIGATING: { 
+    next: "FIXING", 
+    prev: "NEW", 
+    label: "กำลังตรวจสอบ" 
+  },
+  WAITING_CUSTOMER: { 
+    next: "FIXING", 
+    prev: "INVESTIGATING", 
+    label: "รอลูกค้า" 
+  },
+  WAITING_PROVIDER: { 
+    next: "FIXING", 
+    prev: "INVESTIGATING", 
+    label: "รอ Provider" 
+  },
+  FIXING: { 
+    next: "RESOLVED", 
+    prev: "INVESTIGATING", 
+    label: "กำลังแก้ไข" 
+  },
+  RESOLVED: { 
+    next: "CLOSED", 
+    prev: "FIXING", 
+    label: "แก้ไขแล้ว" 
+  },
+  CLOSED: { 
+    prev: "RESOLVED", 
+    label: "ปิดเคส" 
+  },
+};
+
 export function CaseActions({ caseId, currentStatus, currentOwnerId }: CaseActionsProps) {
   const queryClient = useQueryClient();
   const { data: teamMembers } = useTeam();
   
   const [isUpdating, setIsUpdating] = useState(false);
-  const [status, setStatus] = useState(currentStatus);
   const [showResolveDialog, setShowResolveDialog] = useState(false);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [rootCause, setRootCause] = useState("");
   const [resolution, setResolution] = useState("");
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
 
+  const currentFlow = STATUS_FLOW[currentStatus];
+
   const handleStatusChange = async (newStatus: string) => {
-    // If changing to RESOLVED, show dialog to enter resolution
+    // If changing to RESOLVED or CLOSED, show dialog to enter resolution
     if (newStatus === "RESOLVED" || newStatus === "CLOSED") {
       setPendingStatus(newStatus);
       setShowResolveDialog(true);
@@ -64,7 +110,6 @@ export function CaseActions({ caseId, currentStatus, currentOwnerId }: CaseActio
 
   const updateCaseStatus = async (newStatus: string, extraData?: Record<string, string>) => {
     setIsUpdating(true);
-    setStatus(newStatus);
     
     try {
       const res = await fetch(`/api/cases/${caseId}`, {
@@ -85,7 +130,6 @@ export function CaseActions({ caseId, currentStatus, currentOwnerId }: CaseActio
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch {
       toast.error("ไม่สามารถอัพเดทสถานะได้");
-      setStatus(currentStatus);
     } finally {
       setIsUpdating(false);
     }
@@ -166,8 +210,6 @@ export function CaseActions({ caseId, currentStatus, currentOwnerId }: CaseActio
       queryClient.invalidateQueries({ queryKey: [`case-${caseId}`] });
       queryClient.invalidateQueries({ queryKey: ["cases"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      
-      setStatus("CLOSED");
     } catch {
       toast.error("ไม่สามารถปิดเคสได้");
     } finally {
@@ -195,40 +237,83 @@ export function CaseActions({ caseId, currentStatus, currentOwnerId }: CaseActio
           </Button>
         )}
 
-        {/* Assign Button */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowAssignDialog(true)}
-          disabled={isUpdating}
-        >
-          <UserPlus className="h-4 w-4 mr-1" />
-          มอบหมาย
-        </Button>
-
-        {/* Status Select */}
-        <Select
-          value={status}
-          onValueChange={handleStatusChange}
-          disabled={isUpdating}
-        >
-          <SelectTrigger className="w-[160px]">
+        {/* Previous Step Button */}
+        {currentFlow?.prev && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleStatusChange(currentFlow.prev!)}
+            disabled={isUpdating}
+          >
             {isUpdating ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <SelectValue placeholder="เปลี่ยนสถานะ" />
+              <>
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                ย้อนกลับ
+              </>
             )}
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="NEW">ใหม่</SelectItem>
-            <SelectItem value="INVESTIGATING">กำลังตรวจสอบ</SelectItem>
-            <SelectItem value="WAITING_CUSTOMER">รอลูกค้า</SelectItem>
-            <SelectItem value="WAITING_PROVIDER">รอ Provider</SelectItem>
-            <SelectItem value="FIXING">กำลังแก้ไข</SelectItem>
-            <SelectItem value="RESOLVED">แก้ไขแล้ว</SelectItem>
-            <SelectItem value="CLOSED">ปิดเคส</SelectItem>
-          </SelectContent>
-        </Select>
+          </Button>
+        )}
+
+        {/* Next Step Button */}
+        {currentFlow?.next && (
+          <Button
+            size="sm"
+            onClick={() => handleStatusChange(currentFlow.next!)}
+            disabled={isUpdating}
+            className="bg-primary hover:bg-primary/90"
+          >
+            {isUpdating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                ถัดไป
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </>
+            )}
+          </Button>
+        )}
+
+        {/* More Actions Menu (for Waiting states and Assign) */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" disabled={isUpdating}>
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-[200px]">
+            {/* Waiting States - only show if in INVESTIGATING or FIXING */}
+            {(currentStatus === "INVESTIGATING" || currentStatus === "FIXING") && (
+              <>
+                <DropdownMenuItem 
+                  onClick={() => handleStatusChange("WAITING_CUSTOMER")}
+                  className="cursor-pointer"
+                >
+                  <Clock className="h-4 w-4 mr-2 text-amber-500" />
+                  รอลูกค้า
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => handleStatusChange("WAITING_PROVIDER")}
+                  className="cursor-pointer"
+                >
+                  <Clock className="h-4 w-4 mr-2 text-orange-500" />
+                  รอ Provider
+                </DropdownMenuItem>
+                <div className="h-px bg-border my-1" />
+              </>
+            )}
+            
+            {/* Assign Button */}
+            <DropdownMenuItem
+              onClick={() => setShowAssignDialog(true)}
+              className="cursor-pointer"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              มอบหมายงาน
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Resolve/Close Dialog */}
