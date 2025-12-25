@@ -15,7 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Building2, Clock, AlertTriangle, CheckCircle2, TrendingUp } from "lucide-react";
+import { ArrowLeft, Building2, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -32,7 +32,6 @@ interface Provider {
   totalCases: number;
   resolvedCases: number;
   avgResolutionMinutes: number | null;
-  refundRate: number | null;
   riskLevel: string;
   isActive: boolean;
   createdAt: string;
@@ -228,36 +227,6 @@ export default function ProviderDetailPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Refund Rate
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2">
-                <TrendingUp className={cn(
-                  "h-5 w-5",
-                  !provider.refundRate || provider.refundRate <= 3 
-                    ? "text-green-500" 
-                    : provider.refundRate <= 5 
-                    ? "text-amber-500" 
-                    : "text-red-500"
-                )} />
-                <span className={cn(
-                  "text-3xl font-bold",
-                  !provider.refundRate || provider.refundRate <= 3 
-                    ? "text-green-500" 
-                    : provider.refundRate <= 5 
-                    ? "text-amber-500" 
-                    : "text-red-500"
-                )}>
-                  {provider.refundRate !== null ? provider.refundRate.toFixed(1) : "—"}
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">%</p>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Details & Cases */}

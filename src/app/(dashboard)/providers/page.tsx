@@ -35,7 +35,6 @@ interface Provider {
   totalCases: number;
   resolvedCases: number;
   avgResolutionMinutes: number | null;
-  refundRate: number | null;
   riskLevel: string;
   isActive: boolean;
   defaultSlaMinutes: number;
@@ -197,7 +196,6 @@ export default function ProvidersPage() {
                 <TableHead className="w-[100px] text-right">เคสทั้งหมด</TableHead>
                 <TableHead className="w-[120px] text-right">แก้ไขแล้ว</TableHead>
                 <TableHead className="w-[120px] text-right">เวลาเฉลี่ย</TableHead>
-                <TableHead className="w-[100px] text-right">Refund Rate</TableHead>
                 <TableHead className="w-[100px]">ความเสี่ยง</TableHead>
                 <TableHead className="w-[80px]">สถานะ</TableHead>
                 <TableHead className="w-[60px]"></TableHead>
@@ -206,7 +204,7 @@ export default function ProvidersPage() {
             <TableBody>
               {providers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="h-32 text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
                     ไม่พบ Provider
                   </TableCell>
                 </TableRow>
@@ -234,18 +232,6 @@ export default function ProvidersPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       {provider.avgResolutionMinutes ? `${Math.round(provider.avgResolutionMinutes)} นาที` : "-"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {provider.refundRate !== null ? (
-                        <span className={cn(
-                          provider.refundRate > 5 && "text-red-500",
-                          provider.refundRate > 3 && provider.refundRate <= 5 && "text-amber-500"
-                        )}>
-                          {provider.refundRate.toFixed(1)}%
-                        </span>
-                      ) : (
-                        "-"
-                      )}
                     </TableCell>
                     <TableCell>
                       <Badge
