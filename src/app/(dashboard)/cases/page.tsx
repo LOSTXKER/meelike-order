@@ -33,7 +33,7 @@ import Link from "next/link";
 import { useCases } from "@/hooks";
 import { formatDistanceToNow, differenceInMinutes } from "date-fns";
 import { th } from "date-fns/locale";
-import { CasesFilters, CaseSearchInput } from "./cases-filters";
+import { CasesFilters } from "./cases-filters";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useTransition } from "react";
 
@@ -190,14 +190,9 @@ export default function CasesPage() {
       <Header />
       
       <div className="p-6 max-w-[1600px] mx-auto space-y-6">
-        {/* Top Controls: Search & Actions */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-col sm:flex-row gap-4 flex-1">
-            <h1 className="text-2xl font-bold tracking-tight">เคสทั้งหมด</h1>
-            <div className="flex-1 max-w-sm">
-              <CaseSearchInput />
-            </div>
-          </div>
+        {/* Top Controls: Header + Actions */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold tracking-tight">เคสทั้งหมด</h1>
           <div className="flex items-center gap-2">
             <RefreshButton invalidateKeys={["cases"]} />
             <Link href="/cases/new">
@@ -210,14 +205,8 @@ export default function CasesPage() {
           </div>
         </div>
 
-        {/* Filters Bar */}
-        <div className="flex items-center gap-4 bg-muted/30 p-2 rounded-lg border border-border/50">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground px-2 border-r border-border/50 pr-4">
-            <Filter className="h-4 w-4" />
-            ตัวกรอง
-          </div>
-          <CasesFilters />
-        </div>
+        {/* Filters Section */}
+        <CasesFilters />
 
         {/* Cases Table */}
         <Card className="border-none shadow-sm overflow-hidden">

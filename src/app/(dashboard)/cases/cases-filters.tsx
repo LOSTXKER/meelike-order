@@ -43,18 +43,18 @@ import { cn } from "@/lib/utils";
 // Status options with icons
 const statusOptions = [
   { value: "all", label: "ทั้งหมด", icon: LayoutGrid },
-  { value: "NEW", label: "ใหม่", icon: PlusCircle, color: "text-blue-600", activeClass: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
-  { value: "INVESTIGATING", label: "กำลังตรวจสอบ", icon: SearchIcon, color: "text-violet-600", activeClass: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300" },
-  { value: "FIXING", label: "กำลังแก้ไข", icon: Wrench, color: "text-cyan-600", activeClass: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300" },
-  { value: "WAITING_CUSTOMER", label: "รอลูกค้า", icon: Clock, color: "text-amber-600", activeClass: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" },
-  { value: "WAITING_PROVIDER", label: "รอ Provider", icon: Building2, color: "text-orange-600", activeClass: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300" },
-  { value: "RESOLVED", label: "แก้ไขแล้ว", icon: CheckCircle, color: "text-green-600", activeClass: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" },
-  { value: "CLOSED", label: "ปิดเคส", icon: Lock, color: "text-gray-500", activeClass: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300" },
+  { value: "NEW", label: "ใหม่", icon: PlusCircle, color: "text-blue-600", activeClass: "bg-blue-50 text-blue-700 ring-1 ring-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:ring-blue-800" },
+  { value: "INVESTIGATING", label: "ตรวจสอบ", icon: SearchIcon, color: "text-violet-600", activeClass: "bg-violet-50 text-violet-700 ring-1 ring-violet-200 dark:bg-violet-900/20 dark:text-violet-300 dark:ring-violet-800" },
+  { value: "FIXING", label: "กำลังแก้ไข", icon: Wrench, color: "text-cyan-600", activeClass: "bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200 dark:bg-cyan-900/20 dark:text-cyan-300 dark:ring-cyan-800" },
+  { value: "WAITING_CUSTOMER", label: "รอลูกค้า", icon: Clock, color: "text-amber-600", activeClass: "bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:ring-amber-800" },
+  { value: "WAITING_PROVIDER", label: "รอ Provider", icon: Building2, color: "text-orange-600", activeClass: "bg-orange-50 text-orange-700 ring-1 ring-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:ring-orange-800" },
+  { value: "RESOLVED", label: "แก้ไขแล้ว", icon: CheckCircle, color: "text-green-600", activeClass: "bg-green-50 text-green-700 ring-1 ring-green-200 dark:bg-green-900/20 dark:text-green-300 dark:ring-green-800" },
+  { value: "CLOSED", label: "ปิดเคส", icon: Lock, color: "text-gray-500", activeClass: "bg-gray-50 text-gray-700 ring-1 ring-gray-200 dark:bg-gray-800/50 dark:text-gray-300 dark:ring-gray-700" },
 ];
 
 // Severity options
 const severityOptions = [
-  { value: "all", label: "ทุกระดับ", icon: BarChart3 },
+  { value: "all", label: "ความรุนแรง (ทั้งหมด)", icon: BarChart3 },
   { value: "CRITICAL", label: "วิกฤต", icon: AlertCircle, color: "text-red-600" },
   { value: "HIGH", label: "สูง", icon: AlertTriangle, color: "text-orange-600" },
   { value: "NORMAL", label: "ปกติ", icon: Info, color: "text-blue-600" },
@@ -63,7 +63,7 @@ const severityOptions = [
 
 // Category options
 const categoryOptions = [
-  { value: "all", label: "ทุกหมวดหมู่", icon: Tag },
+  { value: "all", label: "หมวดหมู่ (ทั้งหมด)", icon: Tag },
   { value: "PAYMENT", label: "การชำระเงิน", icon: DollarSign },
   { value: "ORDER", label: "ออเดอร์", icon: Package },
   { value: "SYSTEM", label: "ระบบ", icon: Settings },
@@ -87,6 +87,9 @@ export function CasesFilters() {
   const [caseCounts, setCaseCounts] = useState<CaseCounts>({
     all: 0, PAYMENT: 0, ORDER: 0, SYSTEM: 0, PROVIDER: 0, OTHER: 0
   });
+
+  // Search state managed locally for debouncing/enter key
+  const [searchValue, setSearchValue] = useState(searchParams.get("search") || "");
 
   useEffect(() => {
     fetch("/api/cases/counts")
@@ -121,20 +124,35 @@ export function CasesFilters() {
     });
   };
 
-  const clearFilters = () => {
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
     startTransition(() => {
-      router.push("/cases");
+      const current = new URLSearchParams(searchParams.toString());
+      if (searchValue) {
+        current.set("search", searchValue);
+      } else {
+        current.delete("search");
+      }
+      current.delete("page");
+      router.push(`/cases?${current.toString()}`);
     });
   };
 
-  const hasFilters = status !== "all" || category !== "all" || severity !== "all";
+  const clearFilters = () => {
+    startTransition(() => {
+      router.push("/cases");
+      setSearchValue("");
+    });
+  };
+
+  const hasFilters = status !== "all" || category !== "all" || severity !== "all" || searchValue !== "";
 
   return (
     <div className="flex flex-col gap-4 w-full">
-      {/* Status Tabs - Scrollable */}
-      <div className="pb-1">
+      {/* 1. Status Tabs - Top Level Navigation */}
+      <div className="border-b">
         <ScrollArea className="w-full whitespace-nowrap">
-          <div className="flex w-max space-x-2 pb-2">
+          <div className="flex w-max space-x-1 pb-1 px-1">
             {statusOptions.map((opt) => {
               const Icon = opt.icon;
               const isActive = status === opt.value;
@@ -145,13 +163,11 @@ export function CasesFilters() {
                   size="sm"
                   onClick={() => updateFilter("status", opt.value)}
                   className={cn(
-                    "rounded-full px-4 h-9 border border-transparent transition-all",
-                    isActive 
-                      ? cn("font-medium border-transparent shadow-sm", opt.activeClass) 
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    "relative h-10 px-4 font-normal text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all rounded-t-lg rounded-b-none border-b-2 border-transparent",
+                    isActive && "text-primary font-medium border-primary bg-background/50 hover:bg-background/80"
                   )}
                 >
-                  <Icon className={cn("mr-2 h-4 w-4", isActive ? "opacity-100" : "opacity-70", isActive && opt.color)} />
+                  <Icon className={cn("mr-2 h-4 w-4", isActive ? "text-primary" : "text-muted-foreground")} />
                   {opt.label}
                 </Button>
               );
@@ -160,99 +176,85 @@ export function CasesFilters() {
         </ScrollArea>
       </div>
 
-      <Separator className="opacity-50" />
+      {/* 2. Secondary Toolbar: Search & Filters */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        {/* Search */}
+        <form onSubmit={handleSearch} className="relative w-full sm:w-[300px]">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="ค้นหาเลขเคส, ลูกค้า, หรือหัวข้อ..."
+            className="pl-9 h-9 bg-background/50"
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+          />
+        </form>
 
-      {/* Secondary Filters Row */}
-      <div className="flex flex-wrap items-center gap-3 pt-1">
-        
-        {/* Category Filter */}
-        <Select value={category} onValueChange={(val) => updateFilter("category", val)}>
-          <SelectTrigger className="h-9 w-[160px] bg-background border-dashed shadow-sm">
-            <SelectValue placeholder="หมวดหมู่" />
-          </SelectTrigger>
-          <SelectContent>
-            {categoryOptions.map((opt) => {
-              const Icon = opt.icon;
-              const count = opt.value === "all" ? caseCounts.all : caseCounts[opt.value as keyof CaseCounts] || 0;
-              return (
-                <SelectItem key={opt.value} value={opt.value}>
-                  <div className="flex items-center gap-2">
-                    <Icon className="h-4 w-4 text-muted-foreground" />
-                    <span>{opt.label}</span>
-                    <span className="ml-auto text-xs text-muted-foreground">({count})</span>
-                  </div>
-                </SelectItem>
-              );
-            })}
-          </SelectContent>
-        </Select>
+        <div className="h-4 w-[1px] bg-border hidden sm:block mx-1" />
 
-        {/* Severity Filter */}
-        <Select value={severity} onValueChange={(val) => updateFilter("severity", val)}>
-          <SelectTrigger className="h-9 w-[160px] bg-background border-dashed shadow-sm">
-            <SelectValue placeholder="ความรุนแรง" />
-          </SelectTrigger>
-          <SelectContent>
-            {severityOptions.map((opt) => {
-              const Icon = opt.icon;
-              return (
-                <SelectItem key={opt.value} value={opt.value}>
-                  <div className="flex items-center gap-2">
-                    <Icon className={cn("h-4 w-4", opt.color)} />
-                    <span>{opt.label}</span>
-                  </div>
-                </SelectItem>
-              );
-            })}
-          </SelectContent>
-        </Select>
+        {/* Filters Group */}
+        <div className="flex flex-wrap items-center gap-2 flex-1">
+          {/* Category Filter */}
+          <Select value={category} onValueChange={(val) => updateFilter("category", val)}>
+            <SelectTrigger className={cn(
+              "h-9 w-[180px] bg-background/50 border-dashed shadow-sm",
+              category !== "all" && "border-solid border-primary/50 bg-primary/5 text-primary"
+            )}>
+              <SelectValue placeholder="หมวดหมู่" />
+            </SelectTrigger>
+            <SelectContent>
+              {categoryOptions.map((opt) => {
+                const Icon = opt.icon;
+                const count = opt.value === "all" ? caseCounts.all : caseCounts[opt.value as keyof CaseCounts] || 0;
+                return (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    <div className="flex items-center gap-2">
+                      <Icon className="h-4 w-4 text-muted-foreground" />
+                      <span>{opt.label}</span>
+                      <span className="ml-auto text-xs text-muted-foreground">({count})</span>
+                    </div>
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
 
-        {/* Clear Filters */}
-        {hasFilters && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={clearFilters}
-            className="h-9 px-3 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors ml-auto sm:ml-0"
-          >
-            <X className="h-4 w-4 mr-2" />
-            ล้างตัวกรอง
-          </Button>
-        )}
+          {/* Severity Filter */}
+          <Select value={severity} onValueChange={(val) => updateFilter("severity", val)}>
+            <SelectTrigger className={cn(
+              "h-9 w-[180px] bg-background/50 border-dashed shadow-sm",
+              severity !== "all" && "border-solid border-primary/50 bg-primary/5 text-primary"
+            )}>
+              <SelectValue placeholder="ความรุนแรง" />
+            </SelectTrigger>
+            <SelectContent>
+              {severityOptions.map((opt) => {
+                const Icon = opt.icon;
+                return (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    <div className="flex items-center gap-2">
+                      <Icon className={cn("h-4 w-4", opt.color)} />
+                      <span>{opt.label}</span>
+                    </div>
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+
+          {/* Clear Filters Button */}
+          {hasFilters && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={clearFilters}
+              className="h-9 px-3 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors ml-auto sm:ml-0"
+            >
+              <X className="h-4 w-4 mr-2" />
+              ล้าง
+            </Button>
+          )}
+        </div>
       </div>
     </div>
-  );
-}
-
-export function CaseSearchInput() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [isPending, startTransition] = useTransition();
-  const [value, setValue] = useState(searchParams.get("search") || "");
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    startTransition(() => {
-      const current = new URLSearchParams(searchParams.toString());
-      if (value) {
-        current.set("search", value);
-      } else {
-        current.delete("search");
-      }
-      current.delete("page");
-      router.push(`/cases?${current.toString()}`);
-    });
-  };
-
-  return (
-    <form onSubmit={handleSearch} className="relative w-full sm:w-[300px]">
-      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-      <Input
-        placeholder="ค้นหาเลขเคส, ลูกค้า, หรือหัวข้อ..."
-        className="pl-9 h-9 bg-background shadow-sm"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-      />
-    </form>
   );
 }
