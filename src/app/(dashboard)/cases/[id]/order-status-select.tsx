@@ -112,7 +112,7 @@ export function OrderStatusSelect({ order, caseId, onUpdate }: OrderStatusSelect
       });
 
       // Invalidate case query to refresh data
-      queryClient.invalidateQueries({ queryKey: [`case-${caseId}`] });
+      await queryClient.invalidateQueries({ queryKey: ["case", caseId] });
       onUpdate?.();
     } catch (error) {
       console.error(error);
@@ -246,8 +246,8 @@ export function BulkOrderActions({ orders, caseId, onUpdate }: BulkOrderActionsP
       });
 
       // Invalidate queries
-      queryClient.invalidateQueries({ queryKey: [`case-${caseId}`] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      await queryClient.invalidateQueries({ queryKey: ["case", caseId] });
+      await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       onUpdate?.();
     } catch (error) {
       console.error(error);

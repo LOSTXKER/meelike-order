@@ -64,9 +64,10 @@ export function CaseAssignee({ caseId, owner }: CaseAssigneeProps) {
       });
       
       // Invalidate queries
-      queryClient.invalidateQueries({ queryKey: [`case-${caseId}`] });
-      queryClient.invalidateQueries({ queryKey: ["cases"] });
-      queryClient.invalidateQueries({ queryKey: ["team"] });
+      // Invalidate and refetch immediately
+      await queryClient.invalidateQueries({ queryKey: ["case", caseId] });
+      await queryClient.invalidateQueries({ queryKey: ["cases"] });
+      await queryClient.invalidateQueries({ queryKey: ["team"] });
       
       setShowAssignDialog(false);
     } catch {

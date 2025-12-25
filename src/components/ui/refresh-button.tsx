@@ -11,7 +11,7 @@ interface RefreshButtonProps {
   className?: string;
   size?: "default" | "sm" | "lg" | "icon";
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
-  invalidateKeys?: string[]; // React Query keys to invalidate
+  invalidateKeys?: (string | string[])[]; // Support both string and array keys
 }
 
 export function RefreshButton({ 
@@ -25,17 +25,19 @@ export function RefreshButton({
   const [isPending, startTransition] = useTransition();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setIsRefreshing(true);
     
     // Invalidate React Query cache
     if (invalidateKeys.length > 0) {
-      invalidateKeys.forEach(key => {
-        queryClient.invalidateQueries({ queryKey: [key] });
-      });
+      for (const key of invalidateKeys) {
+        // Support both string keys and array keys
+        const queryKey = Array.isArray(key) ? key : [key];
+        await queryClient.invalidateQueries({ queryKey });
+      }
     } else {
       // Invalidate all queries
-      queryClient.invalidateQueries();
+      await queryClient.invalidateQueries();
     }
 
     // Refresh the route
@@ -46,7 +48,7 @@ export function RefreshButton({
     // Reset loading state after a delay
     setTimeout(() => {
       setIsRefreshing(false);
-    }, 1000);
+    }, 500);
   };
 
   const isLoading = isPending || isRefreshing;
@@ -64,6 +66,3 @@ export function RefreshButton({
     </Button>
   );
 }
-
-
-

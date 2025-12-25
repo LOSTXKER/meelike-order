@@ -270,7 +270,7 @@ export default function CaseDetailPage() {
                 </Badge>
               )}
             </div>
-            <RefreshButton invalidateKeys={[`case-${id}`]} size="sm" />
+            <RefreshButton invalidateKeys={[["case", id], "cases", "dashboard"]} size="sm" />
           </div>
         </div>
       </div>

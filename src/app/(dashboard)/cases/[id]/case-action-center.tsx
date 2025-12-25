@@ -183,9 +183,10 @@ export function CaseActionCenter({ caseId, currentStatus, owner, orders = [] }: 
 
       toast.success("อัพเดทสถานะเรียบร้อย");
       
-      queryClient.invalidateQueries({ queryKey: [`case-${caseId}`] });
-      queryClient.invalidateQueries({ queryKey: ["cases"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      // Invalidate and refetch immediately
+      await queryClient.invalidateQueries({ queryKey: ["case", caseId] });
+      await queryClient.invalidateQueries({ queryKey: ["cases"] });
+      await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch {
       toast.error("ไม่สามารถอัพเดทสถานะได้");
     } finally {
@@ -229,9 +230,10 @@ export function CaseActionCenter({ caseId, currentStatus, owner, orders = [] }: 
         description: "บันทึกว่าแจ้งลูกค้าแล้ว",
       });
       
-      queryClient.invalidateQueries({ queryKey: [`case-${caseId}`] });
-      queryClient.invalidateQueries({ queryKey: ["cases"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      // Invalidate and refetch immediately
+      await queryClient.invalidateQueries({ queryKey: ["case", caseId] });
+      await queryClient.invalidateQueries({ queryKey: ["cases"] });
+      await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch {
       toast.error("ไม่สามารถปิดเคสได้");
     } finally {
@@ -256,9 +258,10 @@ export function CaseActionCenter({ caseId, currentStatus, owner, orders = [] }: 
         description: `มอบหมายให้ ${assignedUser?.name || "Unknown"}`,
       });
       
-      queryClient.invalidateQueries({ queryKey: [`case-${caseId}`] });
-      queryClient.invalidateQueries({ queryKey: ["cases"] });
-      queryClient.invalidateQueries({ queryKey: ["team"] });
+      // Invalidate and refetch immediately
+      await queryClient.invalidateQueries({ queryKey: ["case", caseId] });
+      await queryClient.invalidateQueries({ queryKey: ["cases"] });
+      await queryClient.invalidateQueries({ queryKey: ["team"] });
       
       setShowAssignDialog(false);
     } catch {

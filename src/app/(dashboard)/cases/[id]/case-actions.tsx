@@ -125,9 +125,9 @@ export function CaseActions({ caseId, currentStatus, currentOwnerId }: CaseActio
       toast.success("อัพเดทสถานะเรียบร้อย");
       
       // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: [`case-${caseId}`] });
-      queryClient.invalidateQueries({ queryKey: ["cases"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      await queryClient.invalidateQueries({ queryKey: ["case", caseId] });
+      await queryClient.invalidateQueries({ queryKey: ["cases"] });
+      await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch {
       toast.error("ไม่สามารถอัพเดทสถานะได้");
     } finally {
@@ -172,9 +172,9 @@ export function CaseActions({ caseId, currentStatus, currentOwnerId }: CaseActio
       });
       
       // Invalidate queries
-      queryClient.invalidateQueries({ queryKey: [`case-${caseId}`] });
-      queryClient.invalidateQueries({ queryKey: ["cases"] });
-      queryClient.invalidateQueries({ queryKey: ["team"] });
+      await queryClient.invalidateQueries({ queryKey: ["case", caseId] });
+      await queryClient.invalidateQueries({ queryKey: ["cases"] });
+      await queryClient.invalidateQueries({ queryKey: ["team"] });
       
       setShowAssignDialog(false);
     } catch {
@@ -207,9 +207,9 @@ export function CaseActions({ caseId, currentStatus, currentOwnerId }: CaseActio
       });
       
       // Invalidate queries
-      queryClient.invalidateQueries({ queryKey: [`case-${caseId}`] });
-      queryClient.invalidateQueries({ queryKey: ["cases"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      await queryClient.invalidateQueries({ queryKey: ["case", caseId] });
+      await queryClient.invalidateQueries({ queryKey: ["cases"] });
+      await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch {
       toast.error("ไม่สามารถปิดเคสได้");
     } finally {
