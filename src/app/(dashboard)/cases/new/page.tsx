@@ -68,9 +68,12 @@ export default function NewCasePage() {
   const [source, setSource] = useState("");
   const [severity, setSeverity] = useState("");
   const [providerId, setProviderId] = useState("");
+  // Customer info - new structure
+  const [customerType, setCustomerType] = useState<"LINE" | "TICKET" | "">("");
   const [customerName, setCustomerName] = useState("");
-  const [customerId, setCustomerId] = useState("");
-  const [customerContact, setCustomerContact] = useState("");
+  const [chatUrl, setChatUrl] = useState("");
+  const [chatName, setChatName] = useState("");
+  const [ticketUrl, setTicketUrl] = useState("");
   const [orderIds, setOrderIds] = useState<string[]>([]);
   const [orderIdInput, setOrderIdInput] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
@@ -183,6 +186,33 @@ export default function NewCasePage() {
       return;
     }
 
+    // Validate customer name (required)
+    if (!customerName.trim()) {
+      toast.error("กรุณากรอกชื่อลูกค้า");
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate customer type fields
+    if (customerType === "LINE") {
+      if (!chatUrl.trim()) {
+        toast.error("กรุณากรอก URL แชท");
+        setIsLoading(false);
+        return;
+      }
+      if (!chatName.trim()) {
+        toast.error("กรุณากรอกชื่อแชท");
+        setIsLoading(false);
+        return;
+      }
+    } else if (customerType === "TICKET") {
+      if (!ticketUrl.trim()) {
+        toast.error("กรุณากรอก URL Ticket");
+        setIsLoading(false);
+        return;
+      }
+    }
+
     try {
       // Create orders array from orderIds
       const orders = orderIds
@@ -203,9 +233,14 @@ export default function NewCasePage() {
           source,
           severity,
           providerId: providerId && providerId !== "none" ? providerId : undefined,
-          customerName: customerName || undefined,
-          customerId: customerId || undefined,
-          customerContact: customerContact || undefined,
+          customerName: customerName.trim(),
+          // Store customer type and related info in customerId and customerContact
+          customerId: customerType || undefined,
+          customerContact: customerType === "LINE" 
+            ? `${chatUrl}|${chatName}` 
+            : customerType === "TICKET" 
+            ? ticketUrl 
+            : undefined,
           orders: orders.length > 0 ? orders : undefined,
         }),
       });
@@ -697,42 +732,128 @@ export default function NewCasePage() {
                 </CardContent>
               </Card>
 
-              {/* Card 3: Customer Info */}
+              {/* Card 3: Customer Info - NEW STRUCTURE */}
               <Card className="border-none shadow-md">
                 <CardHeader>
                   <CardTitle className="text-base font-semibold flex items-center gap-2">
                     <User className="h-4 w-4" />
-                    ข้อมูลลูกค้า (Optional)
+                    ข้อมูลลูกค้า <span className="text-red-500 text-xs ml-1">* จำเป็น</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Customer Name - Required */}
                   <div className="space-y-2">
+                    <Label className="text-xs font-semibold text-muted-foreground uppercase">
+                      ชื่อลูกค้า <span className="text-red-500">*</span>
+                    </Label>
                     <Input
-                      placeholder="ชื่อลูกค้า"
+                      placeholder="กรอกชื่อลูกค้า (username)"
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
                       disabled={isLoading}
-                      className="bg-muted/20"
+                      required
+                      className={cn(
+                        "bg-muted/20",
+                        !customerName.trim() && "border-red-300"
+                      )}
                     />
                   </div>
+
+                  {/* Customer Type - Required */}
                   <div className="space-y-2">
-                    <Input
-                      placeholder="User ID (ในระบบ)"
-                      value={customerId}
-                      onChange={(e) => setCustomerId(e.target.value)}
+                    <Label className="text-xs font-semibold text-muted-foreground uppercase">
+                      ประเภท <span className="text-red-500">*</span>
+                    </Label>
+                    <Select 
+                      value={customerType} 
+                      onValueChange={(value: "LINE" | "TICKET") => {
+                        setCustomerType(value);
+                        // Reset fields when type changes
+                        setChatUrl("");
+                        setChatName("");
+                        setTicketUrl("");
+                      }}
+                      required
                       disabled={isLoading}
-                      className="bg-muted/20"
-                    />
+                    >
+                      <SelectTrigger className={cn(
+                        "bg-muted/20",
+                        !customerType && "border-red-300"
+                      )}>
+                        <SelectValue placeholder="เลือกประเภท" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="LINE">
+                          <span className="flex items-center gap-2">
+                            <Phone className="h-4 w-4 text-green-500" /> Line
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="TICKET">
+                          <span className="flex items-center gap-2">
+                            <Ticket className="h-4 w-4 text-blue-500" /> Ticket
+                          </span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Input
-                      placeholder="ช่องทางติดต่อ (Line ID / โทร)"
-                      value={customerContact}
-                      onChange={(e) => setCustomerContact(e.target.value)}
-                      disabled={isLoading}
-                      className="bg-muted/20"
-                    />
-                  </div>
+
+                  {/* LINE Fields */}
+                  {customerType === "LINE" && (
+                    <div className="space-y-3 animate-in fade-in duration-300">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-semibold text-muted-foreground uppercase">
+                          URL แชท <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          placeholder="https://line.me/..."
+                          value={chatUrl}
+                          onChange={(e) => setChatUrl(e.target.value)}
+                          disabled={isLoading}
+                          required
+                          className={cn(
+                            "bg-muted/20",
+                            customerType === "LINE" && !chatUrl.trim() && "border-red-300"
+                          )}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-semibold text-muted-foreground uppercase">
+                          ชื่อแชท <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          placeholder="ชื่อแชท Line"
+                          value={chatName}
+                          onChange={(e) => setChatName(e.target.value)}
+                          disabled={isLoading}
+                          required
+                          className={cn(
+                            "bg-muted/20",
+                            customerType === "LINE" && !chatName.trim() && "border-red-300"
+                          )}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TICKET Fields */}
+                  {customerType === "TICKET" && (
+                    <div className="space-y-2 animate-in fade-in duration-300">
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase">
+                        URL Ticket <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        placeholder="https://..."
+                        value={ticketUrl}
+                        onChange={(e) => setTicketUrl(e.target.value)}
+                        disabled={isLoading}
+                        required
+                        className={cn(
+                          "bg-muted/20",
+                          customerType === "TICKET" && !ticketUrl.trim() && "border-red-300"
+                        )}
+                      />
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -749,6 +870,10 @@ export default function NewCasePage() {
                     !caseTypeId || 
                     !source ||
                     !severity ||
+                    !customerName.trim() ||
+                    !customerType ||
+                    (customerType === "LINE" && (!chatUrl.trim() || !chatName.trim())) ||
+                    (customerType === "TICKET" && !ticketUrl.trim()) ||
                     (selectedCaseType?.requireProvider && (!providerId || providerId === "none")) ||
                     (selectedCaseType?.requireOrderId && orderIds.length === 0)
                   }
