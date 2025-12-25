@@ -31,39 +31,39 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Plus, Trash2, Shield, Mail, Calendar, RefreshCw, Crown, Users, Headphones, UserCog } from "lucide-react";
+import { Plus, Trash2, Shield, Mail, Calendar, RefreshCw, Users, Headphones, UserCog, Crown, Wrench } from "lucide-react";
 import { format } from "date-fns";
 import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from "@/hooks/use-users";
 import { LoadingScreen } from "@/components/ui/loading-screen";
 
 const ROLES = [
   { 
-    value: "ADMIN", 
-    label: "Admin", 
-    color: "bg-red-500",
-    icon: UserCog,
-    description: "รับเรื่องจากลูกค้า สร้างเคส แจ้งลูกค้า จัดการผู้ใช้และตั้งค่าระบบ"
-  },
-  { 
-    value: "SUPPORT", 
-    label: "Support", 
-    color: "bg-green-500",
-    icon: Headphones,
-    description: "รับเคสที่ถูกมอบหมาย แก้ไขปัญหา อัพเดทสถานะเคสและออเดอร์"
+    value: "CEO", 
+    label: "CEO", 
+    color: "bg-amber-500",
+    icon: Crown,
+    description: "ผู้ดูแลระบบสูงสุด - ดูรายงาน ตั้งค่าระบบ จัดการผู้ใช้ (สิทธิ์เต็ม)"
   },
   { 
     value: "MANAGER", 
     label: "Manager", 
-    color: "bg-blue-500",
+    color: "bg-purple-500",
     icon: Users,
-    description: "ดูแลและมอบหมายงานให้ทีม ช่วยแก้ไขเคสยาก ตรวจสอบ SLA"
+    description: "ดูภาพรวม/ดูแลทีม - ดูทุกเคส มอบหมายงาน ตรวจสอบ SLA"
   },
   { 
-    value: "CEO", 
-    label: "CEO", 
-    color: "bg-purple-500",
-    icon: Crown,
-    description: "สิทธิ์เต็มเหมือน Admin - ดูแลระบบทั้งหมด ดูรายงาน ตัดสินใจ"
+    value: "SUPPORT", 
+    label: "Support", 
+    color: "bg-blue-500",
+    icon: Headphones,
+    description: "รับเรื่อง/แจ้งลูกค้า - สร้างเคส ดูทุกเคส ปิดเคส"
+  },
+  { 
+    value: "TECHNICIAN", 
+    label: "Technician", 
+    color: "bg-green-500",
+    icon: Wrench,
+    description: "คนแก้ปัญหา - ดูเฉพาะเคสตัวเอง แก้ไขปัญหา อัพเดทสถานะ"
   },
 ];
 
@@ -74,8 +74,8 @@ export default function UsersPage() {
   const updateUser = useUpdateUser();
   const deleteUser = useDeleteUser();
 
-  // เฉพาะ CEO และ ADMIN เท่านั้นที่แก้ไข Role ได้
-  const canEditRole = session?.user?.role === "CEO" || session?.user?.role === "ADMIN";
+  // เฉพาะ CEO เท่านั้นที่แก้ไข Role ได้
+  const canEditRole = session?.user?.role === "CEO";
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -313,7 +313,7 @@ export default function UsersPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">
-                {users.filter((u) => u.role === "ADMIN").length}
+                {users.filter((u) => u.role === "CEO").length}
               </div>
             </CardContent>
           </Card>

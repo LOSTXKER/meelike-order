@@ -26,15 +26,16 @@ export async function GET() {
       casesAwaitingNotification,
       awaitingNotificationCases,
     ] = await Promise.all([
-      // Total cases
-      prisma.case.count(),
+      // Total cases (excluding deleted)
+      prisma.case.count({ where: { isDeleted: false } }),
 
       // New cases
-      prisma.case.count({ where: { status: "NEW" } }),
+      prisma.case.count({ where: { isDeleted: false, status: "NEW" } }),
 
       // In progress cases
       prisma.case.count({
         where: {
+          isDeleted: false,
           status: { in: ["INVESTIGATING", "WAITING_CUSTOMER", "WAITING_PROVIDER", "FIXING"] },
         },
       }),
@@ -42,6 +43,7 @@ export async function GET() {
       // Resolved today
       prisma.case.count({
         where: {
+          isDeleted: false,
           resolvedAt: { gte: todayStart },
         },
       }),
@@ -49,6 +51,7 @@ export async function GET() {
       // SLA missed
       prisma.case.count({
         where: {
+          isDeleted: false,
           slaMissed: true,
           status: { notIn: ["RESOLVED", "CLOSED"] },
         },
@@ -57,17 +60,20 @@ export async function GET() {
       // Cases by status
       prisma.case.groupBy({
         by: ["status"],
+        where: { isDeleted: false },
         _count: { id: true },
       }),
 
       // Cases by severity
       prisma.case.groupBy({
         by: ["severity"],
+        where: { isDeleted: false },
         _count: { id: true },
       }),
 
       // Recent cases
       prisma.case.findMany({
+        where: { isDeleted: false },
         take: 5,
         orderBy: { createdAt: "desc" },
         include: {
@@ -79,6 +85,7 @@ export async function GET() {
       // Critical cases
       prisma.case.findMany({
         where: {
+          isDeleted: false,
           severity: "CRITICAL",
           status: { notIn: ["RESOLVED", "CLOSED"] },
         },
@@ -91,6 +98,7 @@ export async function GET() {
         where: {
           cases: {
             some: {
+              isDeleted: false,
               status: { notIn: ["RESOLVED", "CLOSED"] },
             },
           },
@@ -103,6 +111,7 @@ export async function GET() {
             select: {
               cases: {
                 where: {
+                  isDeleted: false,
                   status: { notIn: ["RESOLVED", "CLOSED"] },
                 },
               },
@@ -127,6 +136,7 @@ export async function GET() {
       // Count of cases awaiting customer notification (RESOLVED but not CLOSED)
       prisma.case.count({
         where: {
+          isDeleted: false,
           status: "RESOLVED",
         },
       }),
@@ -134,6 +144,7 @@ export async function GET() {
       // List of cases awaiting customer notification
       prisma.case.findMany({
         where: {
+          isDeleted: false,
           status: "RESOLVED",
         },
         take: 10,

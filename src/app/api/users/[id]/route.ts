@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
 import { hash } from "bcryptjs";
-import { requireAdmin, canModify } from "@/lib/auth-helpers";
+import { requireAdmin } from "@/lib/auth-helpers";
 
 // GET /api/users/[id] - Get user details
 export async function GET(
@@ -63,8 +63,10 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
 
-    // Admin/CEO can update anyone, or users can update themselves
-    if (!canModify(session, id) && session.user.id !== id) {
+    // CEO can update anyone, or users can update themselves
+    const isCEO = session.user.role === "CEO";
+    const isSelf = session.user.id === id;
+    if (!isCEO && !isSelf) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -73,8 +75,8 @@ export async function PATCH(
     if (body.name !== undefined) updateData.name = body.name;
     if (body.email !== undefined) updateData.email = body.email;
 
-    // Only admin/CEO can change role and active status
-    if (session.user.role === "ADMIN" || session.user.role === "CEO") {
+    // Only CEO can change role and active status
+    if (session.user.role === "CEO") {
       if (body.role !== undefined) updateData.role = body.role;
       if (body.isActive !== undefined) updateData.isActive = body.isActive;
     }

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
+import { checkRateLimit } from "@/lib/rate-limit-middleware";
+import { RATE_LIMITS } from "@/lib/rate-limit";
 
 /**
  * Export Cases to CSV
@@ -15,6 +17,10 @@ import { th } from "date-fns/locale";
  * - format: 'csv' or 'json' (default: csv)
  */
 export async function GET(request: NextRequest) {
+  // Rate limiting - expensive operation
+  const rateLimitResult = checkRateLimit(request, RATE_LIMITS.EXPENSIVE);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get("status");
@@ -25,7 +31,9 @@ export async function GET(request: NextRequest) {
     const exportFormat = searchParams.get("format") || "csv";
 
     // Build where clause
-    const where: any = {};
+    const where: any = {
+      isDeleted: false, // Only export non-deleted cases
+    };
 
     if (status && status !== "all") {
       where.status = status;

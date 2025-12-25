@@ -16,9 +16,13 @@ import {
   Sun,
   Moon,
   LogOut,
+  Menu,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 
 const navigation = [
@@ -68,13 +72,12 @@ export function Sidebar() {
   const { data: session } = useSession();
   const [collapsed, setCollapsed] = useState(false);
   const [isDark, setIsDark] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    // Check for saved theme preference or system preference
     const savedTheme = localStorage.getItem("theme");
     const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     const shouldBeDark = savedTheme === "dark" || (!savedTheme && systemDark);
-    // Use requestAnimationFrame to avoid synchronous setState in effect
     requestAnimationFrame(() => {
       setIsDark(shouldBeDark);
     });
@@ -92,7 +95,6 @@ export function Sidebar() {
     signOut({ callbackUrl: "/login" });
   };
 
-  // Get user initials for avatar
   const getInitials = (name: string | null | undefined) => {
     if (!name) return "U";
     return name
@@ -103,38 +105,45 @@ export function Sidebar() {
       .slice(0, 2);
   };
 
-  // Get role badge color
-  const getRoleColor = (role: string) => {
+  const getRoleColor = (role: string | undefined) => {
     switch (role) {
-      case "ADMIN":
-        return "bg-red-500/10 text-red-500";
-      case "MANAGER":
-        return "bg-purple-500/10 text-purple-500";
       case "CEO":
-        return "bg-amber-500/10 text-amber-500";
-      default:
+        return "bg-purple-500/10 text-purple-500";
+      case "MANAGER":
         return "bg-blue-500/10 text-blue-500";
+      case "SUPPORT":
+        return "bg-green-500/10 text-green-500";
+      case "TECHNICIAN":
+        return "bg-orange-500/10 text-orange-500";
+      default:
+        return "bg-gray-500/10 text-gray-500";
     }
   };
 
-  return (
-    <aside
-      className={cn(
-        "fixed left-0 top-0 z-40 h-screen border-r border-sidebar-border bg-sidebar transition-all duration-200",
-        collapsed ? "w-16" : "w-64"
-      )}
-    >
-      <div className="flex h-full flex-col">
-        {/* Logo */}
-        <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
-          {!collapsed && (
-            <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                <span className="text-sm font-bold text-primary-foreground">M</span>
-              </div>
-              <span className="font-semibold text-sidebar-foreground">MIMS</span>
-            </Link>
-          )}
+  const getRoleLabel = (role: string | undefined) => {
+    const labels: Record<string, string> = {
+      CEO: "CEO",
+      MANAGER: "ผู้จัดการ",
+      SUPPORT: "ฝ่ายรับเรื่อง",
+      TECHNICIAN: "ช่างซ่อม",
+    };
+    return labels[role || ""] || role;
+  };
+
+  // Sidebar content component (reusable for desktop and mobile)
+  const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
+    <div className="flex h-full flex-col">
+      {/* Logo */}
+      <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
+        {(!collapsed || isMobile) && (
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+              <span className="text-sm font-bold text-primary-foreground">M</span>
+            </div>
+            <span className="font-semibold text-sidebar-foreground">MIMS</span>
+          </Link>
+        )}
+        {!isMobile && (
           <Button
             variant="ghost"
             size="icon"
@@ -147,114 +156,151 @@ export function Sidebar() {
               <ChevronLeft className="h-4 w-4" />
             )}
           </Button>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 space-y-1 overflow-y-auto p-2">
-          <div className="space-y-1">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                  )}
-                >
-                  <item.icon className="h-5 w-5 shrink-0" />
-                  {!collapsed && <span>{item.nameTh}</span>}
-                </Link>
-              );
-            })}
-          </div>
-
-          <div className="my-4 border-t border-sidebar-border" />
-
-          <div className="space-y-1">
-            {settingsNav.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                  )}
-                >
-                  <item.icon className="h-5 w-5 shrink-0" />
-                  {!collapsed && <span>{item.nameTh}</span>}
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
-
-        {/* User & Theme */}
-        <div className="border-t border-sidebar-border p-2 space-y-2">
-          {/* Theme Toggle */}
+        )}
+        {isMobile && (
           <Button
             variant="ghost"
-            size={collapsed ? "icon" : "default"}
-            className={cn("w-full", collapsed ? "justify-center" : "justify-start gap-3")}
-            onClick={toggleTheme}
+            size="icon"
+            className="h-8 w-8 lg:hidden"
+            onClick={() => setMobileOpen(false)}
           >
-            {isDark ? (
-              <Sun className="h-5 w-5 shrink-0" />
-            ) : (
-              <Moon className="h-5 w-5 shrink-0" />
-            )}
-            {!collapsed && <span>{isDark ? "Light Mode" : "Dark Mode"}</span>}
+            <X className="h-5 w-5" />
           </Button>
+        )}
+      </div>
 
-          {/* User Info */}
-          {session?.user && (
-            <div className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2.5",
-              collapsed && "justify-center px-0"
-            )}>
-              <Avatar className="h-8 w-8">
-                <AvatarFallback className="text-xs">
+      {/* Navigation */}
+      <nav className="flex-1 space-y-1 overflow-y-auto p-2">
+        {navigation.map((item) => {
+          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const Icon = item.icon;
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => isMobile && setMobileOpen(false)}
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                isActive
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+              )}
+            >
+              <Icon className="h-5 w-5 shrink-0" />
+              {(!collapsed || isMobile) && <span>{item.nameTh}</span>}
+            </Link>
+          );
+        })}
+
+        <div className="my-2 border-t border-sidebar-border" />
+
+        {settingsNav.map((item) => {
+          const isActive = pathname.startsWith(item.href);
+          const Icon = item.icon;
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => isMobile && setMobileOpen(false)}
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                isActive
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+              )}
+            >
+              <Icon className="h-5 w-5 shrink-0" />
+              {(!collapsed || isMobile) && <span>{item.nameTh}</span>}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* User Profile */}
+      <div className="border-t border-sidebar-border p-4">
+        {(!collapsed || isMobile) && session?.user && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <Avatar className="h-9 w-9">
+                <AvatarFallback className="bg-primary text-primary-foreground text-xs">
                   {getInitials(session.user.name)}
                 </AvatarFallback>
               </Avatar>
-              {!collapsed && (
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-sidebar-foreground truncate">
-                    {session.user.name}
-                  </p>
-                  <span className={cn(
-                    "inline-block text-[10px] font-medium px-1.5 py-0.5 rounded",
-                    getRoleColor(session.user.role)
-                  )}>
-                    {session.user.role}
-                  </span>
-                </div>
-              )}
+              <div className="flex-1 overflow-hidden">
+                <p className="truncate text-sm font-medium text-sidebar-foreground">
+                  {session.user.name || "User"}
+                </p>
+                <Badge variant="outline" className={cn("text-xs", getRoleColor(session.user.role))}>
+                  {getRoleLabel(session.user.role)}
+                </Badge>
+              </div>
             </div>
-          )}
 
-          {/* Logout */}
-          <Button
-            variant="ghost"
-            size={collapsed ? "icon" : "default"}
-            className={cn(
-              "w-full text-destructive hover:text-destructive hover:bg-destructive/10",
-              collapsed ? "justify-center" : "justify-start gap-3"
-            )}
-            onClick={handleSignOut}
-          >
-            <LogOut className="h-5 w-5 shrink-0" />
-            {!collapsed && <span>ออกจากระบบ</span>}
-          </Button>
-        </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={toggleTheme}
+              >
+                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={handleSignOut}
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {collapsed && !isMobile && (
+          <div className="flex flex-col gap-2">
+            <Button variant="ghost" size="icon" onClick={toggleTheme}>
+              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleSignOut}>
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Mobile Menu Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="fixed left-4 top-4 z-50 lg:hidden"
+        onClick={() => setMobileOpen(true)}
+      >
+        <Menu className="h-5 w-5" />
+      </Button>
+
+      {/* Mobile Sidebar (Sheet) */}
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <SheetContent side="left" className="w-64 p-0">
+          <SidebarContent isMobile />
+        </SheetContent>
+      </Sheet>
+
+      {/* Desktop Sidebar */}
+      <aside
+        className={cn(
+          "fixed left-0 top-0 z-40 hidden h-screen border-r border-sidebar-border bg-sidebar transition-all duration-200 lg:block",
+          collapsed ? "w-16" : "w-64"
+        )}
+      >
+        <SidebarContent />
+      </aside>
+    </>
   );
 }

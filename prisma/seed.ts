@@ -17,56 +17,67 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   console.log("🌱 Starting seed...");
 
-  // ลบ Cases เดิมทั้งหมดก่อน
-  console.log("🗑️  Deleting old cases...");
-  await prisma.caseActivity.deleteMany({});
-  await prisma.attachment.deleteMany({});
-  await prisma.order.deleteMany({});
-  await prisma.case.deleteMany({});
-  console.log("✅ Old cases deleted");
+  // ⚠️ ไม่ลบเคสเดิมแล้ว เพื่อรักษาข้อมูลจริง
+  // ถ้าต้องการรีเซ็ต ให้ใช้ npx prisma migrate reset แทน
 
-  // Create Users
-  const adminUser = await prisma.user.upsert({
-    where: { email: "admin@meelike.com" },
-    update: {},
+  // Create Users (4 roles: CEO, MANAGER, SUPPORT, TECHNICIAN)
+  
+  // CEO - ผู้ดูแลระบบสูงสุด
+  const ceoUser = await prisma.user.upsert({
+    where: { email: "ceo@meelike.com" },
+    update: { role: "CEO" },
     create: {
-      email: "admin@meelike.com",
-      name: "Admin",
+      email: "ceo@meelike.com",
+      name: "CEO",
       password: "$2b$10$Eot.oPbj8/HUHmu12ZK/1.EX3Oay3BeTdrakXwPaDoo6pmdzjmeoK", // password123
-      role: "ADMIN",
+      role: "CEO",
     },
   });
 
-  const supportA = await prisma.user.upsert({
-    where: { email: "support.a@meelike.com" },
-    update: {},
-    create: {
-      email: "support.a@meelike.com",
-      name: "Support A",
-      password: "$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm",
-      role: "SUPPORT",
-    },
-  });
-
-  const supportB = await prisma.user.upsert({
-    where: { email: "support.b@meelike.com" },
-    update: {},
-    create: {
-      email: "support.b@meelike.com",
-      name: "Support B",
-      password: "$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm",
-      role: "SUPPORT",
-    },
-  });
-
+  // MANAGER - ดูภาพรวม/ดูแลทีม
   await prisma.user.upsert({
     where: { email: "manager@meelike.com" },
-    update: {},
+    update: { role: "MANAGER" },
     create: {
       email: "manager@meelike.com",
       name: "Manager",
-      password: "$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm",
+      password: "$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm", // password123
       role: "MANAGER",
+    },
+  });
+
+  // SUPPORT - รับเรื่อง/แจ้งลูกค้า
+  await prisma.user.upsert({
+    where: { email: "support@meelike.com" },
+    update: { role: "SUPPORT" },
+    create: {
+      email: "support@meelike.com",
+      name: "Support",
+      password: "$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm", // password123
+      role: "SUPPORT",
+    },
+  });
+
+  // TECHNICIAN - คนแก้ปัญหา (ดูเฉพาะเคสตัวเอง)
+  const techA = await prisma.user.upsert({
+    where: { email: "tech.a@meelike.com" },
+    update: { role: "TECHNICIAN" },
+    create: {
+      email: "tech.a@meelike.com",
+      name: "Technician A",
+      password: "$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm", // password123
+      role: "TECHNICIAN",
+    },
+  });
+
+  const techB = await prisma.user.upsert({
+    where: { email: "tech.b@meelike.com" },
+    update: { role: "TECHNICIAN" },
+    create: {
+      email: "tech.b@meelike.com",
+      name: "Technician B",
+      password: "$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm", // password123
+      role: "TECHNICIAN",
     },
   });
 

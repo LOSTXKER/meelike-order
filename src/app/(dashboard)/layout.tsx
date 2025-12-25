@@ -10,8 +10,11 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-background">
       <Sidebar />
-      <main className="pl-64 transition-all duration-200">
-        {children}
+      {/* Responsive main content */}
+      <main className="min-h-screen transition-all duration-200 lg:pl-64">
+        <div className="p-4 pt-20 lg:p-6 lg:pt-6">
+          {children}
+        </div>
       </main>
       <PrefetchData />
     </div>

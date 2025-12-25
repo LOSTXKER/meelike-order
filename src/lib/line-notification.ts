@@ -15,7 +15,7 @@ interface LineMessagePayload {
 }
 
 /**
- * Send Line Notification using stored templates
+ * Send Line Notification immediately using stored templates
  */
 export async function sendLineNotification(payload: LineMessagePayload) {
   try {
@@ -31,7 +31,7 @@ export async function sendLineNotification(payload: LineMessagePayload) {
 
     if (channels.length === 0) {
       console.log(`No active channels found for event: ${payload.event}`);
-      return;
+      return { success: false, reason: "no_channels" };
     }
 
     // Find template for this event
@@ -44,7 +44,7 @@ export async function sendLineNotification(payload: LineMessagePayload) {
 
     if (!template) {
       console.log(`No template found for event: ${payload.event}`);
-      return;
+      return { success: false, reason: "no_template" };
     }
 
     // Replace variables in template
@@ -54,115 +54,59 @@ export async function sendLineNotification(payload: LineMessagePayload) {
       message = message.replace(new RegExp(placeholder, "g"), String(payload[key] || ""));
     });
 
-    // Send to all active channels
-    const promises = channels.map(async (channel) => {
-      try {
-        // Create outbox entry for reliable delivery
-        await prisma.outbox.create({
-          data: {
-            eventType: "line_notification",
-            payload: {
-              channelId: channel.id,
-              accessToken: channel.accessToken,
-              groupId: channel.defaultGroupId,
-              message,
-            },
-          },
-        });
+    // Send to all active channels IMMEDIATELY
+    const results = await Promise.all(
+      channels.map(async (channel) => {
+        try {
+          const response = await fetch(
+            channel.defaultGroupId
+              ? "https://api.line.me/v2/bot/message/push"
+              : "https://api.line.me/v2/bot/message/broadcast",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${channel.accessToken}`,
+              },
+              body: JSON.stringify({
+                ...(channel.defaultGroupId ? { to: channel.defaultGroupId } : {}),
+                messages: [
+                  {
+                    type: "text",
+                    text: message,
+                  },
+                ],
+              }),
+            }
+          );
 
-        console.log(`Queued Line notification for channel: ${channel.name}`);
-      } catch (error) {
-        console.error(`Failed to queue notification for ${channel.name}:`, error);
-      }
-    });
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Line API error for ${channel.name}:`, response.status, errorText);
+            return { channel: channel.name, success: false, error: errorText };
+          }
 
-    await Promise.all(promises);
+          console.log(`✅ Sent Line notification to: ${channel.name}`);
+          return { channel: channel.name, success: true };
+        } catch (error: any) {
+          console.error(`Failed to send to ${channel.name}:`, error.message);
+          return { channel: channel.name, success: false, error: error.message };
+        }
+      })
+    );
+
+    const successCount = results.filter((r) => r.success).length;
+    console.log(`Line notification sent: ${successCount}/${channels.length} channels`);
+
+    return { 
+      success: successCount > 0, 
+      sent: successCount, 
+      total: channels.length,
+      results 
+    };
   } catch (error) {
     console.error("Error sending Line notification:", error);
-    throw error;
-  }
-}
-
-/**
- * Process outbox for Line notifications
- * This should be called by a background job/cron
- */
-export async function processLineNotificationOutbox() {
-  try {
-    // Get pending outbox items
-    const items = await prisma.outbox.findMany({
-      where: {
-        eventType: "line_notification",
-        status: "PENDING",
-        retryCount: { lt: prisma.outbox.fields.maxRetries },
-      },
-      take: 10, // Process in batches
-      orderBy: { createdAt: "asc" },
-    });
-
-    for (const item of items) {
-      try {
-        // Mark as processing
-        await prisma.outbox.update({
-          where: { id: item.id },
-          data: { status: "PROCESSING" },
-        });
-
-        const { accessToken, groupId, message } = item.payload as any;
-
-        // Send to Line Messaging API
-        const response = await fetch(
-          groupId
-            ? `https://api.line.me/v2/bot/message/push`
-            : `https://api.line.me/v2/bot/message/broadcast`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${accessToken}`,
-            },
-            body: JSON.stringify({
-              ...(groupId ? { to: groupId } : {}),
-              messages: [
-                {
-                  type: "text",
-                  text: message,
-                },
-              ],
-            }),
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(`Line API error: ${response.statusText}`);
-        }
-
-        // Mark as completed
-        await prisma.outbox.update({
-          where: { id: item.id },
-          data: {
-            status: "COMPLETED",
-            processedAt: new Date(),
-          },
-        });
-
-        console.log(`Successfully sent Line notification: ${item.id}`);
-      } catch (error: any) {
-        // Mark as failed and increment retry count
-        await prisma.outbox.update({
-          where: { id: item.id },
-          data: {
-            status: "FAILED",
-            retryCount: { increment: 1 },
-            lastError: error.message,
-          },
-        });
-
-        console.error(`Failed to send Line notification ${item.id}:`, error);
-      }
-    }
-  } catch (error) {
-    console.error("Error processing Line notification outbox:", error);
+    return { success: false, error };
   }
 }
 
@@ -190,7 +134,7 @@ export async function notifyOnCaseEvent(
       })
     : '-';
 
-  await sendLineNotification({
+  return await sendLineNotification({
     event,
     caseNumber: caseData.caseNumber,
     title: caseData.title,
@@ -202,4 +146,3 @@ export async function notifyOnCaseEvent(
     slaDeadline: slaDeadlineStr,
   });
 }
-

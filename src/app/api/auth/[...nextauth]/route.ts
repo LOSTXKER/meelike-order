@@ -48,10 +48,9 @@ export const authOptions: NextAuthOptions = {
             const request = new Request("http://localhost", {
               headers: req.headers as HeadersInit,
             });
-            const rateLimitResponse = await checkRateLimit(
+            const rateLimitResponse = checkRateLimit(
               request,
-              RATE_LIMITS.AUTH,
-              false // use IP, not user ID
+              RATE_LIMITS.AUTH
             );
             if (rateLimitResponse) {
               console.log("Rate limit exceeded for auth");

@@ -11,7 +11,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "ADMIN") {
+  if (!session || session.user.role !== "CEO") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -45,7 +45,7 @@ export async function PATCH(
   if (rateLimitResponse) return rateLimitResponse;
 
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "ADMIN") {
+  if (!session || session.user.role !== "CEO") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -84,7 +84,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "ADMIN") {
+  if (!session || session.user.role !== "CEO") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

@@ -1,167 +1,290 @@
-// Type definitions for the MIMS system
+/**
+ * Type Exports
+ * 
+ * Centralized type definitions using Prisma-generated types.
+ * This ensures consistency across the application.
+ */
 
-export type CaseStatus = 
-  | "NEW"
-  | "INVESTIGATING"
-  | "WAITING_CUSTOMER"
-  | "WAITING_PROVIDER"
-  | "FIXING"
-  | "RESOLVED"
-  | "CLOSED";
+import { Prisma } from "@prisma/client";
 
-export type Severity = "CRITICAL" | "HIGH" | "NORMAL" | "LOW";
+// ============================================
+// Case Types
+// ============================================
 
-export type CaseCategory = "PAYMENT" | "ORDER" | "SYSTEM" | "PROVIDER" | "OTHER";
+export type Case = Prisma.CaseGetPayload<{
+  include: {
+    caseType: true;
+    owner: {
+      select: {
+        id: true;
+        name: true;
+        email: true;
+        role: true;
+      };
+    };
+    provider: true;
+    orders: true;
+    activities: {
+      include: {
+        user: {
+          select: {
+            id: true;
+            name: true;
+          };
+        };
+      };
+    };
+    attachments: {
+      include: {
+        uploadedBy: {
+          select: {
+            id: true;
+            name: true;
+          };
+        };
+      };
+    };
+  };
+}>;
 
-export type CaseSource = "LINE" | "TICKET" | "API" | "MANUAL";
+export type CaseWithBasicRelations = Prisma.CaseGetPayload<{
+  include: {
+    caseType: {
+      select: {
+        id: true;
+        name: true;
+        category: true;
+      };
+    };
+    owner: {
+      select: {
+        id: true;
+        name: true;
+        email: true;
+      };
+    };
+    provider: {
+      select: {
+        id: true;
+        name: true;
+      };
+    };
+  };
+}>;
 
-export type UserRole = "ADMIN" | "SUPPORT" | "MANAGER" | "CEO";
+export type CaseActivity = Prisma.CaseActivityGetPayload<{
+  include: {
+    user: {
+      select: {
+        id: true;
+        name: true;
+      };
+    };
+  };
+}>;
 
-export type ActivityType =
-  | "CREATED"
-  | "STATUS_CHANGED"
-  | "ASSIGNED"
-  | "NOTE_ADDED"
-  | "FILE_ATTACHED"
-  | "SLA_UPDATED"
-  | "SEVERITY_CHANGED"
-  | "ESCALATED"
-  | "RESOLVED"
-  | "CLOSED"
-  | "REOPENED";
+// ============================================
+// User Types
+// ============================================
 
-// Dashboard stats
+export type User = Prisma.UserGetPayload<{}>;
+
+export type UserWithStats = Prisma.UserGetPayload<{
+  select: {
+    id: true;
+    name: true;
+    email: true;
+    role: true;
+    isActive: true;
+    createdAt: true;
+    _count: {
+      select: {
+        ownedCases: true;
+      };
+    };
+  };
+}>;
+
+// ============================================
+// Provider Types
+// ============================================
+
+export type Provider = Prisma.ProviderGetPayload<{}>;
+
+export type ProviderWithStats = Prisma.ProviderGetPayload<{
+  include: {
+    _count: {
+      select: {
+        orders: true;
+        cases: true;
+      };
+    };
+  };
+}>;
+
+// ============================================
+// Case Type Types
+// ============================================
+
+export type CaseType = Prisma.CaseTypeGetPayload<{}>;
+
+export type CaseTypeWithCount = Prisma.CaseTypeGetPayload<{
+  include: {
+    _count: {
+      select: {
+        cases: true;
+      };
+    };
+  };
+}>;
+
+// ============================================
+// Order Types
+// ============================================
+
+export type Order = Prisma.OrderGetPayload<{
+  include: {
+    provider: {
+      select: {
+        id: true;
+        name: true;
+      };
+    };
+  };
+}>;
+
+// ============================================
+// Attachment Types
+// ============================================
+
+export type Attachment = Prisma.AttachmentGetPayload<{
+  include: {
+    uploadedBy: {
+      select: {
+        id: true;
+        name: true;
+      };
+    };
+  };
+}>;
+
+// ============================================
+// Notification Types
+// ============================================
+
+export type NotificationTemplate = Prisma.NotificationTemplateGetPayload<{}>;
+export type LineChannel = Prisma.LineChannelGetPayload<{}>;
+
+// ============================================
+// Webhook Types
+// ============================================
+
+export type Webhook = Prisma.WebhookGetPayload<{}>;
+
+// Note: WebhookLog model doesn't exist in schema, removed
+// export type WebhookLog = Prisma.WebhookLogGetPayload<{}>;
+
+// ============================================
+// Enum Re-exports
+// ============================================
+
+export {
+  UserRole,
+  CaseStatus,
+  Severity,
+  OrderStatus,
+  CaseCategory,
+  CaseSource,
+  ActivityType,
+  ProviderType,
+  RiskLevel,
+} from "@prisma/client";
+
+// ============================================
+// Session Types (for NextAuth)
+// ============================================
+
+export interface SessionUser {
+  id: string;
+  email: string;
+  name: string | null;
+  role: string;
+}
+
+export interface AuthSession {
+  user: SessionUser;
+  expires: string;
+}
+
+// ============================================
+// API Response Types
+// ============================================
+
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface ApiResponse<T> {
+  data?: T;
+  error?: string;
+  message?: string;
+}
+
+export interface PaginatedApiResponse<T> extends ApiResponse<T> {
+  pagination?: PaginationMeta;
+}
+
+// ============================================
+// Dashboard Types
+// ============================================
+
 export interface DashboardStats {
   totalCases: number;
   newCases: number;
   inProgressCases: number;
-  resolvedToday: number;
-  slaMissed: number;
-  avgResolutionTime: number;
-  casesByStatus: Record<CaseStatus, number>;
-  casesBySeverity: Record<Severity, number>;
-  recentCases: CaseListItem[];
-}
-
-// Case list item (for tables)
-export interface CaseListItem {
-  id: string;
-  caseNumber: string;
-  title: string;
-  status: CaseStatus;
-  severity: Severity;
-  caseType: {
-    id: string;
-    name: string;
-    category: CaseCategory;
-  };
-  owner?: {
-    id: string;
-    name: string | null;
-  };
-  provider?: {
-    id: string;
-    name: string;
-  };
-  customerName?: string;
-  slaDeadline?: Date;
-  slaMissed: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// Case detail
-export interface CaseDetail extends CaseListItem {
-  description?: string;
-  customerId?: string;
-  customerContact?: string;
-  source: CaseSource;
-  rootCause?: string;
-  resolution?: string;
-  firstResponseAt?: Date;
-  resolvedAt?: Date;
-  closedAt?: Date;
-  orders: OrderInfo[];
-  activities: ActivityItem[];
-}
-
-// Order info
-export interface OrderInfo {
-  id: string;
-  orderId: string;
-  amount: number;
-  status: string;
-  provider?: {
-    id: string;
-    name: string;
-  };
-  createdAt: Date;
-}
-
-// Activity item
-export interface ActivityItem {
-  id: string;
-  type: ActivityType;
-  title: string;
-  description?: string;
-  oldValue?: string;
-  newValue?: string;
-  user?: {
-    id: string;
-    name: string | null;
-  };
-  attachmentUrl?: string;
-  createdAt: Date;
-}
-
-// Form types
-export interface CreateCaseInput {
-  title: string;
-  description?: string;
-  caseTypeId: string;
-  severity?: Severity;
-  source?: CaseSource;
-  customerName?: string;
-  customerId?: string;
-  customerContact?: string;
-  providerId?: string;
-  orderIds?: string[];
-}
-
-export interface UpdateCaseInput {
-  title?: string;
-  description?: string;
-  status?: CaseStatus;
-  severity?: Severity;
-  ownerId?: string;
-  providerId?: string;
-  rootCause?: string;
-  resolution?: string;
-}
-
-// Provider stats
-export interface ProviderStats {
-  id: string;
-  name: string;
-  totalCases: number;
   resolvedCases: number;
-  avgResolutionMinutes: number | null;
-  refundRate: number | null;
-  riskLevel: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
-}
-
-// Staff performance
-export interface StaffPerformance {
-  id: string;
-  name: string;
-  totalCases: number;
-  resolvedCases: number;
-  slaCompliance: number;
-  avgResponseTime: number;
-  avgResolutionTime: number;
   criticalCases: number;
-  performanceScore: number;
+  highPriorityCases: number;
+  slaMissed: number;
+  slaWarning: number;
+  recentCases: CaseWithBasicRelations[];
+  casesByStatus: Array<{ status: string; count: number }>;
+  casesBySeverity: Array<{ severity: string; count: number }>;
+  casesByCategory: Array<{ category: string; count: number }>;
 }
 
+// ============================================
+// Report Types
+// ============================================
 
+export interface ReportData {
+  casesByStatus: Array<{ status: string; _count: { id: number } }>;
+  casesBySeverity: Array<{ severity: string; _count: { id: number } }>;
+  casesByCategory: Array<{ category: string; _count: { id: number } }>;
+  monthlyData: Array<{ month: string; count: number }>;
+  avgResolutionTime: number;
+  slaComplianceRate: number;
+  topCaseTypes: Array<{ name: string; count: number }>;
+  topProviders: Array<{ name: string; count: number }>;
+  growthRate: number;
+}
 
+// ============================================
+// Team Types
+// ============================================
+
+export interface TeamMember {
+  id: string;
+  name: string | null;
+  email: string;
+  role: string;
+  isActive: boolean;
+  activeCases: number;
+  resolvedCases: number;
+  totalCases: number;
+  avgResolutionTime: number | null;
+  successRate: number;
+}

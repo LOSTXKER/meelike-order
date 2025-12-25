@@ -34,10 +34,10 @@ interface TeamMember {
 }
 
 const roleLabels: Record<string, { label: string; className: string }> = {
-  ADMIN: { label: "Admin", className: "bg-red-500/10 text-red-600 dark:text-red-400" },
+  CEO: { label: "CEO", className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
   MANAGER: { label: "Manager", className: "bg-purple-500/10 text-purple-600 dark:text-purple-400" },
   SUPPORT: { label: "Support", className: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
-  CEO: { label: "CEO", className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+  TECHNICIAN: { label: "Technician", className: "bg-green-500/10 text-green-600 dark:text-green-400" },
 };
 
 export default function TeamPage() {
@@ -48,15 +48,15 @@ export default function TeamPage() {
   }
 
   const activeMembers = team.filter((m: TeamMember) => m.isActive).length;
-  const totalCasesHandled = team.reduce((sum: number, m: TeamMember) => sum + m.totalCases, 0);
+  const totalCasesHandled = team.reduce((sum: number, m: TeamMember) => sum + (m.totalCases || 0), 0);
   const avgTeamResolution = team.length > 0
     ? Math.round(
-        team.reduce((sum: number, m: TeamMember) => sum + m.avgResolutionTime, 0) / team.length
+        team.reduce((sum: number, m: TeamMember) => sum + (m.avgResolutionTime || 0), 0) / team.length
       )
     : 0;
   const avgResolutionRate = team.length > 0
     ? Math.round(
-        team.reduce((sum: number, m: TeamMember) => sum + m.resolutionRate, 0) / team.length
+        team.reduce((sum: number, m: TeamMember) => sum + (m.resolutionRate || 0), 0) / team.length
       )
     : 0;
 
@@ -180,22 +180,22 @@ export default function TeamPage() {
               <CardContent className="space-y-3">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">เคสทั้งหมด</span>
-                  <span className="font-semibold">{member.totalCases}</span>
+                  <span className="font-semibold">{member.totalCases || 0}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">เดือนนี้</span>
-                  <span className="font-semibold">{member.casesThisMonth}</span>
+                  <span className="font-semibold">{member.casesThisMonth || 0}</span>
                 </div>
                 <div>
                   <div className="flex items-center justify-between text-sm mb-2">
                     <span className="text-muted-foreground">อัตราแก้ไข</span>
-                    <span className="font-semibold">{member.resolutionRate}%</span>
+                    <span className="font-semibold">{member.resolutionRate || 0}%</span>
                   </div>
-                  <Progress value={member.resolutionRate} className="h-2" />
+                  <Progress value={member.resolutionRate || 0} className="h-2" />
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">เวลาเฉลี่ย</span>
-                  <span className="font-semibold">{member.avgResolutionTime} นาที</span>
+                  <span className="font-semibold">{member.avgResolutionTime || 0} นาที</span>
                 </div>
               </CardContent>
             </Card>
@@ -245,18 +245,18 @@ export default function TeamPage() {
                         {roleLabels[member.role]?.label}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">{member.totalCases}</TableCell>
-                    <TableCell className="text-right">{member.resolvedCases}</TableCell>
-                    <TableCell className="text-right">{member.casesThisMonth}</TableCell>
+                    <TableCell className="text-right">{member.totalCases || 0}</TableCell>
+                    <TableCell className="text-right">{member.resolvedCases || 0}</TableCell>
+                    <TableCell className="text-right">{member.casesThisMonth || 0}</TableCell>
                     <TableCell>
                       <div className="space-y-1">
-                        <Progress value={member.resolutionRate} className="h-1.5" />
+                        <Progress value={member.resolutionRate || 0} className="h-1.5" />
                         <p className="text-xs text-muted-foreground text-right">
-                          {member.resolutionRate}%
+                          {member.resolutionRate || 0}%
                         </p>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">{member.avgResolutionTime} นาที</TableCell>
+                    <TableCell className="text-right">{member.avgResolutionTime || 0} นาที</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <div className={cn(

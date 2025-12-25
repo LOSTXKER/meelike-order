@@ -14,10 +14,10 @@ datasource db {
 // ============================================
 
 enum UserRole {
-  ADMIN
-  SUPPORT
-  MANAGER
-  CEO
+  CEO        // ผู้ดูแลระบบสูงสุด - full access, จัดการผู้ใช้, ตั้งค่าระบบ
+  MANAGER    // ดูภาพรวม - ดูทุกเคส, มอบหมายงาน, ตรวจ SLA
+  SUPPORT    // รับเรื่อง/แจ้งลูกค้า - สร้างเคส, ดูทุกเคส, ปิดเคส
+  TECHNICIAN // คนแก้ปัญหา - ดูเฉพาะเคสตัวเอง, แก้ไขปัญหา
 }
 
 model User {
@@ -187,6 +187,10 @@ model Case {
   resolvedAt      DateTime?
   closedAt        DateTime?
   
+  // Soft Delete
+  isDeleted       Boolean      @default(false)
+  deletedAt       DateTime?
+  
   // Relations
   orders          Order[]
   activities      CaseActivity[]
@@ -200,6 +204,7 @@ model Case {
   @@index([ownerId])
   @@index([caseTypeId])
   @@index([createdAt])
+  @@index([isDeleted])
   @@map("cases")
 }
 

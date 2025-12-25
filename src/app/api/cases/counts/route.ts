@@ -1,61 +1,16 @@
-import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { CaseService } from "@/services/case.service";
+import { asyncErrorHandler, assertAuthenticated } from "@/lib/error-handler";
 
 // GET /api/cases/counts - Get case counts by category
-export async function GET() {
-  try {
-    // Get counts by category using raw query for category join
-    const [
-      totalCount,
-      paymentCount,
-      orderCount,
-      systemCount,
-      providerCount,
-      otherCount,
-    ] = await Promise.all([
-      // Total cases
-      prisma.case.count(),
+export const GET = asyncErrorHandler(async (request: NextRequest) => {
+  const session = await getServerSession(authOptions);
+  assertAuthenticated(session?.user);
 
-      // Payment category
-      prisma.case.count({
-        where: { caseType: { category: "PAYMENT" } },
-      }),
+  // Get counts using service
+  const counts = await CaseService.getCaseCounts();
 
-      // Order category
-      prisma.case.count({
-        where: { caseType: { category: "ORDER" } },
-      }),
-
-      // System category
-      prisma.case.count({
-        where: { caseType: { category: "SYSTEM" } },
-      }),
-
-      // Provider category
-      prisma.case.count({
-        where: { caseType: { category: "PROVIDER" } },
-      }),
-
-      // Other category
-      prisma.case.count({
-        where: { caseType: { category: "OTHER" } },
-      }),
-    ]);
-
-    return NextResponse.json({
-      all: totalCount,
-      PAYMENT: paymentCount,
-      ORDER: orderCount,
-      SYSTEM: systemCount,
-      PROVIDER: providerCount,
-      OTHER: otherCount,
-    });
-  } catch (error) {
-    console.error("Error fetching case counts:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch case counts" },
-      { status: 500 }
-    );
-  }
-}
-
+  return NextResponse.json(counts);
+});

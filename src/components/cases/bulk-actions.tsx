@@ -64,7 +64,7 @@ export function BulkActions({
       const res = await fetch("/api/users");
       if (!res.ok) throw new Error("Failed to fetch users");
       const data = await res.json();
-      setUsers(data.filter((u: User) => u.role === "SUPPORT" || u.role === "MANAGER" || u.role === "ADMIN"));
+      setUsers(data.filter((u: User) => u.role === "TECHNICIAN" || u.role === "SUPPORT" || u.role === "MANAGER" || u.role === "CEO"));
     } catch (error) {
       console.error(error);
       toast.error("ไม่สามารถโหลดรายชื่อผู้ใช้ได้");

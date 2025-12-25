@@ -1,94 +1,62 @@
 import { NextResponse } from "next/server";
-import { rateLimiter, getClientIdentifier, RATE_LIMITS } from "./rate-limit";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-
-type RateLimitConfig = {
-  limit: number;
-  window: number;
-};
+import { rateLimit, getClientIdentifier, RateLimitConfig } from "./rate-limit";
 
 /**
- * Rate limit middleware for API routes
- * Usage in API route:
+ * Middleware helper to check rate limit and return error response if exceeded
  * 
- * export async function POST(req: Request) {
- *   const rateLimitResponse = await checkRateLimit(req, RATE_LIMITS.API);
- *   if (rateLimitResponse) return rateLimitResponse;
+ * @param request - Next.js request object
+ * @param config - Rate limit configuration
+ * @returns null if rate limit is OK, NextResponse with 429 status if exceeded
+ * 
+ * @example
+ * export async function POST(request: NextRequest) {
+ *   const rateLimitResult = checkRateLimit(request, RATE_LIMITS.AUTH);
+ *   if (rateLimitResult) return rateLimitResult;
  *   
- *   // Your API logic here
+ *   // Continue with request handling...
  * }
  */
-export async function checkRateLimit(
+export function checkRateLimit(
   request: Request,
-  config: RateLimitConfig,
-  useUserId = true
-): Promise<NextResponse | null> {
-  try {
-    let identifier: string;
+  config: RateLimitConfig
+): NextResponse | null {
+  const identifier = getClientIdentifier(request);
+  const result = rateLimit(identifier, config);
 
-    if (useUserId) {
-      // Try to get user ID from session
-      const session = await getServerSession(authOptions);
-      identifier = session?.user?.id || getClientIdentifier(request);
-    } else {
-      // Use IP address
-      identifier = getClientIdentifier(request);
-    }
-
-    const result = rateLimiter.check(identifier, config.limit, config.window);
-
-    // Set rate limit headers
-    const headers = {
-      "X-RateLimit-Limit": config.limit.toString(),
-      "X-RateLimit-Remaining": result.remaining.toString(),
-      "X-RateLimit-Reset": new Date(result.resetAt).toISOString(),
-    };
-
-    if (!result.allowed) {
-      const retryAfter = Math.ceil((result.resetAt - Date.now()) / 1000);
-      
-      return NextResponse.json(
-        {
-          error: "Too many requests",
-          message: "Rate limit exceeded. Please try again later.",
-          retryAfter,
+  if (!result.success) {
+    return NextResponse.json(
+      {
+        error: "Too many requests",
+        message: `Rate limit exceeded. Try again in ${Math.ceil((result.reset - Date.now() / 1000) / 60)} minutes.`,
+      },
+      {
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": String(result.limit),
+          "X-RateLimit-Remaining": String(result.remaining),
+          "X-RateLimit-Reset": String(result.reset),
+          "Retry-After": String(Math.ceil(result.reset - Date.now() / 1000)),
         },
-        {
-          status: 429,
-          headers: {
-            ...headers,
-            "Retry-After": retryAfter.toString(),
-          },
-        }
-      );
-    }
-
-    // Rate limit OK - return null (no error)
-    return null;
-  } catch (error) {
-    console.error("Rate limit check error:", error);
-    // On error, allow the request (fail open)
-    return null;
+      }
+    );
   }
+
+  return null;
 }
 
 /**
- * Helper to add rate limit headers to successful responses
+ * Get rate limit headers to include in successful responses
  */
-export function addRateLimitHeaders(
-  response: NextResponse,
-  identifier: string,
+export function getRateLimitHeaders(
+  request: Request,
   config: RateLimitConfig
-): NextResponse {
-  const result = rateLimiter.check(identifier, config.limit, config.window);
-  
-  response.headers.set("X-RateLimit-Limit", config.limit.toString());
-  response.headers.set("X-RateLimit-Remaining", result.remaining.toString());
-  response.headers.set("X-RateLimit-Reset", new Date(result.resetAt).toISOString());
-  
-  return response;
+): Record<string, string> {
+  const identifier = getClientIdentifier(request);
+  const result = rateLimit(identifier, config);
+
+  return {
+    "X-RateLimit-Limit": String(result.limit),
+    "X-RateLimit-Remaining": String(result.remaining),
+    "X-RateLimit-Reset": String(result.reset),
+  };
 }
-
-
-

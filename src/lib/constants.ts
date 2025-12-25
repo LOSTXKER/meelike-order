@@ -117,12 +117,12 @@ export const CASE_SOURCE = {
   MANUAL: { value: "MANUAL", label: "สร้างเอง", icon: "PenLine" },
 } as const;
 
-// User roles
+// User roles (4 roles: CEO, MANAGER, SUPPORT, TECHNICIAN)
 export const USER_ROLE = {
-  ADMIN: { value: "ADMIN", label: "Admin", permissions: ["all"] },
-  SUPPORT: { value: "SUPPORT", label: "Support", permissions: ["cases", "timeline"] },
-  MANAGER: { value: "MANAGER", label: "Manager", permissions: ["cases", "timeline", "reports"] },
-  CEO: { value: "CEO", label: "CEO", permissions: ["dashboard", "reports", "performance"] },
+  CEO: { value: "CEO", label: "CEO", permissions: ["all"] },
+  MANAGER: { value: "MANAGER", label: "Manager", permissions: ["cases", "timeline", "reports", "team", "assign"] },
+  SUPPORT: { value: "SUPPORT", label: "Support", permissions: ["cases", "timeline", "create-case", "close-case"] },
+  TECHNICIAN: { value: "TECHNICIAN", label: "Technician", permissions: ["own-cases", "timeline"] },
 } as const;
 
 // State machine transitions (merged INVESTIGATING + FIXING flow)

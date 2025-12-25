@@ -9,21 +9,24 @@ export async function GET() {
     const lastMonthStart = startOfMonth(subMonths(now, 1));
     const lastMonthEnd = endOfMonth(subMonths(now, 1));
 
-    // Get cases by status
+    // Get cases by status (excluding deleted)
     const casesByStatus = await prisma.case.groupBy({
       by: ["status"],
+      where: { isDeleted: false },
       _count: { id: true },
     });
 
     // Get cases by severity
     const casesBySeverity = await prisma.case.groupBy({
       by: ["severity"],
+      where: { isDeleted: false },
       _count: { id: true },
     });
 
     // Get cases by category
     const casesByCategory = await prisma.case.groupBy({
       by: ["caseTypeId"],
+      where: { isDeleted: false },
       _count: { id: true },
       orderBy: { _count: { id: "desc" } },
       take: 10,
@@ -44,6 +47,7 @@ export async function GET() {
         return prisma.case
           .findMany({
             where: {
+              isDeleted: false,
               createdAt: { gte: monthStart, lte: monthEnd },
             },
             select: { status: true, createdAt: true },
@@ -59,6 +63,7 @@ export async function GET() {
     // Get resolution time stats
     const resolvedCases = await prisma.case.findMany({
       where: {
+        isDeleted: false,
         resolvedAt: { not: null },
         status: { in: ["RESOLVED", "CLOSED"] },
       },
@@ -82,6 +87,7 @@ export async function GET() {
     // Get SLA compliance
     const casesWithSLA = await prisma.case.findMany({
       where: {
+        isDeleted: false,
         slaDeadline: { not: null },
         status: { in: ["RESOLVED", "CLOSED"] },
       },
@@ -111,7 +117,7 @@ export async function GET() {
     // Get team performance
     const teamPerformance = await prisma.user.findMany({
       where: {
-        role: { in: ["SUPPORT", "ADMIN"] },
+        role: { in: ["TECHNICIAN", "SUPPORT", "MANAGER", "CEO"] },
       },
       select: {
         id: true,
@@ -134,11 +140,12 @@ export async function GET() {
 
     // Calculate growth
     const thisMonthCases = await prisma.case.count({
-      where: { createdAt: { gte: thisMonthStart } },
+      where: { isDeleted: false, createdAt: { gte: thisMonthStart } },
     });
 
     const lastMonthCases = await prisma.case.count({
       where: {
+        isDeleted: false,
         createdAt: { gte: lastMonthStart, lte: lastMonthEnd },
       },
     });

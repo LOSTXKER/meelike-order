@@ -1,133 +1,116 @@
 /**
  * Simple in-memory rate limiter
- * For production, consider using Redis (Upstash) or database-backed solution
+ * For production, consider using Redis or Upstash for distributed rate limiting
  */
 
-interface RateLimitEntry {
-  count: number;
-  resetAt: number;
+type RateLimitStore = {
+  [key: string]: {
+    count: number;
+    resetTime: number;
+  };
+};
+
+const store: RateLimitStore = {};
+
+// Clean up old entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  Object.keys(store).forEach((key) => {
+    if (store[key].resetTime < now) {
+      delete store[key];
+    }
+  });
+}, 5 * 60 * 1000);
+
+export interface RateLimitConfig {
+  /**
+   * Maximum number of requests allowed in the window
+   */
+  limit: number;
+  /**
+   * Time window in seconds
+   */
+  windowSeconds: number;
 }
 
-class RateLimiter {
-  private storage = new Map<string, RateLimitEntry>();
-  private cleanupInterval: NodeJS.Timeout | null = null;
+export interface RateLimitResult {
+  success: boolean;
+  limit: number;
+  remaining: number;
+  reset: number;
+}
 
-  constructor() {
-    // Clean up expired entries every 5 minutes
-    this.cleanupInterval = setInterval(() => {
-      this.cleanup();
-    }, 5 * 60 * 1000);
-  }
+/**
+ * Check if a request should be rate limited
+ * 
+ * @param identifier - Unique identifier (e.g., IP address, user ID, API key)
+ * @param config - Rate limit configuration
+ * @returns Result object with success status and rate limit headers
+ * 
+ * @example
+ * const result = rateLimit(request.ip, { limit: 100, windowSeconds: 60 });
+ * if (!result.success) {
+ *   return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+ * }
+ */
+export function rateLimit(
+  identifier: string,
+  config: RateLimitConfig
+): RateLimitResult {
+  const now = Date.now();
+  const windowMs = config.windowSeconds * 1000;
 
-  private cleanup() {
-    const now = Date.now();
-    for (const [key, entry] of this.storage.entries()) {
-      if (entry.resetAt < now) {
-        this.storage.delete(key);
-      }
-    }
-  }
-
-  /**
-   * Check if request is allowed
-   * @param identifier - Unique identifier (IP, user ID, etc.)
-   * @param limit - Max requests allowed
-   * @param windowMs - Time window in milliseconds
-   * @returns { allowed: boolean, remaining: number, resetAt: number }
-   */
-  check(
-    identifier: string,
-    limit: number,
-    windowMs: number
-  ): { allowed: boolean; remaining: number; resetAt: number } {
-    const now = Date.now();
-    const entry = this.storage.get(identifier);
-
-    // No entry or expired - create new
-    if (!entry || entry.resetAt < now) {
-      this.storage.set(identifier, {
-        count: 1,
-        resetAt: now + windowMs,
-      });
-
-      return {
-        allowed: true,
-        remaining: limit - 1,
-        resetAt: now + windowMs,
-      };
-    }
-
-    // Entry exists and not expired
-    if (entry.count < limit) {
-      entry.count++;
-      return {
-        allowed: true,
-        remaining: limit - entry.count,
-        resetAt: entry.resetAt,
-      };
-    }
-
-    // Rate limit exceeded
-    return {
-      allowed: false,
-      remaining: 0,
-      resetAt: entry.resetAt,
+  // Get or create entry
+  if (!store[identifier] || store[identifier].resetTime < now) {
+    store[identifier] = {
+      count: 0,
+      resetTime: now + windowMs,
     };
   }
 
-  /**
-   * Reset rate limit for identifier
-   */
-  reset(identifier: string) {
-    this.storage.delete(identifier);
-  }
+  const entry = store[identifier];
+
+  // Increment count
+  entry.count++;
+
+  const remaining = Math.max(0, config.limit - entry.count);
+  const success = entry.count <= config.limit;
+
+  return {
+    success,
+    limit: config.limit,
+    remaining,
+    reset: Math.ceil(entry.resetTime / 1000),
+  };
 }
 
-// Global instance
-const rateLimiter = new RateLimiter();
-
-export { rateLimiter };
-
 /**
- * Rate limit configurations
- */
-export const RATE_LIMITS = {
-  // Authentication endpoints
-  AUTH: {
-    limit: 5, // 5 attempts
-    window: 15 * 60 * 1000, // 15 minutes
-  },
-  // API endpoints (per user)
-  API: {
-    limit: 100, // 100 requests
-    window: 60 * 1000, // 1 minute
-  },
-  // Webhook endpoints
-  WEBHOOK: {
-    limit: 50, // 50 requests
-    window: 60 * 1000, // 1 minute
-  },
-  // File upload
-  UPLOAD: {
-    limit: 10, // 10 uploads
-    window: 60 * 1000, // 1 minute
-  },
-} as const;
-
-/**
- * Get client identifier from request
+ * Get client identifier from request (IP address or user ID)
  */
 export function getClientIdentifier(request: Request): string {
-  // Try to get IP from headers (works with proxies)
+  // Try to get IP from headers (Vercel, Cloudflare, etc.)
   const forwardedFor = request.headers.get("x-forwarded-for");
   const realIp = request.headers.get("x-real-ip");
-  
-  return (
-    forwardedFor?.split(",")[0] ||
-    realIp ||
-    "unknown"
-  );
+  const cfConnectingIp = request.headers.get("cf-connecting-ip");
+
+  const ip = cfConnectingIp || realIp || forwardedFor?.split(",")[0] || "unknown";
+
+  return ip;
 }
 
-
-
+/**
+ * Preset rate limit configurations
+ */
+export const RATE_LIMITS = {
+  // Strict - for auth endpoints (login, register)
+  AUTH: { limit: 5, windowSeconds: 60 }, // 5 requests per minute
+  
+  // Standard - for general API endpoints
+  API: { limit: 100, windowSeconds: 60 }, // 100 requests per minute
+  
+  // Relaxed - for read-only endpoints
+  READ: { limit: 300, windowSeconds: 60 }, // 300 requests per minute
+  
+  // Very strict - for expensive operations (exports, reports)
+  EXPENSIVE: { limit: 10, windowSeconds: 60 }, // 10 requests per minute
+} as const;

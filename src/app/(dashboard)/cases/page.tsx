@@ -34,6 +34,7 @@ import { useCases } from "@/hooks";
 import { formatDistanceToNow, differenceInMinutes } from "date-fns";
 import { th } from "date-fns/locale";
 import { CasesFilters } from "./cases-filters";
+import { CaseCard } from "@/components/cases/case-card";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useTransition } from "react";
 
@@ -235,7 +236,7 @@ export default function CasesPage() {
         {/* Filters Section */}
         <CasesFilters />
 
-        {/* Cases Table - Desktop */}
+        {/* Desktop: Table View */}
         <Card className="border-none shadow-sm overflow-hidden hidden md:block">
           <Table>
             <TableHeader className="bg-muted/40">
