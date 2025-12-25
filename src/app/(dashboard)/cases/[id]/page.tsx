@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingScreen } from "@/components/ui/loading-screen";
 import { RefreshButton } from "@/components/ui/refresh-button";
@@ -18,13 +17,9 @@ import {
   ChevronRight,
   AlertCircle,
   Package,
-  History,
-  Info,
-  Calendar,
   UserCircle,
   Phone,
   Link as LinkIcon,
-  Tag,
   AlertTriangle,
   Search,
   Wrench,
@@ -37,10 +32,9 @@ import Link from "next/link";
 import { useCase } from "@/hooks";
 import { formatDistanceToNow, differenceInMinutes, format } from "date-fns";
 import { th } from "date-fns/locale";
-import { CaseActions } from "./case-actions";
-import { CaseAssignee } from "./case-assignee";
+import { CaseActionCenter } from "./case-action-center";
 import { FileAttachments } from "./file-attachments";
-import { OrderStatusSelect, OrderStatusBadge, BulkOrderActions } from "./order-status-select";
+import { OrderStatusSelect, BulkOrderActions } from "./order-status-select";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 
@@ -82,7 +76,7 @@ const PROGRESS_STEPS = [
   { status: "CLOSED", label: "ปิดเคส", icon: CheckCircle2, color: "gray" },
 ];
 
-// Waiting states (not in main flow but shown separately)
+// Waiting states
 const WAITING_STATES = {
   WAITING_CUSTOMER: { label: "รอลูกค้า", icon: UserX, color: "amber" },
   WAITING_PROVIDER: { label: "รอ Provider", icon: HourglassIcon, color: "orange" },
@@ -93,127 +87,97 @@ interface CaseProgressBarProps {
 }
 
 function CaseProgressBar({ currentStatus }: CaseProgressBarProps) {
-  // Check if current status is a waiting state
   const isWaitingState = currentStatus === "WAITING_CUSTOMER" || currentStatus === "WAITING_PROVIDER";
   
-  // Determine which step we're on
   const getCurrentStepIndex = () => {
-    if (isWaitingState) {
-      // Waiting states are considered as part of INVESTIGATING/FIXING phase
-      return 1; // INVESTIGATING
-    }
+    if (isWaitingState) return 1;
     return PROGRESS_STEPS.findIndex(step => step.status === currentStatus);
   };
 
   const currentStepIndex = getCurrentStepIndex();
 
   return (
-    <div className="w-full bg-background/50 border-b py-2">
-      <div className="container max-w-7xl mx-auto px-4">
-        {/* Waiting State Banner (if applicable) */}
-        {isWaitingState && (
-          <div className={cn(
-            "mb-2 flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm mx-auto w-fit",
-            currentStatus === "WAITING_CUSTOMER" 
-              ? "bg-amber-50 border-amber-200 text-amber-900 dark:bg-amber-900/10 dark:text-amber-100 dark:border-amber-800"
-              : "bg-orange-50 border-orange-200 text-orange-900 dark:bg-orange-900/10 dark:text-orange-100 dark:border-orange-800"
-          )}>
-            {currentStatus === "WAITING_CUSTOMER" ? (
-              <UserX className="h-3.5 w-3.5" />
-            ) : (
-              <HourglassIcon className="h-3.5 w-3.5" />
+    <div className="w-full py-3">
+      {/* Waiting State Banner */}
+      {isWaitingState && (
+        <div className={cn(
+          "mb-3 flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm mx-auto w-fit",
+          currentStatus === "WAITING_CUSTOMER" 
+            ? "bg-amber-50 border-amber-200 text-amber-900 dark:bg-amber-900/10 dark:text-amber-100 dark:border-amber-800"
+            : "bg-orange-50 border-orange-200 text-orange-900 dark:bg-orange-900/10 dark:text-orange-100 dark:border-orange-800"
+        )}>
+          {currentStatus === "WAITING_CUSTOMER" ? (
+            <UserX className="h-3.5 w-3.5" />
+          ) : (
+            <HourglassIcon className="h-3.5 w-3.5" />
+          )}
+          <span className="font-medium">
+            {WAITING_STATES[currentStatus as keyof typeof WAITING_STATES]?.label}
+          </span>
+        </div>
+      )}
+
+      {/* Progress Steps */}
+      <div className="relative max-w-2xl mx-auto">
+        {/* Progress Line */}
+        <div className="absolute top-3.5 left-0 right-0 h-0.5 bg-border hidden sm:block">
+          <div 
+            className={cn(
+              "h-full transition-all duration-500",
+              currentStepIndex >= 0 && "bg-gradient-to-r from-blue-500 to-green-500"
             )}
-            <span className="font-medium">
-              {WAITING_STATES[currentStatus as keyof typeof WAITING_STATES]?.label}
-            </span>
-          </div>
-        )}
+            style={{ 
+              width: `${currentStepIndex >= 0 ? (currentStepIndex / (PROGRESS_STEPS.length - 1)) * 100 : 0}%` 
+            }}
+          />
+        </div>
 
-        {/* Progress Steps */}
-        <div className="relative max-w-3xl mx-auto">
-          {/* Progress Line */}
-          <div className="absolute top-3.5 left-0 right-0 h-0.5 bg-border hidden sm:block">
-            <div 
-              className={cn(
-                "h-full transition-all duration-500",
-                currentStepIndex >= 0 && "bg-gradient-to-r from-blue-500 to-green-500"
-              )}
-              style={{ 
-                width: `${currentStepIndex >= 0 ? (currentStepIndex / (PROGRESS_STEPS.length - 1)) * 100 : 0}%` 
-              }}
-            />
-          </div>
+        {/* Steps */}
+        <div className="relative flex justify-between">
+          {PROGRESS_STEPS.map((step, index) => {
+            const Icon = step.icon;
+            const isPassed = index < currentStepIndex;
+            const isCurrent = index === currentStepIndex;
+            const isFuture = index > currentStepIndex;
 
-          {/* Steps */}
-          <div className="relative flex justify-between">
-            {PROGRESS_STEPS.map((step, index) => {
-              const Icon = step.icon;
-              const isPassed = index < currentStepIndex;
-              const isCurrent = index === currentStepIndex;
-              const isFuture = index > currentStepIndex;
-
-              return (
-                <div key={step.status} className="flex flex-col items-center gap-1.5 flex-1">
-                  {/* Icon */}
-                  <div
-                    className={cn(
-                      "relative z-10 flex h-7 w-7 items-center justify-center rounded-full border-2 transition-all duration-300 bg-background",
-                      isPassed && "bg-green-500 border-green-500 text-white shadow-sm",
-                      isCurrent && cn(
-                        "h-8 w-8 border-2 shadow-md",
-                        step.status === "NEW" && "border-blue-500 text-blue-600",
-                        step.status === "INVESTIGATING" && "border-violet-500 text-violet-600",
-                        step.status === "FIXING" && "border-cyan-500 text-cyan-600",
-                        step.status === "RESOLVED" && "border-green-500 text-green-600",
-                        step.status === "CLOSED" && "border-gray-500 text-gray-600"
-                      ),
-                      isFuture && "border-border text-muted-foreground"
-                    )}
-                  >
-                    <Icon className={cn(
-                      "h-3.5 w-3.5 transition-all",
-                      isCurrent && "h-4 w-4"
-                    )} />
-                  </div>
-
-                  {/* Label */}
-                  <div className="text-center hidden sm:block">
-                    <p className={cn(
-                      "text-[10px] font-medium transition-colors whitespace-nowrap px-2 py-0.5 rounded-full",
-                      isPassed && "text-muted-foreground",
-                      isCurrent && cn(
-                        "font-semibold bg-muted",
-                        step.status === "NEW" && "text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20",
-                        step.status === "INVESTIGATING" && "text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-900/20",
-                        step.status === "FIXING" && "text-cyan-700 dark:text-cyan-300 bg-cyan-50 dark:bg-cyan-900/20",
-                        step.status === "RESOLVED" && "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/20",
-                        step.status === "CLOSED" && "text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/20"
-                      ),
-                      isFuture && "text-muted-foreground"
-                    )}>
-                      {step.label}
-                    </p>
-                  </div>
-
-                  {/* Mobile Label (only for current) */}
-                  {isCurrent && (
-                    <div className="sm:hidden">
-                      <span className={cn(
-                        "text-[10px] font-semibold px-2 py-0.5 rounded-full",
-                         step.status === "NEW" && "text-blue-700 bg-blue-50",
-                        step.status === "INVESTIGATING" && "text-violet-700 bg-violet-50",
-                        step.status === "FIXING" && "text-cyan-700 bg-cyan-50",
-                        step.status === "RESOLVED" && "text-green-700 bg-green-50",
-                        step.status === "CLOSED" && "text-gray-700 bg-gray-50"
-                      )}>
-                        {step.label}
-                      </span>
-                    </div>
+            return (
+              <div key={step.status} className="flex flex-col items-center gap-1 flex-1">
+                <div
+                  className={cn(
+                    "relative z-10 flex h-7 w-7 items-center justify-center rounded-full border-2 transition-all duration-300 bg-background",
+                    isPassed && "bg-green-500 border-green-500 text-white shadow-sm",
+                    isCurrent && cn(
+                      "h-8 w-8 border-2 shadow-md",
+                      step.status === "NEW" && "border-blue-500 text-blue-600",
+                      step.status === "INVESTIGATING" && "border-violet-500 text-violet-600",
+                      step.status === "FIXING" && "border-cyan-500 text-cyan-600",
+                      step.status === "RESOLVED" && "border-green-500 text-green-600",
+                      step.status === "CLOSED" && "border-gray-500 text-gray-600"
+                    ),
+                    isFuture && "border-border text-muted-foreground"
                   )}
+                >
+                  <Icon className={cn("h-3.5 w-3.5", isCurrent && "h-4 w-4")} />
                 </div>
-              );
-            })}
-          </div>
+
+                <p className={cn(
+                  "text-[10px] font-medium transition-colors whitespace-nowrap hidden sm:block",
+                  isPassed && "text-muted-foreground",
+                  isCurrent && cn(
+                    "font-semibold",
+                    step.status === "NEW" && "text-blue-600",
+                    step.status === "INVESTIGATING" && "text-violet-600",
+                    step.status === "FIXING" && "text-cyan-600",
+                    step.status === "RESOLVED" && "text-green-600",
+                    step.status === "CLOSED" && "text-gray-600"
+                  ),
+                  isFuture && "text-muted-foreground"
+                )}>
+                  {step.label}
+                </p>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -280,121 +244,73 @@ export default function CaseDetailPage() {
       {/* Header */}
       <div className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur shadow-sm">
         <div className="container max-w-7xl mx-auto px-4 py-2">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Link href="/cases">
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
               </Link>
-              <div>
-                <div className="flex items-center gap-3">
-                  <h1 className="text-lg font-bold tracking-tight">
-                    {caseDetail.caseNumber}
-                  </h1>
-                </div>
-              </div>
+              <h1 className="text-lg font-bold tracking-tight">
+                {caseDetail.caseNumber}
+              </h1>
+              {/* SLA Badge in Header */}
+              {caseDetail.slaDeadline && caseDetail.status !== "RESOLVED" && caseDetail.status !== "CLOSED" && (
+                <Badge 
+                  variant="outline" 
+                  className={cn(
+                    "text-xs font-medium",
+                    sla.isMissed ? "bg-red-50 text-red-700 border-red-200" : 
+                    sla.isUrgent ? "bg-amber-50 text-amber-700 border-amber-200" : 
+                    "bg-green-50 text-green-700 border-green-200"
+                  )}
+                >
+                  {sla.isMissed ? <AlertTriangle className="h-3 w-3 mr-1" /> : <Clock className="h-3 w-3 mr-1" />}
+                  SLA: {sla.text}
+                </Badge>
+              )}
             </div>
-            <div className="flex items-center gap-2">
-              <RefreshButton invalidateKeys={[`case-${id}`]} size="sm" />
-              <CaseActions 
-                caseId={caseDetail.id} 
-                currentStatus={caseDetail.status} 
-                currentOwnerId={caseDetail.ownerId}
-              />
-            </div>
+            <RefreshButton invalidateKeys={[`case-${id}`]} size="sm" />
           </div>
         </div>
-        
-        {/* Compact Progress Bar embedded in Header area */}
-        <CaseProgressBar currentStatus={caseDetail.status} />
       </div>
 
-      <div className="container max-w-7xl mx-auto px-4 py-6">
-        {/* SLA Alert - Only Show if Urgent/Missed */}
-        {caseDetail.slaDeadline && (sla.isMissed || sla.isUrgent) && caseDetail.status !== "RESOLVED" && caseDetail.status !== "CLOSED" && (
-          <div className={cn(
-            "mb-6 flex items-center justify-between rounded-lg border-l-4 px-4 py-3 shadow-sm",
-            sla.isMissed ? "bg-red-50 border-red-500 text-red-900 dark:bg-red-900/10 dark:text-red-100" : 
-            "bg-amber-50 border-amber-500 text-amber-900 dark:bg-amber-900/10 dark:text-amber-100"
-          )}>
-            <div className="flex items-center gap-3">
-              {sla.isMissed ? <AlertTriangle className="h-5 w-5 text-red-600" /> : <AlertCircle className="h-5 w-5 text-amber-600" />}
-              <div>
-                <p className="font-semibold text-sm">
-                  {sla.isMissed ? "SLA Overdue - จำเป็นต้องรีบดำเนินการ" : "SLA Warning - ใกล้ถึงกำหนด"}
-                </p>
-                <p className="text-xs opacity-90">
-                  {sla.isMissed ? `เกินกำหนดมาแล้ว ${sla.text}` : `เหลือเวลาอีก ${sla.text}`}
-                </p>
-              </div>
-            </div>
-            <Badge variant="outline" className="bg-background/50 ml-2 animate-pulse border-current">
-              Action Required
-            </Badge>
-          </div>
-        )}
+      <div className="container max-w-7xl mx-auto px-4 py-4">
+        {/* Progress Bar */}
+        <CaseProgressBar currentStatus={caseDetail.status} />
 
-        {/* Smart Suggest: All Orders Handled */}
-        {caseDetail.orders && 
-         caseDetail.orders.length > 0 && 
-         caseDetail.status !== "RESOLVED" && 
-         caseDetail.status !== "CLOSED" &&
-         !caseDetail.orders.some((o: Order) => o.status === "PENDING" || o.status === "PROCESSING") && (
-          <div className="mb-6 flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-4 py-3 dark:border-green-800 dark:bg-green-950/30">
-            <div className="flex items-center gap-3">
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
-              <div>
-                <p className="font-semibold text-sm text-green-900 dark:text-green-100">
-                  Orders ทั้งหมดจัดการแล้ว!
-                </p>
-                <p className="text-xs text-green-700 dark:text-green-300">
-                  พิจารณาปิดเคสหรือเปลี่ยนสถานะเป็น &quot;แก้ไขแล้ว&quot;
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Action Center */}
+        <div className="mb-6">
+          <CaseActionCenter 
+            caseId={caseDetail.id}
+            currentStatus={caseDetail.status}
+            owner={caseDetail.owner}
+            orders={caseDetail.orders}
+          />
+        </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
           {/* LEFT: Main Content (2/3) */}
           <div className="lg:col-span-2 space-y-6">
             {/* Title Section */}
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-2">
-                <h2 className="text-2xl font-bold leading-tight">{caseDetail.title}</h2>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant="outline" className={cn(severityLabels[caseDetail.severity]?.className)}>
-                    {severityLabels[caseDetail.severity]?.label}
-                  </Badge>
-                  <Badge variant="secondary" className="font-normal">
-                    {categoryLabels[caseDetail.caseType?.category || ""] || caseDetail.caseType?.category || "General"}
-                  </Badge>
-                  {caseDetail.caseType?.name && (
-                    <span className="text-sm text-muted-foreground">
-                      / {caseDetail.caseType.name}
-                    </span>
-                  )}
-                </div>
-                {/* Meta info line (Time, SLA) moved here */}
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    {formatDistanceToNow(typeof caseDetail.createdAt === "string" ? new Date(caseDetail.createdAt) : caseDetail.createdAt, { addSuffix: true, locale: th })}
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold leading-tight">{caseDetail.title}</h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="outline" className={cn(severityLabels[caseDetail.severity]?.className)}>
+                  {severityLabels[caseDetail.severity]?.label}
+                </Badge>
+                <Badge variant="secondary" className="font-normal">
+                  {categoryLabels[caseDetail.caseType?.category || ""] || caseDetail.caseType?.category || "General"}
+                </Badge>
+                {caseDetail.caseType?.name && (
+                  <span className="text-sm text-muted-foreground">
+                    / {caseDetail.caseType.name}
                   </span>
-                  {caseDetail.slaDeadline && caseDetail.status !== "RESOLVED" && caseDetail.status !== "CLOSED" && (
-                    <>
-                      <span>•</span>
-                      <span className={cn(
-                        "flex items-center gap-1 font-medium",
-                        sla.isMissed ? "text-red-600" : sla.isUrgent ? "text-amber-600" : "text-green-600"
-                      )}>
-                        {sla.isMissed ? <AlertTriangle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-                        SLA: {sla.isMissed ? "เกินกำหนด" : "เหลือ"} {sla.text}
-                      </span>
-                    </>
-                  )}
-                </div>
+                )}
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {formatDistanceToNow(typeof caseDetail.createdAt === "string" ? new Date(caseDetail.createdAt) : caseDetail.createdAt, { addSuffix: true, locale: th })}
+                </span>
               </div>
             </div>
 
@@ -473,7 +389,6 @@ export default function CaseDetailPage() {
                           </Badge>
                         )}
                       </CardTitle>
-                      {/* Bulk Actions */}
                       {caseDetail.orders && caseDetail.orders.length > 1 && (
                         <BulkOrderActions 
                           orders={caseDetail.orders} 
@@ -511,7 +426,6 @@ export default function CaseDetailPage() {
                 <Card>
                   <CardContent className="p-6">
                     <div className="relative space-y-8 before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-border before:to-transparent">
-                      {/* Activities List */}
                       {caseDetail.activities && caseDetail.activities.map((activity: Activity) => {
                         const Icon = activityIcons[activity.type] || MessageSquare;
                         const activityDate = typeof activity.createdAt === "string" ? new Date(activity.createdAt) : activity.createdAt;
@@ -556,49 +470,65 @@ export default function CaseDetailPage() {
 
           {/* RIGHT: Sidebar Info (1/3) */}
           <div className="space-y-6">
-            {/* Info Card */}
             <Card>
               <CardHeader className="pb-3 border-b bg-muted/10 px-4 py-3">
                 <CardTitle className="text-sm font-medium">ข้อมูลทั่วไป</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="divide-y">
-                  {/* Assignee using new Component */}
-                  <CaseAssignee caseId={caseDetail.id} owner={caseDetail.owner} />
-
-                  {/* Customer Info Grouped */}
+                  {/* Assignee */}
                   <div className="p-3">
-                     <p className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
-                        <UserCircle className="h-3.5 w-3.5" /> ลูกค้า
-                     </p>
-                     {caseDetail.customerName ? (
-                       <div className="space-y-1">
-                          <p className="text-sm font-medium">{caseDetail.customerName}</p>
-                          {caseDetail.customerContact && (
-                             <p className="text-xs text-muted-foreground flex items-center gap-1">
-                               <Phone className="h-3 w-3" /> {caseDetail.customerContact}
-                             </p>
-                          )}
-                          {caseDetail.customerId && (
-                             <p className="text-xs text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded w-fit">
-                               ID: {caseDetail.customerId}
-                             </p>
-                          )}
-                       </div>
-                     ) : (
-                        <p className="text-sm text-muted-foreground italic">- ไม่ระบุข้อมูล -</p>
-                     )}
+                    <p className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
+                      <User className="h-3.5 w-3.5" /> ผู้รับผิดชอบ
+                    </p>
+                    {caseDetail.owner ? (
+                      <div className="flex items-center gap-2">
+                        <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium text-xs">
+                          {caseDetail.owner.name?.charAt(0) || "U"}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{caseDetail.owner.name}</p>
+                          <p className="text-xs text-muted-foreground">{caseDetail.owner.role}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-amber-600 italic">ยังไม่มอบหมาย</p>
+                    )}
+                  </div>
+
+                  {/* Customer Info */}
+                  <div className="p-3">
+                    <p className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
+                      <UserCircle className="h-3.5 w-3.5" /> ลูกค้า
+                    </p>
+                    {caseDetail.customerName ? (
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">{caseDetail.customerName}</p>
+                        {caseDetail.customerContact && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Phone className="h-3 w-3" /> {caseDetail.customerContact}
+                          </p>
+                        )}
+                        {caseDetail.customerId && (
+                          <p className="text-xs text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded w-fit">
+                            ID: {caseDetail.customerId}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">- ไม่ระบุ -</p>
+                    )}
                   </div>
 
                   {/* Provider */}
                   <div className="p-3">
                     <p className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
-                        <Building2 className="h-3.5 w-3.5" /> Provider
-                     </p>
+                      <Building2 className="h-3.5 w-3.5" /> Provider
+                    </p>
                     <p className="text-sm font-medium">{caseDetail.provider?.name || "-"}</p>
                   </div>
 
-                  {/* Metadata Compact */}
+                  {/* Metadata */}
                   <div className="p-3 bg-muted/5 space-y-2">
                     <div className="flex justify-between text-xs">
                       <span className="text-muted-foreground">แหล่งที่มา</span>
