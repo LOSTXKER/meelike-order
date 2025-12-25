@@ -31,7 +31,6 @@ import {
   CircleDot,
   UserX,
   HourglassIcon,
-  UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -39,26 +38,11 @@ import { useCase } from "@/hooks";
 import { formatDistanceToNow, differenceInMinutes, format } from "date-fns";
 import { th } from "date-fns/locale";
 import { CaseActions } from "./case-actions";
+import { CaseAssignee } from "./case-assignee";
 import { FileAttachments } from "./file-attachments";
 import { OrderStatusSelect, OrderStatusBadge, BulkOrderActions } from "./order-status-select";
 import { useParams } from "next/navigation";
 import { useState } from "react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-
-const statusLabels: Record<string, { label: string; className: string }> = {
-  NEW: { label: "ใหม่", className: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800" },
-  INVESTIGATING: { label: "กำลังตรวจสอบ", className: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-800" },
-  WAITING_CUSTOMER: { label: "รอลูกค้า", className: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800" },
-  WAITING_PROVIDER: { label: "รอ Provider", className: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800" },
-  FIXING: { label: "กำลังแก้ไข", className: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-200 dark:border-cyan-800" },
-  RESOLVED: { label: "แก้ไขแล้ว", className: "bg-green-500/10 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800" },
-  CLOSED: { label: "ปิดเคส", className: "bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-800" },
-};
 
 const severityLabels: Record<string, { label: string; className: string }> = {
   CRITICAL: { label: "วิกฤต", className: "bg-red-500/10 text-red-600 dark:text-red-400" },
@@ -305,28 +289,9 @@ export default function CaseDetailPage() {
               </Link>
               <div>
                 <div className="flex items-center gap-3">
-                  <h1 className="text-lg font-bold tracking-tight flex items-center gap-2">
+                  <h1 className="text-lg font-bold tracking-tight">
                     {caseDetail.caseNumber}
-                    <Badge variant="outline" className={cn("font-medium", statusLabels[caseDetail.status]?.className)}>
-                      {statusLabels[caseDetail.status]?.label}
-                    </Badge>
                   </h1>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    {formatDistanceToNow(typeof caseDetail.createdAt === "string" ? new Date(caseDetail.createdAt) : caseDetail.createdAt, { addSuffix: true, locale: th })}
-                  </span>
-                  <span>•</span>
-                  {caseDetail.slaDeadline && caseDetail.status !== "RESOLVED" && caseDetail.status !== "CLOSED" && (
-                    <span className={cn(
-                      "flex items-center gap-1 font-medium",
-                      sla.isMissed ? "text-red-600" : sla.isUrgent ? "text-amber-600" : "text-green-600"
-                    )}>
-                      {sla.isMissed ? <AlertTriangle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-                      SLA: {sla.isMissed ? "เกินกำหนด" : "เหลือ"} {sla.text}
-                    </span>
-                  )}
                 </div>
               </div>
             </div>
@@ -346,7 +311,7 @@ export default function CaseDetailPage() {
       </div>
 
       <div className="container max-w-7xl mx-auto px-4 py-6">
-        {/* SLA Alert - Only Show if Urgent/Missed to reduce noise */}
+        {/* SLA Alert - Only Show if Urgent/Missed */}
         {caseDetail.slaDeadline && (sla.isMissed || sla.isUrgent) && caseDetail.status !== "RESOLVED" && caseDetail.status !== "CLOSED" && (
           <div className={cn(
             "mb-6 flex items-center justify-between rounded-lg border-l-4 px-4 py-3 shadow-sm",
@@ -409,6 +374,25 @@ export default function CaseDetailPage() {
                     <span className="text-sm text-muted-foreground">
                       / {caseDetail.caseType.name}
                     </span>
+                  )}
+                </div>
+                {/* Meta info line (Time, SLA) moved here */}
+                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {formatDistanceToNow(typeof caseDetail.createdAt === "string" ? new Date(caseDetail.createdAt) : caseDetail.createdAt, { addSuffix: true, locale: th })}
+                  </span>
+                  {caseDetail.slaDeadline && caseDetail.status !== "RESOLVED" && caseDetail.status !== "CLOSED" && (
+                    <>
+                      <span>•</span>
+                      <span className={cn(
+                        "flex items-center gap-1 font-medium",
+                        sla.isMissed ? "text-red-600" : sla.isUrgent ? "text-amber-600" : "text-green-600"
+                      )}>
+                        {sla.isMissed ? <AlertTriangle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                        SLA: {sla.isMissed ? "เกินกำหนด" : "เหลือ"} {sla.text}
+                      </span>
+                    </>
                   )}
                 </div>
               </div>
@@ -579,42 +563,8 @@ export default function CaseDetailPage() {
               </CardHeader>
               <CardContent className="p-0">
                 <div className="divide-y">
-                  {/* Assignee - Show Assign button if unassigned */}
-                  <div className="p-3">
-                     <p className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
-                        <User className="h-3.5 w-3.5" /> ผู้รับผิดชอบ
-                     </p>
-                     {caseDetail.owner ? (
-                       <div className="flex items-center gap-2">
-                         <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium text-xs">
-                            {caseDetail.owner.name?.charAt(0) || "U"}
-                         </div>
-                         <div>
-                            <p className="text-sm font-medium">{caseDetail.owner.name}</p>
-                            <p className="text-xs text-muted-foreground">{caseDetail.owner.role}</p>
-                         </div>
-                       </div>
-                     ) : (
-                       <TooltipProvider>
-                         <Tooltip>
-                           <TooltipTrigger asChild>
-                             <Button 
-                               variant="outline" 
-                               size="sm" 
-                               className="w-full text-muted-foreground border-dashed"
-                               // In a real app, this would trigger the assign dialog
-                             >
-                               <UserPlus className="h-3.5 w-3.5 mr-2" />
-                               กดเพื่อมอบหมายงาน
-                             </Button>
-                           </TooltipTrigger>
-                           <TooltipContent>
-                             <p>มอบหมายงานให้ทีม</p>
-                           </TooltipContent>
-                         </Tooltip>
-                       </TooltipProvider>
-                     )}
-                  </div>
+                  {/* Assignee using new Component */}
+                  <CaseAssignee caseId={caseDetail.id} owner={caseDetail.owner} />
 
                   {/* Customer Info Grouped */}
                   <div className="p-3">
