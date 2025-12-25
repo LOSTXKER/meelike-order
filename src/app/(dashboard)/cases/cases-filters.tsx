@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -39,22 +40,16 @@ import {
 import { useCallback, useState, useTransition, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
-interface CaseType {
-  id: string;
-  name: string;
-  category: string;
-}
-
 // Status options with icons
 const statusOptions = [
   { value: "all", label: "ทั้งหมด", icon: LayoutGrid },
-  { value: "NEW", label: "ใหม่", icon: PlusCircle, color: "text-blue-600" },
-  { value: "INVESTIGATING", label: "กำลังตรวจสอบ", icon: SearchIcon, color: "text-violet-600" },
-  { value: "FIXING", label: "กำลังแก้ไข", icon: Wrench, color: "text-cyan-600" },
-  { value: "WAITING_CUSTOMER", label: "รอลูกค้า", icon: Clock, color: "text-amber-600" },
-  { value: "WAITING_PROVIDER", label: "รอ Provider", icon: Building2, color: "text-orange-600" },
-  { value: "RESOLVED", label: "แก้ไขแล้ว", icon: CheckCircle, color: "text-green-600" },
-  { value: "CLOSED", label: "ปิดเคส", icon: Lock, color: "text-gray-500" },
+  { value: "NEW", label: "ใหม่", icon: PlusCircle, color: "text-blue-600", activeClass: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
+  { value: "INVESTIGATING", label: "กำลังตรวจสอบ", icon: SearchIcon, color: "text-violet-600", activeClass: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300" },
+  { value: "FIXING", label: "กำลังแก้ไข", icon: Wrench, color: "text-cyan-600", activeClass: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300" },
+  { value: "WAITING_CUSTOMER", label: "รอลูกค้า", icon: Clock, color: "text-amber-600", activeClass: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" },
+  { value: "WAITING_PROVIDER", label: "รอ Provider", icon: Building2, color: "text-orange-600", activeClass: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300" },
+  { value: "RESOLVED", label: "แก้ไขแล้ว", icon: CheckCircle, color: "text-green-600", activeClass: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" },
+  { value: "CLOSED", label: "ปิดเคส", icon: Lock, color: "text-gray-500", activeClass: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300" },
 ];
 
 // Severity options
@@ -135,12 +130,44 @@ export function CasesFilters() {
   const hasFilters = status !== "all" || category !== "all" || severity !== "all";
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Filters Row */}
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-col gap-4 w-full">
+      {/* Status Tabs - Scrollable */}
+      <div className="pb-1">
+        <ScrollArea className="w-full whitespace-nowrap">
+          <div className="flex w-max space-x-2 pb-2">
+            {statusOptions.map((opt) => {
+              const Icon = opt.icon;
+              const isActive = status === opt.value;
+              return (
+                <Button
+                  key={opt.value}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => updateFilter("status", opt.value)}
+                  className={cn(
+                    "rounded-full px-4 h-9 border border-transparent transition-all",
+                    isActive 
+                      ? cn("font-medium border-transparent shadow-sm", opt.activeClass) 
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  )}
+                >
+                  <Icon className={cn("mr-2 h-4 w-4", isActive ? "opacity-100" : "opacity-70", isActive && opt.color)} />
+                  {opt.label}
+                </Button>
+              );
+            })}
+          </div>
+        </ScrollArea>
+      </div>
+
+      <Separator className="opacity-50" />
+
+      {/* Secondary Filters Row */}
+      <div className="flex flex-wrap items-center gap-3 pt-1">
+        
         {/* Category Filter */}
         <Select value={category} onValueChange={(val) => updateFilter("category", val)}>
-          <SelectTrigger className="h-9 w-[160px] bg-background">
+          <SelectTrigger className="h-9 w-[160px] bg-background border-dashed shadow-sm">
             <SelectValue placeholder="หมวดหมู่" />
           </SelectTrigger>
           <SelectContent>
@@ -160,29 +187,9 @@ export function CasesFilters() {
           </SelectContent>
         </Select>
 
-        {/* Status Filter */}
-        <Select value={status} onValueChange={(val) => updateFilter("status", val)}>
-          <SelectTrigger className="h-9 w-[160px] bg-background">
-            <SelectValue placeholder="สถานะ" />
-          </SelectTrigger>
-          <SelectContent>
-            {statusOptions.map((opt) => {
-              const Icon = opt.icon;
-              return (
-                <SelectItem key={opt.value} value={opt.value}>
-                  <div className="flex items-center gap-2">
-                    <Icon className={cn("h-4 w-4", opt.color)} />
-                    <span>{opt.label}</span>
-                  </div>
-                </SelectItem>
-              );
-            })}
-          </SelectContent>
-        </Select>
-
         {/* Severity Filter */}
         <Select value={severity} onValueChange={(val) => updateFilter("severity", val)}>
-          <SelectTrigger className="h-9 w-[160px] bg-background">
+          <SelectTrigger className="h-9 w-[160px] bg-background border-dashed shadow-sm">
             <SelectValue placeholder="ความรุนแรง" />
           </SelectTrigger>
           <SelectContent>
@@ -206,7 +213,7 @@ export function CasesFilters() {
             variant="ghost" 
             size="sm" 
             onClick={clearFilters}
-            className="h-9 px-3 text-muted-foreground hover:text-foreground"
+            className="h-9 px-3 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors ml-auto sm:ml-0"
           >
             <X className="h-4 w-4 mr-2" />
             ล้างตัวกรอง
@@ -242,7 +249,7 @@ export function CaseSearchInput() {
       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <Input
         placeholder="ค้นหาเลขเคส, ลูกค้า, หรือหัวข้อ..."
-        className="pl-9 h-9 bg-background"
+        className="pl-9 h-9 bg-background shadow-sm"
         value={value}
         onChange={(e) => setValue(e.target.value)}
       />
