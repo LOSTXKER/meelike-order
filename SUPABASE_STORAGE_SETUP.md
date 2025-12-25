@@ -116,3 +116,4 @@ case-attachments/user_123/case_abc/1640000000000-screenshot.png
 **หมายเหตุ**: หากต้องการให้ไฟล์เป็น public (ดาวน์โหลดได้โดยไม่ต้อง auth) ให้เปลี่ยนเป็น **Public bucket** และปรับ policies ตามนั้น
 
 
+

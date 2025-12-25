@@ -93,3 +93,4 @@ jobs:
 - Vercel cron ยังคงใช้ได้ (รันทุกชั่วโมง) แต่ช้ากว่า external service
 
 
+

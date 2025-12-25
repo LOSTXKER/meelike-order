@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Loader2, Info, Clock, X, CheckCircle2, DollarSign, Package, Settings, Building2, Wrench, FileText, AlertCircle, AlertTriangle, Clipboard } from "lucide-react";
+import { ArrowLeft, Loader2, Info, Clock, X, CheckCircle2, DollarSign, Package, Settings, Building2, FileText, AlertCircle, AlertTriangle, Clipboard, User, Phone, Hash, Link as LinkIcon, Ticket, PenTool } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -25,6 +25,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 interface CaseType {
   id: string;
@@ -40,6 +41,7 @@ interface CaseType {
 interface Provider {
   id: string;
   name: string;
+  isActive: boolean;
 }
 
 // Quick Create mapping
@@ -90,7 +92,7 @@ export default function NewCasePage() {
       fetch("/api/providers").then((r) => r.json()),
     ]).then(([types, provs]) => {
       setCaseTypes(types);
-      setProviders(provs.filter((p: Provider & { isActive: boolean }) => p.isActive));
+      setProviders(provs.filter((p: Provider) => p.isActive));
       
       // Quick Create: Auto-fill category and case type from URL params
       if (quickType && quickCreateMapping[quickType]) {
@@ -203,271 +205,207 @@ export default function NewCasePage() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen pb-10">
       <Header />
       
-      <div className="p-6 max-w-3xl mx-auto space-y-6">
+      <div className="p-6 max-w-6xl mx-auto space-y-6">
         {/* Back button and header */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 mb-6">
           <Link href="/cases">
             <Button variant="ghost" size="icon" className="h-9 w-9">
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-semibold">สร้างเคสใหม่</h1>
+            <h1 className="text-2xl font-bold tracking-tight">สร้างเคสใหม่</h1>
             <p className="text-muted-foreground">กรอกข้อมูลเพื่อสร้างเคสติดตามปัญหา</p>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Step 1: เลือกประเภทเคส */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">1</span>
-                เลือกประเภทเคส
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>หมวดหมู่ *</Label>
-                  <Select 
-                    value={category} 
-                    onValueChange={setCategory}
-                    required
-                    disabled={isLoading}
-                  >
-                    <SelectTrigger className="h-12">
-                      <SelectValue placeholder="เลือกหมวดหมู่" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          <span className="flex items-center gap-1.5">
-                            {cat === "PAYMENT" && <DollarSign className="h-3.5 w-3.5" />}
-                            {cat === "ORDER" && <Package className="h-3.5 w-3.5" />}
-                            {cat === "SYSTEM" && <Settings className="h-3.5 w-3.5" />}
-                            {cat === "PROVIDER" && <Building2 className="h-3.5 w-3.5" />}
-                            {cat === "OTHER" && <FileText className="h-3.5 w-3.5" />}
-                            {cat === "PAYMENT" && "การชำระเงิน"}
-                            {cat === "ORDER" && "ออเดอร์"}
-                            {cat === "SYSTEM" && "ระบบ"}
-                            {cat === "PROVIDER" && "Provider"}
-                            {cat === "OTHER" && "อื่นๆ"}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>ประเภทเคส *</Label>
-                  <Select 
-                    value={caseTypeId} 
-                    onValueChange={setCaseTypeId}
-                    required
-                    disabled={isLoading || !category}
-                  >
-                    <SelectTrigger className="h-12">
-                      <SelectValue placeholder={category ? "เลือกประเภทเคส" : "เลือกหมวดหมู่ก่อน"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filteredCaseTypes.map((type) => (
-                        <SelectItem key={type.id} value={type.id}>
-                          <div className="flex items-center gap-2">
-                            <span>{type.name}</span>
-                            {type.description && (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Info className="h-3 w-3 text-muted-foreground" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="max-w-xs">{type.description}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Selected Case Type Info */}
-              {selectedCaseType && (
-                <div className="rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-900/50 dark:bg-green-950/30">
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500/20">
-                      <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+        <form onSubmit={handleSubmit}>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            {/* Main Column - Left Side */}
+            <div className="lg:col-span-8 space-y-6">
+              
+              {/* Step 1: ประเภทเคส & รายละเอียด */}
+              <Card className="border-none shadow-md">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-primary" />
+                    ข้อมูลเคส
+                  </CardTitle>
+                  <CardDescription>ระบุประเภทของปัญหาและรายละเอียด</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Category & Case Type Selectors */}
+                  <div className="grid gap-6 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">หมวดหมู่ <span className="text-red-500">*</span></Label>
+                      <Select 
+                        value={category} 
+                        onValueChange={setCategory}
+                        required
+                        disabled={isLoading}
+                      >
+                        <SelectTrigger className="h-11 bg-muted/20">
+                          <SelectValue placeholder="เลือกหมวดหมู่" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((cat) => (
+                            <SelectItem key={cat} value={cat}>
+                              <span className="flex items-center gap-2">
+                                {cat === "PAYMENT" && <DollarSign className="h-4 w-4 text-green-500" />}
+                                {cat === "ORDER" && <Package className="h-4 w-4 text-blue-500" />}
+                                {cat === "SYSTEM" && <Settings className="h-4 w-4 text-purple-500" />}
+                                {cat === "PROVIDER" && <Building2 className="h-4 w-4 text-orange-500" />}
+                                {cat === "OTHER" && <FileText className="h-4 w-4 text-gray-500" />}
+                                <span className="font-medium">
+                                  {cat === "PAYMENT" && "การชำระเงิน"}
+                                  {cat === "ORDER" && "ออเดอร์"}
+                                  {cat === "SYSTEM" && "ระบบ"}
+                                  {cat === "PROVIDER" && "Provider"}
+                                  {cat === "OTHER" && "อื่นๆ"}
+                                </span>
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-green-900 dark:text-green-100">
-                        หัวข้อ: {selectedCaseType.name}
-                      </h4>
-                      {selectedCaseType.description && (
-                        <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                          {selectedCaseType.description}
-                        </p>
-                      )}
-                      <div className="flex flex-wrap gap-3 mt-2 text-xs">
-                        <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                          <Clock className="h-3 w-3" />
-                          <span>SLA: {selectedCaseType.defaultSlaMinutes} นาที</span>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">หัวข้อปัญหา <span className="text-red-500">*</span></Label>
+                      <Select 
+                        value={caseTypeId} 
+                        onValueChange={setCaseTypeId}
+                        required
+                        disabled={isLoading || !category}
+                      >
+                        <SelectTrigger className="h-11 bg-muted/20">
+                          <SelectValue placeholder={category ? "เลือกหัวข้อปัญหา" : "กรุณาเลือกหมวดหมู่ก่อน"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {filteredCaseTypes.map((type) => (
+                            <SelectItem key={type.id} value={type.id}>
+                              <div className="flex items-center gap-2">
+                                <span>{type.name}</span>
+                                {type.description && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                                      </TooltipTrigger>
+                                      <TooltipContent side="right">
+                                        <p className="max-w-xs">{type.description}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Info Box */}
+                  {selectedCaseType && (
+                    <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                      <div className="rounded-lg border border-primary/10 bg-primary/5 p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary">
+                            <CheckCircle2 className="h-4 w-4" />
+                          </div>
+                          <div className="flex-1 space-y-2">
+                            <div>
+                              <h4 className="font-semibold text-primary">
+                                {selectedCaseType.name}
+                              </h4>
+                              {selectedCaseType.description && (
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  {selectedCaseType.description}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-2 text-xs">
+                              <Badge variant="outline" className="bg-background/50 gap-1.5 py-1">
+                                <Clock className="h-3 w-3" />
+                                SLA: {selectedCaseType.defaultSlaMinutes} นาที
+                              </Badge>
+                              {selectedCaseType.requireProvider && (
+                                <Badge variant="destructive" className="bg-orange-100 text-orange-700 hover:bg-orange-200 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800">
+                                  ต้องระบุ Provider
+                                </Badge>
+                              )}
+                              {selectedCaseType.requireOrderId && (
+                                <Badge variant="destructive" className="bg-orange-100 text-orange-700 hover:bg-orange-200 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800">
+                                  ต้องระบุ Order ID
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        {selectedCaseType.requireProvider && (
-                          <Badge variant="outline" className="text-orange-600 dark:text-orange-400 border-orange-300">
-                            ต้องระบุ Provider
-                          </Badge>
-                        )}
-                        {selectedCaseType.requireOrderId && (
-                          <Badge variant="outline" className="text-orange-600 dark:text-orange-400 border-orange-300">
-                            ต้องระบุ Order ID
-                          </Badge>
-                        )}
                       </div>
                     </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                  )}
 
-          {/* Step 2: รายละเอียดเคส - แสดงหลังเลือกประเภทเคส */}
-          {selectedCaseType && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">2</span>
-                  รายละเอียดเคส
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* รายละเอียด */}
-                <div className="space-y-2">
-                  <Label htmlFor="description">รายละเอียดปัญหา</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="อธิบายปัญหาโดยละเอียด เช่น เกิดอะไรขึ้น, เวลาที่เกิดปัญหา, ข้อมูลเพิ่มเติม..."
-                    className="min-h-[100px]"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    disabled={isLoading}
-                  />
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>แหล่งที่มา *</Label>
-                    <Select 
-                      value={source} 
-                      onValueChange={setSource}
-                      required
-                      disabled={isLoading}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="เลือกแหล่งที่มา" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="LINE">📱 Line</SelectItem>
-                        <SelectItem value="TICKET">🎫 Ticket</SelectItem>
-                        <SelectItem value="API">🔗 API</SelectItem>
-                        <SelectItem value="MANUAL">✍️ สร้างเอง</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>ความรุนแรง *</Label>
-                    <Select 
-                      value={severity} 
-                      onValueChange={setSeverity}
-                      required
-                      disabled={isLoading}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="เลือกความรุนแรง" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="CRITICAL">
-                          <span className="flex items-center gap-1.5">
-                            <AlertCircle className="h-3.5 w-3.5 text-red-600" />
-                            <span>วิกฤต</span>
-                          </span>
-                        </SelectItem>
-                        <SelectItem value="HIGH">
-                          <span className="flex items-center gap-1.5">
-                            <AlertTriangle className="h-3.5 w-3.5 text-orange-600" />
-                            <span>สูง</span>
-                          </span>
-                        </SelectItem>
-                        <SelectItem value="NORMAL">🔵 ปกติ</SelectItem>
-                        <SelectItem value="LOW">⚪ ต่ำ</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Provider */}
-                <div className="space-y-2">
-                  <Label>
-                    Provider {selectedCaseType?.requireProvider && <span className="text-red-500">*</span>}
-                  </Label>
-                  <Select 
-                    value={providerId} 
-                    onValueChange={setProviderId}
-                    disabled={isLoading}
-                    required={selectedCaseType?.requireProvider}
-                  >
-                    <SelectTrigger className={selectedCaseType?.requireProvider && !providerId ? "border-red-500" : ""}>
-                      <SelectValue placeholder={selectedCaseType?.requireProvider ? "เลือก Provider" : "เลือก Provider (ถ้ามี)"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {!selectedCaseType?.requireProvider && <SelectItem value="none">ไม่ระบุ</SelectItem>}
-                      {providers.map((provider) => (
-                        <SelectItem key={provider.id} value={provider.id}>
-                          {provider.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-              {/* Order Info - Show if requireOrderId is true */}
-              {selectedCaseType?.requireOrderId && (
-                <div className="pt-4 border-t">
-                  <h3 className="font-medium mb-4 flex items-center gap-2">
-                    <Clipboard className="h-4 w-4" />
-                    ข้อมูล Order <span className="text-red-500">*</span>
-                  </h3>
-                  <div className="space-y-3">
-                    {/* Order ID Input */}
-                    <div className="flex gap-2">
-                      <Input
-                        id="orderId"
-                        placeholder="กรอก Order ID แล้วกด Enter หรือ เพิ่ม"
-                        value={orderIdInput}
-                        onChange={(e) => setOrderIdInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            if (orderIdInput.trim()) {
-                              setOrderIds([...orderIds, orderIdInput.trim()]);
-                              setOrderIdInput("");
-                            }
-                          }
-                        }}
+                  {/* Description - Show only when type is selected */}
+                  {selectedCaseType && (
+                    <div className="space-y-2 animate-in fade-in duration-300">
+                      <Label htmlFor="description" className="text-sm font-medium">
+                        รายละเอียดเพิ่มเติม
+                      </Label>
+                      <Textarea
+                        id="description"
+                        placeholder="อธิบายปัญหาที่พบอย่างละเอียด..."
+                        className="min-h-[120px] resize-none bg-muted/20"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
                         disabled={isLoading}
-                        className={selectedCaseType?.requireOrderId && orderIds.length === 0 ? "border-red-500" : ""}
                       />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Step 2: Order Info (Conditional) */}
+              {selectedCaseType?.requireOrderId && (
+                <Card className="border-none shadow-md animate-in fade-in slide-in-from-bottom-4 duration-300">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Package className="h-5 w-5 text-blue-500" />
+                      ข้อมูล Order <span className="text-red-500 text-sm ml-1">* จำเป็น</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Hash className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="orderId"
+                          placeholder="กรอก Order ID แล้วกด Enter"
+                          value={orderIdInput}
+                          onChange={(e) => setOrderIdInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              if (orderIdInput.trim()) {
+                                setOrderIds([...orderIds, orderIdInput.trim()]);
+                                setOrderIdInput("");
+                              }
+                            }
+                          }}
+                          disabled={isLoading}
+                          className={cn(
+                            "pl-9 h-11 bg-muted/20",
+                            selectedCaseType?.requireOrderId && orderIds.length === 0 ? "border-red-300 focus-visible:ring-red-300" : ""
+                          )}
+                        />
+                      </div>
                       <Button
                         type="button"
-                        variant="outline"
                         onClick={() => {
                           if (orderIdInput.trim()) {
                             setOrderIds([...orderIds, orderIdInput.trim()]);
@@ -475,127 +413,227 @@ export default function NewCasePage() {
                           }
                         }}
                         disabled={isLoading || !orderIdInput.trim()}
+                        className="h-11 px-6"
                       >
                         เพิ่ม
                       </Button>
                     </div>
                     
                     {/* Order IDs List */}
-                    {orderIds.length > 0 && (
-                      <div className="space-y-2">
-                        <Label className="text-sm text-muted-foreground">
-                          Order ID ที่เพิ่มแล้ว ({orderIds.length} รายการ)
-                        </Label>
-                        <div className="flex flex-wrap gap-2">
-                          {orderIds.map((id, index) => (
-                            <Badge
-                              key={index}
-                              variant="secondary"
-                              className="gap-1 pr-1 text-sm"
+                    {orderIds.length > 0 ? (
+                      <div className="flex flex-wrap gap-2 pt-2">
+                        {orderIds.map((id, index) => (
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="pl-3 pr-1 py-1.5 text-sm font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800"
+                          >
+                            {id}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-5 w-5 ml-1.5 rounded-full hover:bg-blue-200/50 dark:hover:bg-blue-800/50"
+                              onClick={() => {
+                                setOrderIds(orderIds.filter((_, i) => i !== index));
+                              }}
+                              disabled={isLoading}
                             >
-                              {id}
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-4 w-4 ml-1 hover:bg-destructive/20"
-                                onClick={() => {
-                                  setOrderIds(orderIds.filter((_, i) => i !== index));
-                                }}
-                                disabled={isLoading}
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </Badge>
-                          ))}
-                        </div>
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-6 text-sm text-muted-foreground border-2 border-dashed rounded-lg">
+                        ยังไม่มี Order ID ที่ถูกเพิ่ม
                       </div>
                     )}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
 
-                    <p className="text-xs text-muted-foreground">
-                      💡 สามารถเพิ่มได้หลาย Order ID โดยกรอกแล้วกด Enter หรือกดปุ่มเพิ่ม
-                    </p>
+            {/* Sidebar Column - Right Side */}
+            <div className="lg:col-span-4 space-y-6">
+              
+              {/* Card 2: Settings (Source, Severity, Provider) */}
+              <Card className="border-none shadow-md">
+                <CardHeader>
+                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <Settings className="h-4 w-4" />
+                    การตั้งค่า
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Source */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold text-muted-foreground uppercase">แหล่งที่มา <span className="text-red-500">*</span></Label>
+                    <Select 
+                      value={source} 
+                      onValueChange={setSource}
+                      required
+                      disabled={isLoading}
+                    >
+                      <SelectTrigger className="bg-muted/20">
+                        <SelectValue placeholder="เลือกแหล่งที่มา" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="LINE">
+                          <span className="flex items-center gap-2"><Phone className="h-4 w-4 text-green-500" /> Line</span>
+                        </SelectItem>
+                        <SelectItem value="TICKET">
+                          <span className="flex items-center gap-2"><Ticket className="h-4 w-4 text-blue-500" /> Ticket</span>
+                        </SelectItem>
+                        <SelectItem value="API">
+                          <span className="flex items-center gap-2"><LinkIcon className="h-4 w-4 text-gray-500" /> API</span>
+                        </SelectItem>
+                        <SelectItem value="MANUAL">
+                          <span className="flex items-center gap-2"><PenTool className="h-4 w-4 text-orange-500" /> สร้างเอง</span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          )}
 
-          {/* Step 3: Customer Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs text-muted-foreground">3</span>
-                ข้อมูลลูกค้า (ไม่บังคับ)
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="customerName">ชื่อลูกค้า</Label>
-                  <Input
-                    id="customerName"
-                    placeholder="ชื่อ-นามสกุล"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    disabled={isLoading}
-                  />
-                </div>
+                  {/* Severity */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold text-muted-foreground uppercase">ความรุนแรง <span className="text-red-500">*</span></Label>
+                    <Select 
+                      value={severity} 
+                      onValueChange={setSeverity}
+                      required
+                      disabled={isLoading}
+                    >
+                      <SelectTrigger className="bg-muted/20">
+                        <SelectValue placeholder="เลือกความรุนแรง" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="CRITICAL">
+                          <span className="flex items-center gap-2 text-red-600 font-medium">
+                            <AlertCircle className="h-4 w-4" /> วิกฤต
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="HIGH">
+                          <span className="flex items-center gap-2 text-orange-600 font-medium">
+                            <AlertTriangle className="h-4 w-4" /> สูง
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="NORMAL">
+                          <span className="flex items-center gap-2 text-blue-600 font-medium">
+                            <Info className="h-4 w-4" /> ปกติ
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="LOW">
+                          <span className="flex items-center gap-2 text-gray-600 font-medium">
+                            <CheckCircle2 className="h-4 w-4" /> ต่ำ
+                          </span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="customerId">User ID</Label>
-                  <Input
-                    id="customerId"
-                    placeholder="รหัสผู้ใช้ในระบบ"
-                    value={customerId}
-                    onChange={(e) => setCustomerId(e.target.value)}
-                    disabled={isLoading}
-                  />
-                </div>
+                  {/* Provider */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold text-muted-foreground uppercase">
+                      Provider {selectedCaseType?.requireProvider && <span className="text-red-500">*</span>}
+                    </Label>
+                    <Select 
+                      value={providerId} 
+                      onValueChange={setProviderId}
+                      disabled={isLoading}
+                      required={selectedCaseType?.requireProvider}
+                    >
+                      <SelectTrigger className={cn(
+                        "bg-muted/20",
+                        selectedCaseType?.requireProvider && !providerId ? "border-red-300" : ""
+                      )}>
+                        <SelectValue placeholder={selectedCaseType?.requireProvider ? "เลือก Provider" : "ไม่ระบุ"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {!selectedCaseType?.requireProvider && <SelectItem value="none">ไม่ระบุ</SelectItem>}
+                        {providers.map((provider) => (
+                          <SelectItem key={provider.id} value={provider.id}>
+                            {provider.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Card 3: Customer Info */}
+              <Card className="border-none shadow-md">
+                <CardHeader>
+                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    ข้อมูลลูกค้า (Optional)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="ชื่อลูกค้า"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      disabled={isLoading}
+                      className="bg-muted/20"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="User ID (ในระบบ)"
+                      value={customerId}
+                      onChange={(e) => setCustomerId(e.target.value)}
+                      disabled={isLoading}
+                      className="bg-muted/20"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="ช่องทางติดต่อ (Line ID / โทร)"
+                      value={customerContact}
+                      onChange={(e) => setCustomerContact(e.target.value)}
+                      disabled={isLoading}
+                      className="bg-muted/20"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Actions - Sticky bottom on mobile, inline on desktop sidebar */}
+              <div className="pt-4 flex flex-col gap-3">
+                <Button 
+                  type="submit" 
+                  size="lg"
+                  className="w-full shadow-lg hover:shadow-xl transition-all"
+                  disabled={
+                    isLoading || 
+                    !category ||
+                    !caseTypeId || 
+                    !source ||
+                    !severity ||
+                    (selectedCaseType?.requireProvider && (!providerId || providerId === "none")) ||
+                    (selectedCaseType?.requireOrderId && orderIds.length === 0)
+                  }
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      กำลังสร้าง...
+                    </>
+                  ) : (
+                    "สร้างเคส"
+                  )}
+                </Button>
+                <Link href="/cases" className="w-full">
+                  <Button variant="outline" className="w-full" disabled={isLoading}>
+                    ยกเลิก
+                  </Button>
+                </Link>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="customerContact">ช่องทางติดต่อ</Label>
-                <Input
-                  id="customerContact"
-                  placeholder="Line ID, เบอร์โทร, Email"
-                  value={customerContact}
-                  onChange={(e) => setCustomerContact(e.target.value)}
-                  disabled={isLoading}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3">
-            <Link href="/cases">
-              <Button variant="outline" disabled={isLoading}>
-                ยกเลิก
-              </Button>
-            </Link>
-            <Button 
-              type="submit" 
-              disabled={
-                isLoading || 
-                !category ||
-                !caseTypeId || 
-                !source ||
-                !severity ||
-                (selectedCaseType?.requireProvider && (!providerId || providerId === "none")) ||
-                (selectedCaseType?.requireOrderId && orderIds.length === 0)
-              }
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  กำลังสร้าง...
-                </>
-              ) : (
-                "สร้างเคส"
-              )}
-            </Button>
+            </div>
           </div>
         </form>
       </div>
