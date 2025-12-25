@@ -17,7 +17,7 @@ import { Card } from "@/components/ui/card";
 import { 
   Plus, Clock, ArrowUpDown, ArrowUp, ArrowDown, MoreHorizontal, 
   ChevronRight, AlertCircle, AlertTriangle, CheckCircle2, Info,
-  Filter
+  Filter, Download
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -35,7 +35,7 @@ import { formatDistanceToNow, differenceInMinutes } from "date-fns";
 import { th } from "date-fns/locale";
 import { CasesFilters } from "./cases-filters";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useTransition, useState } from "react";
 
 const statusLabels: Record<string, { label: string; className: string }> = {
   NEW: { label: "ใหม่", className: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800" },
@@ -122,6 +122,10 @@ export default function CasesPage() {
   const [isPending, startTransition] = useTransition();
   const queryClient = useQueryClient();
   
+  // Bulk selection state
+  const [selectedCases, setSelectedCases] = useState<string[]>([]);
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
+  
   const status = searchParams.get("status") || undefined;
   const severity = searchParams.get("severity") || undefined;
   const category = searchParams.get("category") || undefined;
@@ -178,6 +182,23 @@ export default function CasesPage() {
     return currentField === field;
   };
 
+  // Export function
+  const handleExport = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (status && status !== "all") params.set("status", status);
+      if (severity && severity !== "all") params.set("severity", severity);
+      if (category && category !== "all") params.set("category", category);
+      
+      const url = `/api/cases/export?${params.toString()}`;
+      window.open(url, "_blank");
+      
+      toast.success("กำลังดาวน์โหลดไฟล์...");
+    } catch (error) {
+      toast.error("ไม่สามารถ export ข้อมูลได้");
+    }
+  };
+
   if (isLoading || !data) {
     return <LoadingScreen variant="pulse" />;
   }
@@ -195,6 +216,15 @@ export default function CasesPage() {
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold tracking-tight">เคสทั้งหมด</h1>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export CSV
+            </Button>
             <RefreshButton invalidateKeys={["cases"]} />
             <Link href="/cases/new">
               <Button className="gap-2 shadow-sm">
