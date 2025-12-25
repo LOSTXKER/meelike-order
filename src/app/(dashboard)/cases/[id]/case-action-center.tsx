@@ -21,7 +21,6 @@ import {
   Clock,
   UserX,
   HourglassIcon,
-  Lightbulb,
   MessageSquare,
 } from "lucide-react";
 import { useState } from "react";
@@ -109,53 +108,29 @@ export function CaseActionCenter({ caseId, currentStatus, owner, orders = [] }: 
 
   const currentFlow = STATUS_FLOW[currentStatus];
 
-  // Smart Suggestions Logic
-  const getSuggestions = () => {
-    const suggestions: Array<{ type: "warning" | "success" | "info"; message: string; action?: () => void; actionLabel?: string }> = [];
+  // Smart Alerts - Show only important warnings (no duplicate CTAs)
+  const getAlerts = () => {
+    const alerts: Array<{ type: "warning" | "success" | "info"; message: string }> = [];
 
-    // No owner assigned
+    // No owner assigned - important warning
     if (!owner) {
-      suggestions.push({
+      alerts.push({
         type: "warning",
-        message: "เคสนี้ยังไม่มีผู้รับผิดชอบ",
-        action: () => setShowAssignDialog(true),
-        actionLabel: "มอบหมายเลย",
+        message: "⚠️ ยังไม่มีผู้รับผิดชอบ",
       });
     }
 
-    // Case is NEW - suggest to start investigating
-    if (currentStatus === "NEW") {
-      suggestions.push({
-        type: "info",
-        message: "เคสใหม่ พร้อมเริ่มตรวจสอบ",
-        action: () => handleStatusChange("INVESTIGATING"),
-        actionLabel: "เริ่มตรวจสอบ",
-      });
-    }
-
-    // All orders are handled - suggest to resolve
+    // All orders are handled - success info
     if (orders.length > 0 && !orders.some(o => o.status === "PENDING" || o.status === "PROCESSING")) {
       if (currentStatus !== "RESOLVED" && currentStatus !== "CLOSED") {
-        suggestions.push({
+        alerts.push({
           type: "success",
-          message: "Orders ทั้งหมดจัดการแล้ว",
-          action: () => handleStatusChange("RESOLVED"),
-          actionLabel: "แก้ไขเสร็จ",
+          message: "✓ Orders ทั้งหมดจัดการแล้ว",
         });
       }
     }
 
-    // Case is RESOLVED - suggest to close
-    if (currentStatus === "RESOLVED") {
-      suggestions.push({
-        type: "info",
-        message: "พร้อมปิดเคส (แจ้งลูกค้าแล้ว?)",
-        action: () => handleNotifyAndClose(),
-        actionLabel: "แจ้งลูกค้าแล้ว → ปิดเคส",
-      });
-    }
-
-    return suggestions;
+    return alerts;
   };
 
   const handleStatusChange = async (newStatus: string) => {
@@ -271,12 +246,12 @@ export function CaseActionCenter({ caseId, currentStatus, owner, orders = [] }: 
     }
   };
 
-  const suggestions = getSuggestions();
+  const alerts = getAlerts();
 
   return (
     <>
-      <div className="bg-muted/30 border rounded-lg p-4 space-y-4">
-        {/* Quick Actions */}
+      <div className="bg-muted/30 border rounded-lg p-4">
+        {/* Quick Actions + Inline Alerts */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Assign Button */}
           <Button
@@ -377,45 +352,27 @@ export function CaseActionCenter({ caseId, currentStatus, owner, orders = [] }: 
               แจ้งลูกค้าแล้ว → ปิดเคส
             </Button>
           )}
-        </div>
 
-        {/* Smart Suggestions */}
-        {suggestions.length > 0 && (
-          <div className="space-y-2">
-            {suggestions.map((suggestion, index) => (
-              <div
-                key={index}
-                className={cn(
-                  "flex items-center justify-between gap-3 px-3 py-2 rounded-md text-sm",
-                  suggestion.type === "warning" && "bg-amber-50 text-amber-900 dark:bg-amber-900/20 dark:text-amber-100",
-                  suggestion.type === "success" && "bg-green-50 text-green-900 dark:bg-green-900/20 dark:text-green-100",
-                  suggestion.type === "info" && "bg-blue-50 text-blue-900 dark:bg-blue-900/20 dark:text-blue-100"
-                )}
-              >
-                <div className="flex items-center gap-2">
-                  <Lightbulb className="h-4 w-4 shrink-0" />
-                  <span>{suggestion.message}</span>
-                </div>
-                {suggestion.action && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={suggestion.action}
-                    disabled={isUpdating}
-                    className={cn(
-                      "h-7 text-xs font-medium",
-                      suggestion.type === "warning" && "hover:bg-amber-100 text-amber-700",
-                      suggestion.type === "success" && "hover:bg-green-100 text-green-700",
-                      suggestion.type === "info" && "hover:bg-blue-100 text-blue-700"
-                    )}
-                  >
-                    {suggestion.actionLabel}
-                  </Button>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+          {/* Inline Alerts (compact, no CTA) */}
+          {alerts.length > 0 && (
+            <>
+              <div className="h-6 w-px bg-border mx-1" />
+              {alerts.map((alert, index) => (
+                <span
+                  key={index}
+                  className={cn(
+                    "text-xs font-medium px-2 py-1 rounded-full",
+                    alert.type === "warning" && "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+                    alert.type === "success" && "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+                    alert.type === "info" && "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                  )}
+                >
+                  {alert.message}
+                </span>
+              ))}
+            </>
+          )}
+        </div>
       </div>
 
       {/* Assign Dialog */}
