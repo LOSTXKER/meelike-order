@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Loader2, Info, Clock, X, CheckCircle2, DollarSign, Package, Settings, Building2, FileText, AlertCircle, AlertTriangle, Clipboard, User, Phone, Hash, Link as LinkIcon, Ticket, PenTool, Upload, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, Loader2, Info, Clock, X, CheckCircle2, DollarSign, Package, Settings, Building2, FileText, AlertCircle, AlertTriangle, User, Phone, Hash, Ticket, Upload, Image as ImageIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -65,14 +65,15 @@ export default function NewCasePage() {
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [caseTypeId, setCaseTypeId] = useState("");
-  const [source, setSource] = useState("");
+  const [source, setSource] = useState<"LINE" | "TICKET" | "">("");
   const [severity, setSeverity] = useState("");
   const [providerId, setProviderId] = useState("");
-  // Customer info - new structure
-  const [customerType, setCustomerType] = useState<"LINE" | "TICKET" | "">("");
+  // Customer info - based on source (LINE/TICKET)
   const [customerName, setCustomerName] = useState("");
+  // LINE fields
   const [chatUrl, setChatUrl] = useState("");
   const [chatName, setChatName] = useState("");
+  // TICKET fields
   const [ticketUrl, setTicketUrl] = useState("");
   const [orderIds, setOrderIds] = useState<string[]>([]);
   const [orderIdInput, setOrderIdInput] = useState("");
@@ -193,8 +194,8 @@ export default function NewCasePage() {
       return;
     }
 
-    // Validate customer type fields
-    if (customerType === "LINE") {
+    // Validate fields based on source (LINE/TICKET)
+    if (source === "LINE") {
       if (!chatUrl.trim()) {
         toast.error("กรุณากรอก URL แชท");
         setIsLoading(false);
@@ -205,7 +206,7 @@ export default function NewCasePage() {
         setIsLoading(false);
         return;
       }
-    } else if (customerType === "TICKET") {
+    } else if (source === "TICKET") {
       if (!ticketUrl.trim()) {
         toast.error("กรุณากรอก URL Ticket");
         setIsLoading(false);
@@ -234,11 +235,10 @@ export default function NewCasePage() {
           severity,
           providerId: providerId && providerId !== "none" ? providerId : undefined,
           customerName: customerName.trim(),
-          // Store customer type and related info in customerId and customerContact
-          customerId: customerType || undefined,
-          customerContact: customerType === "LINE" 
+          // Store source-specific contact info
+          customerContact: source === "LINE" 
             ? `${chatUrl}|${chatName}` 
-            : customerType === "TICKET" 
+            : source === "TICKET" 
             ? ticketUrl 
             : undefined,
           orders: orders.length > 0 ? orders : undefined,
@@ -636,12 +636,18 @@ export default function NewCasePage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Source */}
+                  {/* Source - determines customer info fields */}
                   <div className="space-y-2">
                     <Label className="text-xs font-semibold text-muted-foreground uppercase">แหล่งที่มา <span className="text-red-500">*</span></Label>
                     <Select 
                       value={source} 
-                      onValueChange={setSource}
+                      onValueChange={(value: "LINE" | "TICKET") => {
+                        setSource(value);
+                        // Reset source-specific fields
+                        setChatUrl("");
+                        setChatName("");
+                        setTicketUrl("");
+                      }}
                       required
                       disabled={isLoading}
                     >
@@ -654,12 +660,6 @@ export default function NewCasePage() {
                         </SelectItem>
                         <SelectItem value="TICKET">
                           <span className="flex items-center gap-2"><Ticket className="h-4 w-4 text-blue-500" /> Ticket</span>
-                        </SelectItem>
-                        <SelectItem value="API">
-                          <span className="flex items-center gap-2"><LinkIcon className="h-4 w-4 text-gray-500" /> API</span>
-                        </SelectItem>
-                        <SelectItem value="MANUAL">
-                          <span className="flex items-center gap-2"><PenTool className="h-4 w-4 text-orange-500" /> สร้างเอง</span>
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -732,12 +732,13 @@ export default function NewCasePage() {
                 </CardContent>
               </Card>
 
-              {/* Card 3: Customer Info - NEW STRUCTURE */}
-              <Card className="border-none shadow-md">
+              {/* Card 3: Customer Info - Based on Source */}
+              {source && (
+              <Card className="border-none shadow-md animate-in fade-in duration-300">
                 <CardHeader>
                   <CardTitle className="text-base font-semibold flex items-center gap-2">
                     <User className="h-4 w-4" />
-                    ข้อมูลลูกค้า <span className="text-red-500 text-xs ml-1">* จำเป็น</span>
+                    ข้อมูลลูกค้า ({source === "LINE" ? "Line" : "Ticket"})
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -759,46 +760,8 @@ export default function NewCasePage() {
                     />
                   </div>
 
-                  {/* Customer Type - Required */}
-                  <div className="space-y-2">
-                    <Label className="text-xs font-semibold text-muted-foreground uppercase">
-                      ประเภท <span className="text-red-500">*</span>
-                    </Label>
-                    <Select 
-                      value={customerType} 
-                      onValueChange={(value: "LINE" | "TICKET") => {
-                        setCustomerType(value);
-                        // Reset fields when type changes
-                        setChatUrl("");
-                        setChatName("");
-                        setTicketUrl("");
-                      }}
-                      required
-                      disabled={isLoading}
-                    >
-                      <SelectTrigger className={cn(
-                        "bg-muted/20",
-                        !customerType && "border-red-300"
-                      )}>
-                        <SelectValue placeholder="เลือกประเภท" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="LINE">
-                          <span className="flex items-center gap-2">
-                            <Phone className="h-4 w-4 text-green-500" /> Line
-                          </span>
-                        </SelectItem>
-                        <SelectItem value="TICKET">
-                          <span className="flex items-center gap-2">
-                            <Ticket className="h-4 w-4 text-blue-500" /> Ticket
-                          </span>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
                   {/* LINE Fields */}
-                  {customerType === "LINE" && (
+                  {source === "LINE" && (
                     <div className="space-y-3 animate-in fade-in duration-300">
                       <div className="space-y-2">
                         <Label className="text-xs font-semibold text-muted-foreground uppercase">
@@ -812,7 +775,7 @@ export default function NewCasePage() {
                           required
                           className={cn(
                             "bg-muted/20",
-                            customerType === "LINE" && !chatUrl.trim() && "border-red-300"
+                            source === "LINE" && !chatUrl.trim() && "border-red-300"
                           )}
                         />
                       </div>
@@ -828,7 +791,7 @@ export default function NewCasePage() {
                           required
                           className={cn(
                             "bg-muted/20",
-                            customerType === "LINE" && !chatName.trim() && "border-red-300"
+                            source === "LINE" && !chatName.trim() && "border-red-300"
                           )}
                         />
                       </div>
@@ -836,7 +799,7 @@ export default function NewCasePage() {
                   )}
 
                   {/* TICKET Fields */}
-                  {customerType === "TICKET" && (
+                  {source === "TICKET" && (
                     <div className="space-y-2 animate-in fade-in duration-300">
                       <Label className="text-xs font-semibold text-muted-foreground uppercase">
                         URL Ticket <span className="text-red-500">*</span>
@@ -849,13 +812,14 @@ export default function NewCasePage() {
                         required
                         className={cn(
                           "bg-muted/20",
-                          customerType === "TICKET" && !ticketUrl.trim() && "border-red-300"
+                          source === "TICKET" && !ticketUrl.trim() && "border-red-300"
                         )}
                       />
                     </div>
                   )}
                 </CardContent>
               </Card>
+              )}
 
               {/* Actions - Sticky bottom on mobile, inline on desktop sidebar */}
               <div className="pt-4 flex flex-col gap-3">
@@ -871,9 +835,8 @@ export default function NewCasePage() {
                     !source ||
                     !severity ||
                     !customerName.trim() ||
-                    !customerType ||
-                    (customerType === "LINE" && (!chatUrl.trim() || !chatName.trim())) ||
-                    (customerType === "TICKET" && !ticketUrl.trim()) ||
+                    (source === "LINE" && (!chatUrl.trim() || !chatName.trim())) ||
+                    (source === "TICKET" && !ticketUrl.trim()) ||
                     (selectedCaseType?.requireProvider && (!providerId || providerId === "none")) ||
                     (selectedCaseType?.requireOrderId && orderIds.length === 0)
                   }

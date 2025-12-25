@@ -498,23 +498,54 @@ export default function CaseDetailPage() {
                     )}
                   </div>
 
-                  {/* Customer Info */}
+                  {/* Customer Info - Based on Source */}
                   <div className="p-3">
                     <p className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
                       <UserCircle className="h-3.5 w-3.5" /> ลูกค้า
                     </p>
                     {caseDetail.customerName ? (
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">{caseDetail.customerName}</p>
-                        {caseDetail.customerContact && (
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Phone className="h-3 w-3" /> {caseDetail.customerContact}
-                          </p>
+                      <div className="space-y-2">
+                        <div>
+                          <p className="text-[10px] text-muted-foreground uppercase">ชื่อลูกค้า</p>
+                          <p className="text-sm font-medium">{caseDetail.customerName}</p>
+                        </div>
+                        
+                        {/* LINE Info */}
+                        {caseDetail.source === "LINE" && caseDetail.customerContact && (
+                          <>
+                            <div>
+                              <p className="text-[10px] text-muted-foreground uppercase">URL แชท</p>
+                              <a 
+                                href={caseDetail.customerContact.split("|")[0]} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-xs text-primary hover:underline break-all"
+                              >
+                                {caseDetail.customerContact.split("|")[0]}
+                              </a>
+                            </div>
+                            {caseDetail.customerContact.split("|")[1] && (
+                              <div>
+                                <p className="text-[10px] text-muted-foreground uppercase">ชื่อแชท</p>
+                                <p className="text-sm">{caseDetail.customerContact.split("|")[1]}</p>
+                              </div>
+                            )}
+                          </>
                         )}
-                        {caseDetail.customerId && (
-                          <p className="text-xs text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded w-fit">
-                            ID: {caseDetail.customerId}
-                          </p>
+                        
+                        {/* TICKET Info */}
+                        {caseDetail.source === "TICKET" && caseDetail.customerContact && (
+                          <div>
+                            <p className="text-[10px] text-muted-foreground uppercase">URL Ticket</p>
+                            <a 
+                              href={caseDetail.customerContact} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-xs text-primary hover:underline break-all"
+                            >
+                              {caseDetail.customerContact}
+                            </a>
+                          </div>
                         )}
                       </div>
                     ) : (
