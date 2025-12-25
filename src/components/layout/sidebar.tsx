@@ -11,8 +11,6 @@ import {
   Settings,
   Users,
   BarChart3,
-  Bell,
-  FileText,
   ChevronLeft,
   ChevronRight,
   Sun,
@@ -57,18 +55,6 @@ const navigation = [
 ];
 
 const settingsNav = [
-  {
-    name: "Case Types",
-    nameTh: "ประเภทเคส",
-    href: "/settings/case-types",
-    icon: FileText,
-  },
-  {
-    name: "Notifications",
-    nameTh: "การแจ้งเตือน",
-    href: "/settings/notifications",
-    icon: Bell,
-  },
   {
     name: "Settings",
     nameTh: "ตั้งค่า",
@@ -190,7 +176,7 @@ export function Sidebar() {
 
           <div className="space-y-1">
             {settingsNav.map((item) => {
-              const isActive = pathname === item.href;
+              const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
               return (
                 <Link
                   key={item.href}
