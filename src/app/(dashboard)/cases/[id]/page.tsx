@@ -26,6 +26,11 @@ import {
   Link as LinkIcon,
   Tag,
   AlertTriangle,
+  Search,
+  Wrench,
+  CircleDot,
+  UserX,
+  HourglassIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -76,6 +81,156 @@ const activityIcons: Record<string, typeof MessageSquare> = {
   CLOSED: CheckCircle2,
   REOPENED: ChevronRight,
 };
+
+// Progress Steps Configuration
+const PROGRESS_STEPS = [
+  { status: "NEW", label: "ใหม่", icon: CircleDot, color: "blue" },
+  { status: "INVESTIGATING", label: "ตรวจสอบ", icon: Search, color: "violet" },
+  { status: "FIXING", label: "แก้ไข", icon: Wrench, color: "cyan" },
+  { status: "RESOLVED", label: "แก้ไขแล้ว", icon: CheckCircle2, color: "green" },
+  { status: "CLOSED", label: "ปิดเคส", icon: CheckCircle2, color: "gray" },
+];
+
+// Waiting states (not in main flow but shown separately)
+const WAITING_STATES = {
+  WAITING_CUSTOMER: { label: "รอลูกค้า", icon: UserX, color: "amber" },
+  WAITING_PROVIDER: { label: "รอ Provider", icon: HourglassIcon, color: "orange" },
+};
+
+interface CaseProgressBarProps {
+  currentStatus: string;
+}
+
+function CaseProgressBar({ currentStatus }: CaseProgressBarProps) {
+  // Check if current status is a waiting state
+  const isWaitingState = currentStatus === "WAITING_CUSTOMER" || currentStatus === "WAITING_PROVIDER";
+  
+  // Determine which step we're on
+  const getCurrentStepIndex = () => {
+    if (isWaitingState) {
+      // Waiting states are considered as part of INVESTIGATING/FIXING phase
+      return 1; // INVESTIGATING
+    }
+    return PROGRESS_STEPS.findIndex(step => step.status === currentStatus);
+  };
+
+  const currentStepIndex = getCurrentStepIndex();
+
+  return (
+    <div className="w-full bg-background/50 border-y py-4">
+      <div className="container max-w-7xl mx-auto px-4">
+        {/* Waiting State Banner (if applicable) */}
+        {isWaitingState && (
+          <div className={cn(
+            "mb-4 flex items-center gap-2 px-3 py-2 rounded-lg border-l-4",
+            currentStatus === "WAITING_CUSTOMER" 
+              ? "bg-amber-50 border-amber-500 text-amber-900 dark:bg-amber-900/10 dark:text-amber-100"
+              : "bg-orange-50 border-orange-500 text-orange-900 dark:bg-orange-900/10 dark:text-orange-100"
+          )}>
+            {currentStatus === "WAITING_CUSTOMER" ? (
+              <UserX className="h-4 w-4" />
+            ) : (
+              <HourglassIcon className="h-4 w-4" />
+            )}
+            <span className="text-sm font-medium">
+              {WAITING_STATES[currentStatus as keyof typeof WAITING_STATES]?.label}
+            </span>
+          </div>
+        )}
+
+        {/* Progress Steps */}
+        <div className="relative">
+          {/* Progress Line */}
+          <div className="absolute top-5 left-0 right-0 h-0.5 bg-border hidden sm:block">
+            <div 
+              className={cn(
+                "h-full transition-all duration-500",
+                currentStepIndex >= 0 && "bg-gradient-to-r from-blue-500 to-green-500"
+              )}
+              style={{ 
+                width: `${currentStepIndex >= 0 ? (currentStepIndex / (PROGRESS_STEPS.length - 1)) * 100 : 0}%` 
+              }}
+            />
+          </div>
+
+          {/* Steps */}
+          <div className="relative flex justify-between">
+            {PROGRESS_STEPS.map((step, index) => {
+              const Icon = step.icon;
+              const isPassed = index < currentStepIndex;
+              const isCurrent = index === currentStepIndex;
+              const isFuture = index > currentStepIndex;
+
+              return (
+                <div key={step.status} className="flex flex-col items-center gap-2 flex-1">
+                  {/* Icon */}
+                  <div
+                    className={cn(
+                      "relative z-10 flex h-10 w-10 items-center justify-center rounded-full border-2 transition-all duration-300",
+                      isPassed && "bg-green-500 border-green-500 text-white shadow-lg shadow-green-500/30",
+                      isCurrent && cn(
+                        "border-4 ring-4 ring-offset-2 shadow-lg",
+                        step.status === "NEW" && "bg-blue-500 border-blue-500 ring-blue-500/30 text-white",
+                        step.status === "INVESTIGATING" && "bg-violet-500 border-violet-500 ring-violet-500/30 text-white",
+                        step.status === "FIXING" && "bg-cyan-500 border-cyan-500 ring-cyan-500/30 text-white",
+                        step.status === "RESOLVED" && "bg-green-500 border-green-500 ring-green-500/30 text-white",
+                        step.status === "CLOSED" && "bg-gray-500 border-gray-500 ring-gray-500/30 text-white"
+                      ),
+                      isFuture && "bg-muted border-border text-muted-foreground"
+                    )}
+                  >
+                    <Icon className={cn(
+                      "h-5 w-5 transition-all",
+                      isCurrent && "animate-pulse"
+                    )} />
+                  </div>
+
+                  {/* Label */}
+                  <div className="text-center hidden sm:block">
+                    <p className={cn(
+                      "text-xs font-medium transition-colors whitespace-nowrap",
+                      isPassed && "text-green-600 dark:text-green-400",
+                      isCurrent && cn(
+                        "font-semibold",
+                        step.status === "NEW" && "text-blue-600 dark:text-blue-400",
+                        step.status === "INVESTIGATING" && "text-violet-600 dark:text-violet-400",
+                        step.status === "FIXING" && "text-cyan-600 dark:text-cyan-400",
+                        step.status === "RESOLVED" && "text-green-600 dark:text-green-400",
+                        step.status === "CLOSED" && "text-gray-600 dark:text-gray-400"
+                      ),
+                      isFuture && "text-muted-foreground"
+                    )}>
+                      {step.label}
+                    </p>
+                  </div>
+
+                  {/* Mobile Label (only for current) */}
+                  {isCurrent && (
+                    <div className="sm:hidden">
+                      <Badge 
+                        variant="outline" 
+                        className={cn(
+                          "font-medium",
+                          step.status === "NEW" && "bg-blue-500/10 text-blue-600 border-blue-200",
+                          step.status === "INVESTIGATING" && "bg-violet-500/10 text-violet-600 border-violet-200",
+                          step.status === "FIXING" && "bg-cyan-500/10 text-cyan-600 border-cyan-200",
+                          step.status === "RESOLVED" && "bg-green-500/10 text-green-600 border-green-200",
+                          step.status === "CLOSED" && "bg-gray-500/10 text-gray-600 border-gray-200"
+                        )}
+                      >
+                        {step.label}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function formatSlaRemaining(deadline: Date | string | null): { text: string; isUrgent: boolean; isMissed: boolean } {
   if (!deadline) return { text: "-", isUrgent: false, isMissed: false };
@@ -167,6 +322,9 @@ export default function CaseDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Progress Bar */}
+      <CaseProgressBar currentStatus={caseDetail.status} />
 
       <div className="container max-w-7xl mx-auto px-4 py-6">
         {/* SLA Alert - Slim Banner */}
