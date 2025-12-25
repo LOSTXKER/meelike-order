@@ -157,21 +157,22 @@ export default function DashboardPage() {
       
       <div className="p-6 space-y-6">
         {/* Welcome section */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-semibold tracking-tight">
               ภาพรวมระบบ 👋
             </h2>
-            <p className="text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               ภาพรวมระบบจัดการเคสวันนี้
             </p>
           </div>
           <div className="flex items-center gap-2">
             <RefreshButton invalidateKeys={["dashboard"]} />
             <Link href="/cases/new">
-              <Button className="gap-2">
+              <Button className="gap-2 w-full sm:w-auto">
                 <Plus className="h-4 w-4" />
-                สร้างเคสใหม่
+                <span className="hidden sm:inline">สร้างเคสใหม่</span>
+                <span className="sm:hidden">สร้างเคส</span>
               </Button>
             </Link>
           </div>
@@ -180,11 +181,11 @@ export default function DashboardPage() {
         {/* Awaiting Customer Notification Banner - For Admin */}
         {(dashboardData.casesAwaitingNotification ?? 0) > 0 && (
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/50 dark:bg-amber-950/30">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/20">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/20 shrink-0">
                 <Bell className="h-5 w-5 text-amber-600 dark:text-amber-400" />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-amber-800 dark:text-amber-200">
                   มี {dashboardData.casesAwaitingNotification} เคสที่แก้แล้ว - รอแจ้งลูกค้า
                 </h3>
@@ -192,8 +193,8 @@ export default function DashboardPage() {
                   เคสเหล่านี้แก้ไขเสร็จแล้ว กรุณาแจ้งลูกค้าและปิดเคส
                 </p>
               </div>
-              <Link href="/cases?status=RESOLVED">
-                <Button variant="outline" size="sm" className="gap-1 border-amber-300 text-amber-700 hover:bg-amber-100">
+              <Link href="/cases?status=RESOLVED" className="w-full sm:w-auto">
+                <Button variant="outline" size="sm" className="gap-1 border-amber-300 text-amber-700 hover:bg-amber-100 w-full sm:w-auto">
                   ดูเคสรอแจ้ง
                   <ArrowUpRight className="h-4 w-4" />
                 </Button>
@@ -205,11 +206,11 @@ export default function DashboardPage() {
         {/* SLA Alert Banner - แสดงเมื่อมีเคสที่ใกล้หมดเวลา */}
         {dashboardData.slaMissed > 0 && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900/50 dark:bg-red-950/30">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/20">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/20 shrink-0">
                 <Timer className="h-5 w-5 text-red-600 dark:text-red-400" />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-red-800 dark:text-red-200">
                   มี {dashboardData.slaMissed} เคสที่ SLA เกินกำหนด!
                 </h3>
@@ -217,8 +218,8 @@ export default function DashboardPage() {
                   กรุณาดำเนินการโดยเร็วที่สุด
                 </p>
               </div>
-              <Link href="/cases?status=SLA_BREACH">
-                <Button variant="destructive" size="sm" className="gap-1">
+              <Link href="/cases?status=SLA_BREACH" className="w-full sm:w-auto">
+                <Button variant="destructive" size="sm" className="gap-1 w-full sm:w-auto">
                   ดูเคสทั้งหมด
                   <ArrowUpRight className="h-4 w-4" />
                 </Button>
@@ -318,12 +319,12 @@ export default function DashboardPage() {
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Recent Cases */}
           <Card className="lg:col-span-2">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg font-semibold">เคสล่าสุด</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <CardTitle className="text-base sm:text-lg font-semibold">เคสล่าสุด</CardTitle>
               <Link href="/cases">
-                <Button variant="ghost" size="sm" className="gap-1">
+                <Button variant="ghost" size="sm" className="gap-1 text-xs sm:text-sm">
                   ดูทั้งหมด
-                  <ArrowUpRight className="h-4 w-4" />
+                  <ArrowUpRight className="h-3 w-3 sm:h-4 sm:w-4" />
                 </Button>
               </Link>
             </CardHeader>

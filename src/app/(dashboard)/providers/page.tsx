@@ -113,19 +113,20 @@ export default function ProvidersPage() {
       
       <div className="p-6 space-y-6">
         {/* Header with Actions */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h2 className="text-lg font-semibold">ภาพรวม Provider</h2>
           <div className="flex items-center gap-2">
             <RefreshButton invalidateKeys={["providers"]} />
-            <Button onClick={handleAdd} className="gap-2">
+            <Button onClick={handleAdd} className="gap-2 w-full sm:w-auto">
               <Plus className="h-4 w-4" />
-              เพิ่ม Provider
+              <span className="hidden sm:inline">เพิ่ม Provider</span>
+              <span className="sm:hidden">เพิ่ม</span>
             </Button>
           </div>
         </div>
 
         {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -187,7 +188,7 @@ export default function ProvidersPage() {
         </div>
 
         {/* Provider Table */}
-        <Card>
+        <Card className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">

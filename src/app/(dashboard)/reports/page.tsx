@@ -159,11 +159,12 @@ export default function ReportsPage() {
 
       <div className="p-6 space-y-6">
         {/* Action Buttons */}
-        <div className="flex justify-end items-center gap-2">
+        <div className="flex flex-col sm:flex-row justify-end items-stretch sm:items-center gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={exportToCSV}
+            className="w-full sm:w-auto"
           >
             <Download className="h-4 w-4 mr-2" />
             Export CSV
@@ -173,6 +174,7 @@ export default function ReportsPage() {
             size="sm"
             onClick={() => refetch()}
             disabled={isFetching}
+            className="w-full sm:w-auto"
           >
             <RefreshCw className={cn("h-4 w-4 mr-2", isFetching && "animate-spin")} />
             {isFetching ? "กำลังโหลด..." : "รีเฟรช"}
@@ -180,7 +182,7 @@ export default function ReportsPage() {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">

@@ -70,14 +70,14 @@ export default function SettingsPage() {
     <div className="min-h-screen">
       <Header title="ตั้งค่า" />
       
-      <div className="p-6 max-w-4xl">
+      <div className="p-4 sm:p-6 max-w-4xl">
         <div className="mb-6">
-          <p className="text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             จัดการการตั้งค่าระบบและการกำหนดค่าต่างๆ
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {settingsItems.map((item) => (
             <Link key={item.href} href={item.href}>
               <Card className="h-full cursor-pointer transition-all hover:border-primary/50 hover:shadow-md">

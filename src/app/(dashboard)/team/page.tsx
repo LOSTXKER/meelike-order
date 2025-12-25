@@ -89,7 +89,7 @@ export default function TeamPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -203,7 +203,7 @@ export default function TeamPage() {
         </div>
 
         {/* Full Team Table */}
-        <Card>
+        <Card className="overflow-x-auto">
           <CardHeader>
             <CardTitle>สมาชิกทั้งหมด</CardTitle>
           </CardHeader>

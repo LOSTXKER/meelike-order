@@ -245,23 +245,23 @@ export default function CaseDetailPage() {
     <div className="min-h-screen bg-muted/10">
       {/* Header */}
       <div className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur shadow-sm">
-        <div className="container max-w-7xl mx-auto px-4 py-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+        <div className="container max-w-7xl mx-auto px-3 sm:px-4 py-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <Link href="/cases">
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground">
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
               </Link>
-              <h1 className="text-lg font-bold tracking-tight">
+              <h1 className="text-sm sm:text-lg font-bold tracking-tight truncate">
                 {caseDetail.caseNumber}
               </h1>
-              {/* SLA Badge in Header */}
+              {/* SLA Badge in Header - Hidden on very small screens */}
               {caseDetail.slaDeadline && caseDetail.status !== "RESOLVED" && caseDetail.status !== "CLOSED" && (
                 <Badge 
                   variant="outline" 
                   className={cn(
-                    "text-xs font-medium",
+                    "text-xs font-medium hidden xs:flex shrink-0",
                     sla.isMissed ? "bg-red-50 text-red-700 border-red-200" : 
                     sla.isUrgent ? "bg-amber-50 text-amber-700 border-amber-200" : 
                     "bg-green-50 text-green-700 border-green-200"
@@ -272,12 +272,12 @@ export default function CaseDetailPage() {
                 </Badge>
               )}
             </div>
-            <RefreshButton invalidateKeys={[["case", id], "cases", "dashboard"]} size="sm" />
+            <RefreshButton invalidateKeys={[["case", id], "cases", "dashboard"]} size="sm" className="shrink-0" />
           </div>
         </div>
       </div>
 
-      <div className="container max-w-7xl mx-auto px-4 py-4">
+      <div className="container max-w-7xl mx-auto px-3 sm:px-4 py-4">
         {/* Progress Bar */}
         <CaseProgressBar currentStatus={caseDetail.status} />
 
@@ -293,10 +293,10 @@ export default function CaseDetailPage() {
 
         <div className="grid gap-6 lg:grid-cols-3">
           {/* LEFT: Main Content (2/3) */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             {/* Title Section */}
             <div className="space-y-2">
-              <h2 className="text-2xl font-bold leading-tight">{caseDetail.title}</h2>
+              <h2 className="text-xl sm:text-2xl font-bold leading-tight break-words">{caseDetail.title}</h2>
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge variant="outline" className={cn(severityLabels[caseDetail.severity]?.className)}>
                   {severityLabels[caseDetail.severity]?.label}

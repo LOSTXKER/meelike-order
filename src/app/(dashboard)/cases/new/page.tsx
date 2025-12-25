@@ -302,25 +302,25 @@ export default function NewCasePage() {
     <div className="min-h-screen pb-10">
       <Header />
       
-      <div className="p-6 max-w-6xl mx-auto space-y-6">
+      <div className="p-3 sm:p-6 max-w-6xl mx-auto space-y-4 sm:space-y-6">
         {/* Back button and header */}
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
           <Link href="/cases">
             <Button variant="ghost" size="icon" className="h-9 w-9">
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">สร้างเคสใหม่</h1>
-            <p className="text-muted-foreground">กรอกข้อมูลเพื่อสร้างเคสติดตามปัญหา</p>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">สร้างเคสใหม่</h1>
+            <p className="text-sm text-muted-foreground hidden sm:block">กรอกข้อมูลเพื่อสร้างเคสติดตามปัญหา</p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
             
             {/* Main Column - Left Side */}
-            <div className="lg:col-span-8 space-y-6">
+            <div className="lg:col-span-8 space-y-4 sm:space-y-6">
               
               {/* Step 1: ประเภทเคส & รายละเอียด */}
               <Card className="border-none shadow-md">
@@ -474,7 +474,7 @@ export default function NewCasePage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <div className="relative flex-1">
                         <Hash className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                         <Input
@@ -507,7 +507,7 @@ export default function NewCasePage() {
                           }
                         }}
                         disabled={isLoading || !orderIdInput.trim()}
-                        className="h-11 px-6"
+                        className="h-11 px-4 sm:px-6 w-full sm:w-auto"
                       >
                         เพิ่ม
                       </Button>
@@ -591,7 +591,7 @@ export default function NewCasePage() {
                     {attachments.length > 0 && (
                       <div className="space-y-2">
                         <p className="text-sm font-medium">ไฟล์ที่แนบ ({attachments.length})</p>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {attachments.map((file, index) => (
                             <div
                               key={index}
@@ -625,7 +625,7 @@ export default function NewCasePage() {
             </div>
 
             {/* Sidebar Column - Right Side */}
-            <div className="lg:col-span-4 space-y-6">
+            <div className="lg:col-span-4 space-y-4 sm:space-y-6">
               
               {/* Card 2: Settings (Source, Severity, Provider) */}
               <Card className="border-none shadow-md">

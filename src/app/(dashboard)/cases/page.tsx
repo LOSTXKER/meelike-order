@@ -17,7 +17,7 @@ import { Card } from "@/components/ui/card";
 import { 
   Plus, Clock, ArrowUpDown, ArrowUp, ArrowDown, MoreHorizontal, 
   ChevronRight, AlertCircle, AlertTriangle, CheckCircle2, Info,
-  Filter, Download, UserPlus, CheckSquare, Square
+  Filter, Download
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -35,7 +35,7 @@ import { formatDistanceToNow, differenceInMinutes } from "date-fns";
 import { th } from "date-fns/locale";
 import { CasesFilters } from "./cases-filters";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useTransition, useState } from "react";
+import { useTransition } from "react";
 
 const statusLabels: Record<string, { label: string; className: string }> = {
   NEW: { label: "ใหม่", className: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800" },
@@ -122,10 +122,6 @@ export default function CasesPage() {
   const [isPending, startTransition] = useTransition();
   const queryClient = useQueryClient();
   
-  // Bulk selection state
-  const [selectedCases, setSelectedCases] = useState<string[]>([]);
-  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
-  
   const status = searchParams.get("status") || undefined;
   const severity = searchParams.get("severity") || undefined;
   const category = searchParams.get("category") || undefined;
@@ -199,73 +195,6 @@ export default function CasesPage() {
     }
   };
 
-  // Bulk selection handlers
-  const handleSelectAll = () => {
-    if (selectedCases.length === cases.length) {
-      setSelectedCases([]);
-    } else {
-      setSelectedCases(cases.map((c: CaseItem) => c.id));
-    }
-  };
-
-  const handleSelectCase = (caseId: string) => {
-    setSelectedCases(prev => 
-      prev.includes(caseId) 
-        ? prev.filter(id => id !== caseId)
-        : [...prev, caseId]
-    );
-  };
-
-  // Bulk update status
-  const handleBulkStatusChange = async (newStatus: string) => {
-    setIsBulkUpdating(true);
-    try {
-      const res = await fetch('/api/cases/bulk', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          caseIds: selectedCases,
-          status: newStatus,
-        }),
-      });
-
-      if (!res.ok) throw new Error('Failed to update');
-
-      toast.success(`อัปเดต ${selectedCases.length} เคสเรียบร้อย`);
-      setSelectedCases([]);
-      queryClient.invalidateQueries({ queryKey: ['cases'] });
-    } catch {
-      toast.error('ไม่สามารถอัปเดตได้');
-    } finally {
-      setIsBulkUpdating(false);
-    }
-  };
-
-  // Bulk assign
-  const handleBulkAssign = async (ownerId: string) => {
-    setIsBulkUpdating(true);
-    try {
-      const res = await fetch('/api/cases/bulk', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          caseIds: selectedCases,
-          ownerId,
-        }),
-      });
-
-      if (!res.ok) throw new Error('Failed to assign');
-
-      toast.success(`มอบหมาย ${selectedCases.length} เคสเรียบร้อย`);
-      setSelectedCases([]);
-      queryClient.invalidateQueries({ queryKey: ['cases'] });
-    } catch {
-      toast.error('ไม่สามารถมอบหมายได้');
-    } finally {
-      setIsBulkUpdating(false);
-    }
-  };
-
   if (isLoading || !data) {
     return <LoadingScreen variant="pulse" />;
   }
@@ -306,85 +235,11 @@ export default function CasesPage() {
         {/* Filters Section */}
         <CasesFilters />
 
-        {/* Bulk Actions Bar */}
-        {selectedCases.length > 0 && (
-          <Card className="border-primary/50 bg-primary/5 shadow-sm">
-            <div className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <CheckSquare className="h-5 w-5 text-primary" />
-                <span className="font-medium">
-                  เลือก {selectedCases.length} เคส
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedCases([])}
-                  className="h-7 text-xs"
-                >
-                  ยกเลิก
-                </Button>
-              </div>
-              <div className="flex items-center gap-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={isBulkUpdating}
-                      className="gap-2"
-                    >
-                      เปลี่ยนสถานะ
-                      <ChevronRight className="h-3 w-3" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleBulkStatusChange('FIXING')}>
-                      เริ่มดำเนินการ
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleBulkStatusChange('WAITING_CUSTOMER')}>
-                      รอลูกค้า
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleBulkStatusChange('WAITING_PROVIDER')}>
-                      รอ Provider
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleBulkStatusChange('RESOLVED')}>
-                      แก้ไขเสร็จ
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={isBulkUpdating}
-                  className="gap-2"
-                >
-                  <UserPlus className="h-4 w-4" />
-                  มอบหมาย
-                </Button>
-              </div>
-            </div>
-          </Card>
-        )}
-
         {/* Cases Table - Desktop */}
         <Card className="border-none shadow-sm overflow-hidden hidden md:block">
           <Table>
             <TableHeader className="bg-muted/40">
               <TableRow className="hover:bg-transparent border-b border-border/50">
-                <TableHead className="w-[50px]">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={handleSelectAll}
-                  >
-                    {selectedCases.length === cases.length && cases.length > 0 ? (
-                      <CheckSquare className="h-4 w-4 text-primary" />
-                    ) : (
-                      <Square className="h-4 w-4" />
-                    )}
-                  </Button>
-                </TableHead>
                 <TableHead className="w-[120px] font-medium">เลขเคส</TableHead>
                 <TableHead className="font-medium">รายละเอียด</TableHead>
                 <TableHead className="w-[120px] font-medium">
@@ -425,7 +280,7 @@ export default function CasesPage() {
             <TableBody>
               {cases.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-48 text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="h-48 text-center text-muted-foreground">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center">
                         <Filter className="h-6 w-6 text-muted-foreground/50" />
@@ -450,20 +305,6 @@ export default function CasesPage() {
                   
                   return (
                     <TableRow key={caseItem.id} className="cursor-pointer hover:bg-muted/30 transition-colors group">
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleSelectCase(caseItem.id)}
-                        >
-                          {selectedCases.includes(caseItem.id) ? (
-                            <CheckSquare className="h-4 w-4 text-primary" />
-                          ) : (
-                            <Square className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </TableCell>
                       <TableCell className="font-mono text-sm font-medium text-muted-foreground group-hover:text-foreground">
                         <Link href={`/cases/${caseItem.id}`} className="block">
                           {caseItem.caseNumber}
