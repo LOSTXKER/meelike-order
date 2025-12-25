@@ -1,6 +1,5 @@
 "use client";
 
-import { Header } from "@/components/layout/header";
 import {
   Card,
   CardContent,
@@ -8,22 +7,25 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Palette, Sun, Moon, Monitor } from "lucide-react";
 import { useTheme } from "next-themes";
-import { Button } from "@/components/ui/button";
 
 export default function AppearancePage() {
   const { theme, setTheme } = useTheme();
 
   return (
-    <div className="min-h-screen">
-      <Header title="ธีมและการแสดงผล" />
+    <div className="max-w-2xl mx-auto space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">ธีมและการแสดงผล</h1>
+        <p className="text-sm text-muted-foreground">ปรับแต่งรูปแบบการแสดงผลของระบบ</p>
+      </div>
 
-      <div className="p-6 max-w-3xl mx-auto space-y-6">
-        {/* Theme Selection */}
-        <Card>
+      {/* Theme Selection */}
+      <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
               <Palette className="h-5 w-5" />
@@ -254,7 +256,6 @@ export default function AppearancePage() {
             </ul>
           </CardContent>
         </Card>
-      </div>
     </div>
   );
 }

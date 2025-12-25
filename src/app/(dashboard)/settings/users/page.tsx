@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,14 +28,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
@@ -153,34 +144,33 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="min-h-screen">
-      <Header title="จัดการผู้ใช้งาน" />
-
-      <div className="p-6 max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <p className="text-muted-foreground">
-              จัดการผู้ใช้งานและสิทธิ์การเข้าถึงระบบ
-            </p>
+    <div className="max-w-6xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">จัดการผู้ใช้งาน</h1>
+          <p className="text-sm text-muted-foreground flex items-center gap-2">
+            จัดการผู้ใช้งานและสิทธิ์การเข้าถึงระบบ
             {isFetching && (
-              <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
+              <RefreshCw className="h-3 w-3 animate-spin" />
             )}
-          </div>
+          </p>
+        </div>
 
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => refetch()}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              รีเฟรช
-            </Button>
-            
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  เพิ่มผู้ใช้
-                </Button>
-              </DialogTrigger>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">รีเฟรช</span>
+          </Button>
+          
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">เพิ่มผู้ใช้</span>
+                <span className="sm:hidden">เพิ่ม</span>
+              </Button>
+            </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>เพิ่มผู้ใช้ใหม่</DialogTitle>
@@ -294,14 +284,14 @@ export default function UsersPage() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-          </div>
         </div>
+      </div>
 
         {/* Stats */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>ผู้ใช้ทั้งหมด</CardDescription>
+              <CardDescription className="text-xs">ผู้ใช้ทั้งหมด</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{users.length}</div>
@@ -309,7 +299,7 @@ export default function UsersPage() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>ผู้ใช้ที่ใช้งานอยู่</CardDescription>
+              <CardDescription className="text-xs">ใช้งานอยู่</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
@@ -319,7 +309,7 @@ export default function UsersPage() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Admin</CardDescription>
+              <CardDescription className="text-xs">Admin</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">
@@ -329,7 +319,7 @@ export default function UsersPage() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Support</CardDescription>
+              <CardDescription className="text-xs">Support</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-600">
@@ -339,80 +329,82 @@ export default function UsersPage() {
           </Card>
         </div>
 
-        {/* Users Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>รายการผู้ใช้งาน</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ผู้ใช้</TableHead>
-                  <TableHead>บทบาท</TableHead>
-                  <TableHead>เคสที่รับผิดชอบ</TableHead>
-                  <TableHead>วันที่สร้าง</TableHead>
-                  <TableHead>สถานะ</TableHead>
-                  <TableHead className="text-right">จัดการ</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => {
-                  const roleInfo = getRoleInfo(user.role);
-                  return (
-                    <TableRow key={user.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`h-8 w-8 rounded-full ${roleInfo.color} flex items-center justify-center text-white font-semibold`}
-                          >
-                            {user.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <div className="font-medium">{user.name}</div>
-                            <div className="text-sm text-muted-foreground flex items-center gap-1">
-                              <Mail className="h-3 w-3" />
-                              {user.email}
-                            </div>
+        {/* Users List - Card-based for better mobile */}
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">รายการผู้ใช้งาน</h2>
+          
+          {users.map((user) => {
+            const roleInfo = getRoleInfo(user.role);
+            const RoleIcon = roleInfo.icon || Shield;
+            return (
+              <Card key={user.id} className="overflow-hidden">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-4">
+                    {/* Avatar */}
+                    <div
+                      className={`h-10 w-10 sm:h-12 sm:w-12 rounded-full ${roleInfo.color} flex items-center justify-center text-white font-semibold shrink-0`}
+                    >
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                    
+                    {/* Info */}
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="font-medium truncate">{user.name}</div>
+                          <div className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Mail className="h-3 w-3" />
+                            <span className="truncate">{user.email}</span>
                           </div>
                         </div>
-                      </TableCell>
-                      <TableCell>
+                        
+                        {/* Actions */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Switch
+                            checked={user.isActive}
+                            onCheckedChange={(checked) =>
+                              handleToggleActive(user.id, checked)
+                            }
+                          />
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDelete(user.id, user.name)}
+                            disabled={deleteUser.isPending}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {/* Meta info */}
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
                         {canEditRole ? (
                           <Select
                             value={user.role}
                             onValueChange={(value) => handleRoleChange(user.id, value)}
                             disabled={updateUser.isPending}
                           >
-                            <SelectTrigger className="w-[130px] h-8">
+                            <SelectTrigger className="w-[120px] h-7 text-xs">
                               <SelectValue>
                                 <div className="flex items-center gap-1.5">
-                                  {(() => {
-                                    const RoleIcon = roleInfo.icon;
-                                    return RoleIcon ? <RoleIcon className="h-3.5 w-3.5" /> : <Shield className="h-3.5 w-3.5" />;
-                                  })()}
-                                  <span className="text-sm">{roleInfo.label}</span>
+                                  <RoleIcon className="h-3 w-3" />
+                                  <span>{roleInfo.label}</span>
                                 </div>
                               </SelectValue>
                             </SelectTrigger>
-                            <SelectContent className="w-[300px]">
+                            <SelectContent className="w-[280px]">
                               {ROLES.map((role) => {
                                 const IconComponent = role.icon;
-                                const isSelected = role.value === user.role;
                                 return (
-                                  <SelectItem key={role.value} value={role.value} className="py-2.5">
-                                    <div className="flex items-start gap-3">
-                                      <div className={`h-8 w-8 rounded-full ${role.color} flex items-center justify-center text-white flex-shrink-0`}>
-                                        <IconComponent className="h-4 w-4" />
+                                  <SelectItem key={role.value} value={role.value} className="py-2">
+                                    <div className="flex items-start gap-2">
+                                      <div className={`h-6 w-6 rounded-full ${role.color} flex items-center justify-center text-white shrink-0`}>
+                                        <IconComponent className="h-3 w-3" />
                                       </div>
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2">
-                                          <span className="font-medium">{role.label}</span>
-                                          {isSelected && (
-                                            <Badge variant="secondary" className="text-xs">ปัจจุบัน</Badge>
-                                          )}
-                                        </div>
-                                        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                                      <div>
+                                        <span className="font-medium text-sm">{role.label}</span>
+                                        <p className="text-xs text-muted-foreground leading-relaxed">
                                           {role.description}
                                         </p>
                                       </div>
@@ -423,65 +415,37 @@ export default function UsersPage() {
                             </SelectContent>
                           </Select>
                         ) : (
-                          <Badge variant="outline" className="gap-1.5">
-                            {(() => {
-                              const RoleIcon = roleInfo.icon;
-                              return RoleIcon ? <RoleIcon className="h-3 w-3" /> : <Shield className="h-3 w-3" />;
-                            })()}
+                          <Badge variant="outline" className="gap-1 text-xs">
+                            <RoleIcon className="h-3 w-3" />
                             {roleInfo.label}
                           </Badge>
                         )}
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm">
-                          {user._count.ownedCases} เคส
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        
+                        <span className="text-muted-foreground">•</span>
+                        <span className="text-muted-foreground">{user._count.ownedCases} เคส</span>
+                        <span className="text-muted-foreground">•</span>
+                        <span className="text-muted-foreground flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          {format(new Date(user.createdAt), "dd/MM/yyyy")}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            checked={user.isActive}
-                            onCheckedChange={(checked) =>
-                              handleToggleActive(user.id, checked)
-                            }
-                          />
-                          <span className="text-sm">
-                            {user.isActive ? (
-                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                ใช้งาน
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200">
-                                ปิดใช้งาน
-                              </Badge>
-                            )}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDelete(user.id, user.name)}
-                          disabled={deleteUser.isPending}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
+                          {format(new Date(user.createdAt), "dd/MM/yy")}
+                        </span>
+                        
+                        {user.isActive ? (
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+                            ใช้งาน
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200 text-xs">
+                            ปิดใช้งาน
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
     </div>
   );
 }

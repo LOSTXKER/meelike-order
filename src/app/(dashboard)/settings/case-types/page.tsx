@@ -1,6 +1,5 @@
 "use client";
 
-import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -335,18 +334,15 @@ export default function CaseTypesPage() {
   }
 
   return (
-    <div className="min-h-screen">
-      <Header title="ตั้งค่า - ประเภทเคส" />
-
-      <div className="p-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold">ประเภทเคส</h2>
-            <p className="text-muted-foreground">
-              จัดการประเภทเคสและการตั้งค่า SLA ({filteredCaseTypes.length} รายการ)
-            </p>
-          </div>
+    <div className="max-w-6xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">ประเภทเคส</h1>
+          <p className="text-sm text-muted-foreground">
+            จัดการประเภทเคสและการตั้งค่า SLA ({filteredCaseTypes.length} รายการ)
+          </p>
+        </div>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -986,7 +982,6 @@ export default function CaseTypesPage() {
             </TableBody>
           </Table>
         </Card>
-      </div>
     </div>
   );
 }

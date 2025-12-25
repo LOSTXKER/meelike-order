@@ -1,6 +1,5 @@
 "use client";
 
-import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -248,18 +247,16 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="min-h-screen">
-      <Header title="ตั้งค่า - การแจ้งเตือน" />
+    <div className="max-w-5xl mx-auto space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">การแจ้งเตือน</h1>
+        <p className="text-sm text-muted-foreground">
+          จัดการ Line Notification และ Template
+        </p>
+      </div>
 
-      <div className="p-6 space-y-6">
-        <div>
-          <h2 className="text-2xl font-semibold">การแจ้งเตือน</h2>
-          <p className="text-muted-foreground">
-            จัดการ Line Notification และ Template
-          </p>
-        </div>
-
-        <Tabs defaultValue="templates" className="space-y-4">
+      <Tabs defaultValue="templates" className="space-y-4">
           <TabsList>
             <TabsTrigger value="templates">
               <MessageSquare className="h-4 w-4 mr-2" />
@@ -625,7 +622,6 @@ export default function NotificationsPage() {
             </div>
           </TabsContent>
         </Tabs>
-      </div>
     </div>
   );
 }

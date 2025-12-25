@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -77,12 +76,15 @@ export default function SecurityPage() {
   };
 
   return (
-    <div className="min-h-screen">
-      <Header title="ความปลอดภัย" />
+    <div className="max-w-2xl mx-auto space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">ความปลอดภัย</h1>
+        <p className="text-sm text-muted-foreground">จัดการรหัสผ่านและความปลอดภัยของบัญชี</p>
+      </div>
 
-      <div className="p-6 max-w-3xl mx-auto space-y-6">
-        {/* Warning Banner */}
-        <Card className="border-yellow-500/50 bg-yellow-500/5">
+      {/* Warning Banner */}
+      <Card className="border-yellow-500/50 bg-yellow-500/5">
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-yellow-500" />
@@ -220,7 +222,6 @@ export default function SecurityPage() {
             </ul>
           </CardContent>
         </Card>
-      </div>
     </div>
   );
 }

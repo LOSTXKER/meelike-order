@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +19,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Trash2, Send, Copy, Eye, EyeOff } from "lucide-react";
+import { Plus, Trash2, Send, Copy, Eye, EyeOff, RefreshCw } from "lucide-react";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 interface Webhook {
   id: string;
@@ -184,29 +184,19 @@ export default function WebhooksPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen">
-        <Header />
-        <div className="p-6">
-          <div className="text-center py-12">Loading...</div>
-        </div>
-      </div>
-    );
+    return <LoadingScreen title="กำลังโหลด Webhooks" variant="minimal" />;
   }
 
   return (
-    <div className="min-h-screen">
-      <Header />
-
-      <div className="p-6 max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-semibold">Webhooks</h1>
-            <p className="text-muted-foreground">
-              ส่ง event notifications ไปยังระบบภายนอก
-            </p>
-          </div>
+    <div className="max-w-5xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Webhooks</h1>
+          <p className="text-sm text-muted-foreground">
+            ส่ง event notifications ไปยังระบบภายนอก
+          </p>
+        </div>
 
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
@@ -488,7 +478,6 @@ function verifySignature(body, signature, secret) {
             </div>
           </CardContent>
         </Card>
-      </div>
     </div>
   );
 }
