@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Loader2, Info, Clock, X, CheckCircle2, DollarSign, Package, Settings, Building2, FileText, AlertCircle, AlertTriangle, Clipboard, User, Phone, Hash, Link as LinkIcon, Ticket, PenTool } from "lucide-react";
+import { ArrowLeft, Loader2, Info, Clock, X, CheckCircle2, DollarSign, Package, Settings, Building2, FileText, AlertCircle, AlertTriangle, Clipboard, User, Phone, Hash, Link as LinkIcon, Ticket, PenTool, Upload, Image as ImageIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -73,6 +73,8 @@ export default function NewCasePage() {
   const [customerContact, setCustomerContact] = useState("");
   const [orderIds, setOrderIds] = useState<string[]>([]);
   const [orderIdInput, setOrderIdInput] = useState("");
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   // Get selected case type to check requirements
   const selectedCaseType = caseTypes.find((t) => t.id === caseTypeId);
@@ -122,6 +124,30 @@ export default function NewCasePage() {
     setCaseTypeId("");
     setSeverity("");
   }, [category]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const validFiles = files.filter(file => {
+      const isImage = file.type.startsWith('image/');
+      const isUnder5MB = file.size <= 5 * 1024 * 1024; // 5MB
+      
+      if (!isImage) {
+        toast.error(`${file.name} ไม่ใช่ไฟล์รูปภาพ`);
+        return false;
+      }
+      if (!isUnder5MB) {
+        toast.error(`${file.name} มีขนาดเกิน 5MB`);
+        return false;
+      }
+      return true;
+    });
+    
+    setAttachments([...attachments, ...validFiles]);
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(attachments.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -189,6 +215,39 @@ export default function NewCasePage() {
       }
 
       const newCase = await res.json();
+
+      // Upload attachments if any
+      if (attachments.length > 0) {
+        setUploading(true);
+        try {
+          const uploadPromises = attachments.map(async (file) => {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('caseId', newCase.id);
+            
+            const uploadRes = await fetch('/api/attachments', {
+              method: 'POST',
+              body: formData,
+            });
+            
+            if (!uploadRes.ok) {
+              throw new Error(`Failed to upload ${file.name}`);
+            }
+            return uploadRes.json();
+          });
+
+          await Promise.all(uploadPromises);
+          toast.success("อัปโหลดไฟล์เรียบร้อย", {
+            description: `อัปโหลด ${attachments.length} ไฟล์`,
+          });
+        } catch (uploadError) {
+          console.error('Upload error:', uploadError);
+          toast.warning("สร้างเคสสำเร็จแต่อัปโหลดไฟล์บางไฟล์ไม่สำเร็จ");
+        } finally {
+          setUploading(false);
+        }
+      }
+
       toast.success("สร้างเคสเรียบร้อย", {
         description: `เลขเคส: ${newCase.caseNumber}`,
       });
@@ -452,6 +511,82 @@ export default function NewCasePage() {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Step 3: Attachments (Optional) */}
+              {selectedCaseType && (
+                <Card className="border-none shadow-md animate-in fade-in duration-300">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <ImageIcon className="h-5 w-5 text-purple-500" />
+                      แนบไฟล์ภาพ (Optional)
+                    </CardTitle>
+                    <CardDescription>อัปโหลดภาพหน้าจอหรือหลักฐานประกอบ (สูงสุด 5MB/ไฟล์)</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Upload Button */}
+                    <div>
+                      <label 
+                        htmlFor="file-upload" 
+                        className={cn(
+                          "flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors",
+                          "hover:bg-muted/50 border-muted-foreground/25 hover:border-primary/50",
+                          isLoading && "opacity-50 cursor-not-allowed"
+                        )}
+                      >
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <Upload className="h-8 w-8 mb-2 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground">
+                            <span className="font-semibold">คลิกเพื่ออัปโหลด</span> หรือลากไฟล์มาวาง
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">PNG, JPG, JPEG (MAX. 5MB)</p>
+                        </div>
+                        <input
+                          id="file-upload"
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          multiple
+                          onChange={handleFileChange}
+                          disabled={isLoading}
+                        />
+                      </label>
+                    </div>
+
+                    {/* Attachments Preview */}
+                    {attachments.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium">ไฟล์ที่แนบ ({attachments.length})</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          {attachments.map((file, index) => (
+                            <div
+                              key={index}
+                              className="relative group rounded-lg border bg-muted/30 p-3 flex items-center gap-3"
+                            >
+                              <ImageIcon className="h-8 w-8 text-muted-foreground flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">{file.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {(file.size / 1024).toFixed(1)} KB
+                                </p>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity absolute top-2 right-2 bg-background/80 hover:bg-destructive hover:text-destructive-foreground"
+                                onClick={() => removeAttachment(index)}
+                                disabled={isLoading}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Sidebar Column - Right Side */}
@@ -609,6 +744,7 @@ export default function NewCasePage() {
                   className="w-full shadow-lg hover:shadow-xl transition-all"
                   disabled={
                     isLoading || 
+                    uploading ||
                     !category ||
                     !caseTypeId || 
                     !source ||
@@ -617,10 +753,10 @@ export default function NewCasePage() {
                     (selectedCaseType?.requireOrderId && orderIds.length === 0)
                   }
                 >
-                  {isLoading ? (
+                  {isLoading || uploading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      กำลังสร้าง...
+                      {uploading ? "กำลังอัปโหลดไฟล์..." : "กำลังสร้าง..."}
                     </>
                   ) : (
                     "สร้างเคส"
