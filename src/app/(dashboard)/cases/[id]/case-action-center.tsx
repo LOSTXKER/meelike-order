@@ -53,41 +53,43 @@ const roleLabels: Record<string, string> = {
   VIEWER: "Viewer",
 };
 
-// Status flow configuration
+// Status flow configuration (merged INVESTIGATING + FIXING into "กำลังดำเนินการ")
+// NEW → FIXING (skip INVESTIGATING) → RESOLVED → CLOSED
 const STATUS_FLOW: Record<string, { next?: string; prev?: string; nextLabel?: string; prevLabel?: string }> = {
   NEW: { 
-    next: "INVESTIGATING",
-    nextLabel: "เริ่มตรวจสอบ",
+    next: "FIXING",
+    nextLabel: "เริ่มดำเนินการ",
   },
+  // Keep INVESTIGATING for backward compatibility (existing cases)
   INVESTIGATING: { 
-    next: "FIXING", 
+    next: "RESOLVED", 
     prev: "NEW",
-    nextLabel: "เริ่มแก้ไข",
+    nextLabel: "แก้ไขเสร็จ",
     prevLabel: "กลับเป็นใหม่",
   },
   WAITING_CUSTOMER: { 
     next: "FIXING", 
-    prev: "INVESTIGATING",
-    nextLabel: "เริ่มแก้ไข",
-    prevLabel: "กลับตรวจสอบ",
+    prev: "FIXING",
+    nextLabel: "ดำเนินการต่อ",
+    prevLabel: "กลับดำเนินการ",
   },
   WAITING_PROVIDER: { 
     next: "FIXING", 
-    prev: "INVESTIGATING",
-    nextLabel: "เริ่มแก้ไข",
-    prevLabel: "กลับตรวจสอบ",
+    prev: "FIXING",
+    nextLabel: "ดำเนินการต่อ",
+    prevLabel: "กลับดำเนินการ",
   },
   FIXING: { 
     next: "RESOLVED", 
-    prev: "INVESTIGATING",
+    prev: "NEW",
     nextLabel: "แก้ไขเสร็จ",
-    prevLabel: "กลับตรวจสอบ",
+    prevLabel: "กลับเป็นใหม่",
   },
   RESOLVED: { 
     next: "CLOSED", 
     prev: "FIXING",
     nextLabel: "ปิดเคส",
-    prevLabel: "กลับแก้ไข",
+    prevLabel: "กลับดำเนินการ",
   },
   CLOSED: { 
     prev: "RESOLVED",
@@ -314,8 +316,8 @@ export function CaseActionCenter({ caseId, currentStatus, owner, orders = [] }: 
 
           <div className="h-6 w-px bg-border mx-1" />
 
-          {/* Waiting States */}
-          {(currentStatus === "INVESTIGATING" || currentStatus === "FIXING") && (
+          {/* Waiting States (only during FIXING / กำลังดำเนินการ) */}
+          {currentStatus === "FIXING" && (
             <>
               <Button
                 variant="outline"

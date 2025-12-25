@@ -8,11 +8,12 @@ export const CASE_STATUS = {
     bgColor: "bg-blue-500/10",
     textColor: "text-blue-600 dark:text-blue-400",
   },
+  // INVESTIGATING merged with FIXING as "กำลังดำเนินการ"
   INVESTIGATING: {
     value: "INVESTIGATING",
-    label: "กำลังตรวจสอบ",
-    labelEn: "Investigating",
-    color: "status-investigating",
+    label: "กำลังดำเนินการ",
+    labelEn: "In Progress",
+    color: "status-in-progress",
     bgColor: "bg-violet-500/10",
     textColor: "text-violet-600 dark:text-violet-400",
   },
@@ -32,13 +33,14 @@ export const CASE_STATUS = {
     bgColor: "bg-orange-500/10",
     textColor: "text-orange-600 dark:text-orange-400",
   },
+  // FIXING merged with INVESTIGATING as "กำลังดำเนินการ"
   FIXING: {
     value: "FIXING",
-    label: "กำลังแก้ไข",
-    labelEn: "Fixing",
-    color: "status-fixing",
-    bgColor: "bg-cyan-500/10",
-    textColor: "text-cyan-600 dark:text-cyan-400",
+    label: "กำลังดำเนินการ",
+    labelEn: "In Progress",
+    color: "status-in-progress",
+    bgColor: "bg-violet-500/10",
+    textColor: "text-violet-600 dark:text-violet-400",
   },
   RESOLVED: {
     value: "RESOLVED",
@@ -123,15 +125,16 @@ export const USER_ROLE = {
   CEO: { value: "CEO", label: "CEO", permissions: ["dashboard", "reports", "performance"] },
 } as const;
 
-// State machine transitions
+// State machine transitions (merged INVESTIGATING + FIXING flow)
+// NEW → FIXING → RESOLVED → CLOSED (with WAITING states as side steps)
 export const STATUS_TRANSITIONS: Record<string, string[]> = {
-  NEW: ["INVESTIGATING", "CLOSED"],
-  INVESTIGATING: ["WAITING_CUSTOMER", "WAITING_PROVIDER", "FIXING", "RESOLVED", "CLOSED"],
-  WAITING_CUSTOMER: ["INVESTIGATING", "FIXING", "RESOLVED", "CLOSED"],
-  WAITING_PROVIDER: ["INVESTIGATING", "FIXING", "RESOLVED", "CLOSED"],
-  FIXING: ["RESOLVED", "WAITING_CUSTOMER", "WAITING_PROVIDER", "CLOSED"],
-  RESOLVED: ["CLOSED", "INVESTIGATING"], // Can reopen
-  CLOSED: ["INVESTIGATING"], // Can reopen
+  NEW: ["FIXING", "CLOSED"], // Skip INVESTIGATING, go directly to FIXING
+  INVESTIGATING: ["FIXING", "RESOLVED", "WAITING_CUSTOMER", "WAITING_PROVIDER", "CLOSED"], // For backward compatibility
+  WAITING_CUSTOMER: ["FIXING", "RESOLVED", "CLOSED"],
+  WAITING_PROVIDER: ["FIXING", "RESOLVED", "CLOSED"],
+  FIXING: ["RESOLVED", "WAITING_CUSTOMER", "WAITING_PROVIDER", "NEW", "CLOSED"],
+  RESOLVED: ["CLOSED", "FIXING"], // Can reopen to FIXING
+  CLOSED: ["FIXING"], // Can reopen to FIXING
 };
 
 // Root cause options

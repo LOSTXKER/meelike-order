@@ -92,10 +92,9 @@ export function CasesFilters({ onFilterChange }: CasesFiltersProps) {
           <SelectContent>
             <SelectItem value="all">ทุกสถานะ</SelectItem>
             <SelectItem value="NEW">ใหม่</SelectItem>
-            <SelectItem value="INVESTIGATING">กำลังตรวจสอบ</SelectItem>
+            <SelectItem value="INVESTIGATING,FIXING">กำลังดำเนินการ</SelectItem>
             <SelectItem value="WAITING_CUSTOMER">รอลูกค้า</SelectItem>
             <SelectItem value="WAITING_PROVIDER">รอ Provider</SelectItem>
-            <SelectItem value="FIXING">กำลังแก้ไข</SelectItem>
             <SelectItem value="RESOLVED">แก้ไขแล้ว</SelectItem>
             <SelectItem value="CLOSED">ปิดเคส</SelectItem>
           </SelectContent>

@@ -39,10 +39,11 @@ import { useTransition } from "react";
 
 const statusLabels: Record<string, { label: string; className: string }> = {
   NEW: { label: "ใหม่", className: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800" },
-  INVESTIGATING: { label: "ตรวจสอบ", className: "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-900/30 dark:text-violet-300 dark:border-violet-800" },
+  // INVESTIGATING and FIXING now both display as "กำลังดำเนินการ" (merged flow)
+  INVESTIGATING: { label: "กำลังดำเนินการ", className: "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-900/30 dark:text-violet-300 dark:border-violet-800" },
+  FIXING: { label: "กำลังดำเนินการ", className: "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-900/30 dark:text-violet-300 dark:border-violet-800" },
   WAITING_CUSTOMER: { label: "รอลูกค้า", className: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800" },
   WAITING_PROVIDER: { label: "รอ Provider", className: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800" },
-  FIXING: { label: "กำลังแก้ไข", className: "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-cyan-800" },
   RESOLVED: { label: "แก้ไขแล้ว", className: "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800" },
   CLOSED: { label: "ปิดเคส", className: "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700" },
 };
@@ -360,11 +361,11 @@ export default function CasesPage() {
                             <DropdownMenuSeparator />
                             {caseItem.status === "NEW" && (
                               <DropdownMenuItem 
-                                onClick={() => quickStatusChange(caseItem.id, "INVESTIGATING", queryClient)}
+                                onClick={() => quickStatusChange(caseItem.id, "FIXING", queryClient)}
                                 className="cursor-pointer"
                               >
                                 <ChevronRight className="h-4 w-4 mr-2" />
-                                รับเรื่อง (ตรวจสอบ)
+                                เริ่มดำเนินการ
                               </DropdownMenuItem>
                             )}
                             {caseItem.status !== "RESOLVED" && caseItem.status !== "CLOSED" && (

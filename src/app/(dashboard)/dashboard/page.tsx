@@ -99,10 +99,11 @@ interface DashboardData {
 
 const statusLabels: Record<string, { label: string; className: string }> = {
   NEW: { label: "ใหม่", className: "bg-blue-500/10 text-blue-500 border-blue-500/20" },
-  INVESTIGATING: { label: "กำลังตรวจสอบ", className: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
-  WAITING_CUSTOMER: { label: "รอลูกค้า", className: "bg-purple-500/10 text-purple-500 border-purple-500/20" },
+  // INVESTIGATING and FIXING now both display as "กำลังดำเนินการ" (merged flow)
+  INVESTIGATING: { label: "กำลังดำเนินการ", className: "bg-violet-500/10 text-violet-500 border-violet-500/20" },
+  FIXING: { label: "กำลังดำเนินการ", className: "bg-violet-500/10 text-violet-500 border-violet-500/20" },
+  WAITING_CUSTOMER: { label: "รอลูกค้า", className: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
   WAITING_PROVIDER: { label: "รอ Provider", className: "bg-orange-500/10 text-orange-500 border-orange-500/20" },
-  FIXING: { label: "กำลังแก้ไข", className: "bg-cyan-500/10 text-cyan-500 border-cyan-500/20" },
   RESOLVED: { label: "แก้ไขแล้ว", className: "bg-green-500/10 text-green-500 border-green-500/20" },
   CLOSED: { label: "ปิดเคส", className: "bg-gray-500/10 text-gray-500 border-gray-500/20" },
 };

@@ -26,7 +26,13 @@ export async function GET(request: NextRequest) {
     const where: Prisma.CaseWhereInput = {};
 
     if (status && status !== "all") {
-      where.status = status as Prisma.EnumCaseStatusFilter["equals"];
+      // Support comma-separated status values (e.g., "INVESTIGATING,FIXING")
+      if (status.includes(",")) {
+        const statuses = status.split(",").map(s => s.trim());
+        where.status = { in: statuses as ("NEW" | "INVESTIGATING" | "FIXING" | "WAITING_CUSTOMER" | "WAITING_PROVIDER" | "RESOLVED" | "CLOSED")[] };
+      } else {
+        where.status = status as Prisma.EnumCaseStatusFilter["equals"];
+      }
     }
 
     if (severity && severity !== "all") {

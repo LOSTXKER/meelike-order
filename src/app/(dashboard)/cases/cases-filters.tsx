@@ -40,12 +40,11 @@ import {
 import { useCallback, useState, useTransition, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
-// Status options with icons
+// Status options with icons (merged INVESTIGATING + FIXING into "กำลังดำเนินการ")
 const statusOptions = [
   { value: "all", label: "ทั้งหมด", icon: LayoutGrid },
   { value: "NEW", label: "ใหม่", icon: PlusCircle, color: "text-blue-600", activeClass: "bg-blue-50 text-blue-700 ring-1 ring-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:ring-blue-800" },
-  { value: "INVESTIGATING", label: "ตรวจสอบ", icon: SearchIcon, color: "text-violet-600", activeClass: "bg-violet-50 text-violet-700 ring-1 ring-violet-200 dark:bg-violet-900/20 dark:text-violet-300 dark:ring-violet-800" },
-  { value: "FIXING", label: "กำลังแก้ไข", icon: Wrench, color: "text-cyan-600", activeClass: "bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200 dark:bg-cyan-900/20 dark:text-cyan-300 dark:ring-cyan-800" },
+  { value: "IN_PROGRESS", label: "กำลังดำเนินการ", icon: Wrench, color: "text-violet-600", activeClass: "bg-violet-50 text-violet-700 ring-1 ring-violet-200 dark:bg-violet-900/20 dark:text-violet-300 dark:ring-violet-800", includes: ["INVESTIGATING", "FIXING"] },
   { value: "WAITING_CUSTOMER", label: "รอลูกค้า", icon: Clock, color: "text-amber-600", activeClass: "bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:ring-amber-800" },
   { value: "WAITING_PROVIDER", label: "รอ Provider", icon: Building2, color: "text-orange-600", activeClass: "bg-orange-50 text-orange-700 ring-1 ring-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:ring-orange-800" },
   { value: "RESOLVED", label: "แก้ไขแล้ว", icon: CheckCircle, color: "text-green-600", activeClass: "bg-green-50 text-green-700 ring-1 ring-green-200 dark:bg-green-900/20 dark:text-green-300 dark:ring-green-800" },
@@ -114,13 +113,31 @@ export function CasesFilters() {
     [searchParams]
   );
 
-  const status = searchParams.get("status") || "all";
+  const statusParam = searchParams.get("status") || "all";
   const category = searchParams.get("category") || "all";
   const severity = searchParams.get("severity") || "all";
 
+  // Map IN_PROGRESS to include INVESTIGATING and FIXING
+  const getActiveStatus = () => {
+    if (statusParam === "IN_PROGRESS" || statusParam === "INVESTIGATING" || statusParam === "FIXING") {
+      return "IN_PROGRESS";
+    }
+    return statusParam;
+  };
+  
+  const status = getActiveStatus();
+
   const updateFilter = (key: string, value: string) => {
     startTransition(() => {
-      router.push(`/cases?${createQueryString({ [key]: value })}`);
+      // For IN_PROGRESS, send as multiple status values
+      if (key === "status" && value === "IN_PROGRESS") {
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete("page");
+        params.set("status", "INVESTIGATING,FIXING");
+        router.push(`/cases?${params.toString()}`);
+      } else {
+        router.push(`/cases?${createQueryString({ [key]: value })}`);
+      }
     });
   };
 

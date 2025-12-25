@@ -59,10 +59,11 @@ const riskLabels: Record<string, { label: string; className: string }> = {
 
 const statusLabels: Record<string, { label: string; className: string }> = {
   NEW: { label: "ใหม่", className: "bg-blue-500/10 text-blue-600 border-blue-200" },
-  INVESTIGATING: { label: "กำลังตรวจสอบ", className: "bg-violet-500/10 text-violet-600 border-violet-200" },
+  // INVESTIGATING and FIXING merged as "กำลังดำเนินการ"
+  INVESTIGATING: { label: "กำลังดำเนินการ", className: "bg-violet-500/10 text-violet-600 border-violet-200" },
+  FIXING: { label: "กำลังดำเนินการ", className: "bg-violet-500/10 text-violet-600 border-violet-200" },
   WAITING_CUSTOMER: { label: "รอลูกค้า", className: "bg-amber-500/10 text-amber-600 border-amber-200" },
   WAITING_PROVIDER: { label: "รอ Provider", className: "bg-orange-500/10 text-orange-600 border-orange-200" },
-  FIXING: { label: "กำลังแก้ไข", className: "bg-cyan-500/10 text-cyan-600 border-cyan-200" },
   RESOLVED: { label: "แก้ไขแล้ว", className: "bg-green-500/10 text-green-600 border-green-200" },
   CLOSED: { label: "ปิดเคส", className: "bg-gray-500/10 text-gray-600 border-gray-200" },
 };

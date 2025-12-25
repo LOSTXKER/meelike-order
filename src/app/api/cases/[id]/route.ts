@@ -300,10 +300,11 @@ function determineOrderStatus(caseStatus: string, resolution?: string): string |
 function getStatusLabel(status: string): string {
   const labels: Record<string, string> = {
     NEW: "ใหม่",
-    INVESTIGATING: "กำลังตรวจสอบ",
+    // INVESTIGATING and FIXING merged as "กำลังดำเนินการ"
+    INVESTIGATING: "กำลังดำเนินการ",
+    FIXING: "กำลังดำเนินการ",
     WAITING_CUSTOMER: "รอลูกค้า",
     WAITING_PROVIDER: "รอ Provider",
-    FIXING: "กำลังแก้ไข",
     RESOLVED: "แก้ไขแล้ว",
     CLOSED: "ปิดเคส",
   };

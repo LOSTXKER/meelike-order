@@ -13,53 +13,42 @@ interface StatusFlowGuideProps {
   currentStatus: string;
 }
 
+// Main flow: NEW → IN_PROGRESS → RESOLVED → CLOSED
+// WAITING states are side steps during IN_PROGRESS
 const statusFlow = [
   { 
     key: "NEW", 
     label: "ใหม่", 
     description: "เคสที่เพิ่งสร้าง รอดำเนินการ",
-    color: "bg-blue-500" 
+    color: "bg-blue-500",
+    includes: ["NEW"],
   },
   { 
-    key: "INVESTIGATING", 
-    label: "กำลังตรวจสอบ", 
-    description: "กำลังวิเคราะห์และหาสาเหตุของปัญหา",
-    color: "bg-violet-500" 
-  },
-  { 
-    key: "WAITING_CUSTOMER", 
-    label: "รอลูกค้า", 
-    description: "รอข้อมูลเพิ่มเติมจากลูกค้า",
-    color: "bg-amber-500" 
-  },
-  { 
-    key: "WAITING_PROVIDER", 
-    label: "รอ Provider", 
-    description: "ส่งเรื่องให้ Provider ดำเนินการ",
-    color: "bg-orange-500" 
-  },
-  { 
-    key: "FIXING", 
-    label: "กำลังแก้ไข", 
-    description: "กำลังดำเนินการแก้ไขปัญหา",
-    color: "bg-cyan-500" 
+    key: "IN_PROGRESS", 
+    label: "กำลังดำเนินการ", 
+    description: "กำลังตรวจสอบและแก้ไขปัญหา",
+    color: "bg-violet-500",
+    includes: ["INVESTIGATING", "FIXING", "WAITING_CUSTOMER", "WAITING_PROVIDER"],
   },
   { 
     key: "RESOLVED", 
     label: "แก้ไขแล้ว", 
     description: "แก้ไขปัญหาเรียบร้อยแล้ว",
-    color: "bg-green-500" 
+    color: "bg-green-500",
+    includes: ["RESOLVED"],
   },
   { 
     key: "CLOSED", 
     label: "ปิดเคส", 
     description: "เคสถูกปิดและเสร็จสิ้น",
-    color: "bg-gray-500" 
+    color: "bg-gray-500",
+    includes: ["CLOSED"],
   },
 ];
 
 export function StatusFlowGuide({ currentStatus }: StatusFlowGuideProps) {
-  const currentIndex = statusFlow.findIndex((s) => s.key === currentStatus);
+  // Find current index based on includes array
+  const currentIndex = statusFlow.findIndex((s) => s.includes.includes(currentStatus));
 
   return (
     <div className="rounded-lg border border-border/50 bg-muted/30 p-4">
@@ -67,7 +56,7 @@ export function StatusFlowGuide({ currentStatus }: StatusFlowGuideProps) {
       <div className="flex items-center justify-between overflow-x-auto pb-2">
         {statusFlow.map((status, index) => {
           const isPast = index < currentIndex;
-          const isCurrent = status.key === currentStatus;
+          const isCurrent = status.includes.includes(currentStatus);
           const isFuture = index > currentIndex;
 
           return (

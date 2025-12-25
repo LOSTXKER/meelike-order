@@ -47,31 +47,33 @@ const roleLabels: Record<string, string> = {
   VIEWER: "Viewer",
 };
 
-// Status flow configuration
+// Status flow configuration (merged INVESTIGATING + FIXING into "กำลังดำเนินการ")
+// NEW → FIXING (skip INVESTIGATING) → RESOLVED → CLOSED
 const STATUS_FLOW: Record<string, { next?: string; prev?: string; label: string }> = {
   NEW: { 
-    next: "INVESTIGATING", 
+    next: "FIXING", 
     label: "ใหม่" 
   },
+  // Keep for backward compatibility
   INVESTIGATING: { 
-    next: "FIXING", 
+    next: "RESOLVED", 
     prev: "NEW", 
-    label: "กำลังตรวจสอบ" 
+    label: "กำลังดำเนินการ" 
   },
   WAITING_CUSTOMER: { 
     next: "FIXING", 
-    prev: "INVESTIGATING", 
+    prev: "FIXING", 
     label: "รอลูกค้า" 
   },
   WAITING_PROVIDER: { 
     next: "FIXING", 
-    prev: "INVESTIGATING", 
+    prev: "FIXING", 
     label: "รอ Provider" 
   },
   FIXING: { 
     next: "RESOLVED", 
-    prev: "INVESTIGATING", 
-    label: "กำลังแก้ไข" 
+    prev: "NEW", 
+    label: "กำลังดำเนินการ" 
   },
   RESOLVED: { 
     next: "CLOSED", 

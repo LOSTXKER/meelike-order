@@ -67,16 +67,15 @@ const activityIcons: Record<string, typeof MessageSquare> = {
   REOPENED: ChevronRight,
 };
 
-// Progress Steps Configuration
+// Progress Steps Configuration (4 steps - merged INVESTIGATING + FIXING)
 const PROGRESS_STEPS = [
   { status: "NEW", label: "ใหม่", icon: CircleDot, color: "blue" },
-  { status: "INVESTIGATING", label: "ตรวจสอบ", icon: Search, color: "violet" },
-  { status: "FIXING", label: "แก้ไข", icon: Wrench, color: "cyan" },
+  { status: "IN_PROGRESS", label: "กำลังดำเนินการ", icon: Wrench, color: "violet", includes: ["INVESTIGATING", "FIXING"] },
   { status: "RESOLVED", label: "แก้ไขแล้ว", icon: CheckCircle2, color: "green" },
   { status: "CLOSED", label: "ปิดเคส", icon: CheckCircle2, color: "gray" },
 ];
 
-// Waiting states
+// Waiting states (side states during IN_PROGRESS)
 const WAITING_STATES = {
   WAITING_CUSTOMER: { label: "รอลูกค้า", icon: UserX, color: "amber" },
   WAITING_PROVIDER: { label: "รอ Provider", icon: HourglassIcon, color: "orange" },
@@ -90,8 +89,13 @@ function CaseProgressBar({ currentStatus }: CaseProgressBarProps) {
   const isWaitingState = currentStatus === "WAITING_CUSTOMER" || currentStatus === "WAITING_PROVIDER";
   
   const getCurrentStepIndex = () => {
-    if (isWaitingState) return 1;
-    return PROGRESS_STEPS.findIndex(step => step.status === currentStatus);
+    if (isWaitingState) return 1; // IN_PROGRESS
+    // Check if status is in any step's "includes" array
+    const index = PROGRESS_STEPS.findIndex(step => 
+      step.status === currentStatus || 
+      (step.includes && step.includes.includes(currentStatus))
+    );
+    return index >= 0 ? index : 0;
   };
 
   const currentStepIndex = getCurrentStepIndex();
@@ -149,8 +153,7 @@ function CaseProgressBar({ currentStatus }: CaseProgressBarProps) {
                     isCurrent && cn(
                       "h-8 w-8 border-2 shadow-md",
                       step.status === "NEW" && "border-blue-500 text-blue-600",
-                      step.status === "INVESTIGATING" && "border-violet-500 text-violet-600",
-                      step.status === "FIXING" && "border-cyan-500 text-cyan-600",
+                      step.status === "IN_PROGRESS" && "border-violet-500 text-violet-600",
                       step.status === "RESOLVED" && "border-green-500 text-green-600",
                       step.status === "CLOSED" && "border-gray-500 text-gray-600"
                     ),
@@ -166,8 +169,7 @@ function CaseProgressBar({ currentStatus }: CaseProgressBarProps) {
                   isCurrent && cn(
                     "font-semibold",
                     step.status === "NEW" && "text-blue-600",
-                    step.status === "INVESTIGATING" && "text-violet-600",
-                    step.status === "FIXING" && "text-cyan-600",
+                    step.status === "IN_PROGRESS" && "text-violet-600",
                     step.status === "RESOLVED" && "text-green-600",
                     step.status === "CLOSED" && "text-gray-600"
                   ),
