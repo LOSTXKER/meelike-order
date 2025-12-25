@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -35,9 +34,7 @@ import {
   Settings,
   FileText,
   Tag,
-  Filter,
   LayoutGrid,
-  ListFilter
 } from "lucide-react";
 import { useCallback, useState, useTransition, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -88,7 +85,7 @@ interface CaseCounts {
   OTHER: number;
 }
 
-export function CasesFilterSidebar() {
+export function CasesFilters() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -129,102 +126,92 @@ export function CasesFilterSidebar() {
     });
   };
 
+  const clearFilters = () => {
+    startTransition(() => {
+      router.push("/cases");
+    });
+  };
+
+  const hasFilters = status !== "all" || category !== "all" || severity !== "all";
+
   return (
-    <div className="space-y-6">
-      {/* Category Section */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium text-muted-foreground px-2 flex items-center gap-2">
-          <ListFilter className="h-4 w-4" />
-          หมวดหมู่
-        </h3>
-        <div className="space-y-1">
-          {categoryOptions.map((opt) => {
-            const Icon = opt.icon;
-            const isActive = category === opt.value;
-            const count = opt.value === "all" ? caseCounts.all : caseCounts[opt.value as keyof CaseCounts] || 0;
-            
-            return (
-              <Button
-                key={opt.value}
-                variant={isActive ? "secondary" : "ghost"}
-                size="sm"
-                className={cn(
-                  "w-full justify-between font-normal h-9",
-                  isActive && "font-medium"
-                )}
-                onClick={() => updateFilter("category", opt.value)}
-              >
-                <div className="flex items-center gap-2">
-                  <Icon className={cn("h-4 w-4", isActive ? "text-primary" : "text-muted-foreground")} />
-                  <span>{opt.label}</span>
-                </div>
-                {count > 0 && (
-                  <Badge variant={isActive ? "default" : "secondary"} className="h-5 px-1.5 text-[10px] min-w-[20px]">
-                    {count}
-                  </Badge>
-                )}
-              </Button>
-            );
-          })}
-        </div>
-      </div>
+    <div className="flex flex-col gap-4">
+      {/* Filters Row */}
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Category Filter */}
+        <Select value={category} onValueChange={(val) => updateFilter("category", val)}>
+          <SelectTrigger className="h-9 w-[160px] bg-background">
+            <SelectValue placeholder="หมวดหมู่" />
+          </SelectTrigger>
+          <SelectContent>
+            {categoryOptions.map((opt) => {
+              const Icon = opt.icon;
+              const count = opt.value === "all" ? caseCounts.all : caseCounts[opt.value as keyof CaseCounts] || 0;
+              return (
+                <SelectItem key={opt.value} value={opt.value}>
+                  <div className="flex items-center gap-2">
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                    <span>{opt.label}</span>
+                    <span className="ml-auto text-xs text-muted-foreground">({count})</span>
+                  </div>
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
 
-      <Separator />
+        {/* Status Filter */}
+        <Select value={status} onValueChange={(val) => updateFilter("status", val)}>
+          <SelectTrigger className="h-9 w-[160px] bg-background">
+            <SelectValue placeholder="สถานะ" />
+          </SelectTrigger>
+          <SelectContent>
+            {statusOptions.map((opt) => {
+              const Icon = opt.icon;
+              return (
+                <SelectItem key={opt.value} value={opt.value}>
+                  <div className="flex items-center gap-2">
+                    <Icon className={cn("h-4 w-4", opt.color)} />
+                    <span>{opt.label}</span>
+                  </div>
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
 
-      {/* Status Section */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium text-muted-foreground px-2">สถานะ</h3>
-        <div className="space-y-1">
-          {statusOptions.map((opt) => {
-            const Icon = opt.icon;
-            const isActive = status === opt.value;
-            
-            return (
-              <Button
-                key={opt.value}
-                variant={isActive ? "secondary" : "ghost"}
-                size="sm"
-                className={cn(
-                  "w-full justify-start font-normal h-9",
-                  isActive && "font-medium"
-                )}
-                onClick={() => updateFilter("status", opt.value)}
-              >
-                <Icon className={cn("h-4 w-4 mr-2", opt.color)} />
-                {opt.label}
-              </Button>
-            );
-          })}
-        </div>
-      </div>
+        {/* Severity Filter */}
+        <Select value={severity} onValueChange={(val) => updateFilter("severity", val)}>
+          <SelectTrigger className="h-9 w-[160px] bg-background">
+            <SelectValue placeholder="ความรุนแรง" />
+          </SelectTrigger>
+          <SelectContent>
+            {severityOptions.map((opt) => {
+              const Icon = opt.icon;
+              return (
+                <SelectItem key={opt.value} value={opt.value}>
+                  <div className="flex items-center gap-2">
+                    <Icon className={cn("h-4 w-4", opt.color)} />
+                    <span>{opt.label}</span>
+                  </div>
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
 
-      <Separator />
-
-      {/* Severity Section */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium text-muted-foreground px-2">ความรุนแรง</h3>
-        <div className="space-y-1">
-          {severityOptions.map((opt) => {
-            const Icon = opt.icon;
-            const isActive = severity === opt.value;
-            
-            return (
-              <Button
-                key={opt.value}
-                variant={isActive ? "secondary" : "ghost"}
-                size="sm"
-                className={cn(
-                  "w-full justify-start font-normal h-9",
-                  isActive && "font-medium"
-                )}
-                onClick={() => updateFilter("severity", opt.value)}
-              >
-                <Icon className={cn("h-4 w-4 mr-2", opt.color)} />
-                {opt.label}
-              </Button>
-            );
-          })}
-        </div>
+        {/* Clear Filters */}
+        {hasFilters && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={clearFilters}
+            className="h-9 px-3 text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-4 w-4 mr-2" />
+            ล้างตัวกรอง
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -255,18 +242,10 @@ export function CaseSearchInput() {
       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <Input
         placeholder="ค้นหาเลขเคส, ลูกค้า, หรือหัวข้อ..."
-        className="pl-9 h-10"
+        className="pl-9 h-9 bg-background"
         value={value}
         onChange={(e) => setValue(e.target.value)}
       />
     </form>
   );
-}
-
-// Helper for displaying active filters in main area if needed (mostly for mobile/tablet)
-// or just showing what's applied. 
-export function ActiveFiltersDisplay() {
-   // ... can keep similar logic as before but cleaner
-   // For now, let's skip unless requested, as sidebar shows state clearly.
-   return null; 
 }
