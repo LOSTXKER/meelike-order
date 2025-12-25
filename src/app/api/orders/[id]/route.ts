@@ -91,6 +91,37 @@ export async function PATCH(
       });
 
       // ============================================
+      // AUTO-UPDATE: Order changed → Case becomes FIXING
+      // ============================================
+      // If Order changes from PENDING to anything else
+      // AND Case is still NEW or INVESTIGATING
+      // → Auto-update Case to FIXING
+      if (currentOrder.status === "PENDING" && body.status !== "PENDING") {
+        for (const relatedCase of currentOrder.cases) {
+          if (relatedCase.status === "NEW" || relatedCase.status === "INVESTIGATING") {
+            // Auto-update Case to FIXING
+            await prisma.case.update({
+              where: { id: relatedCase.id },
+              data: { status: "FIXING" },
+            });
+
+            // Log the auto-update
+            await prisma.caseActivity.create({
+              data: {
+                caseId: relatedCase.id,
+                type: "STATUS_CHANGED",
+                title: "🤖 ระบบเปลี่ยนสถานะอัตโนมัติ → กำลังแก้ไข",
+                description: `เนื่องจาก Order ${currentOrder.orderId} เริ่มดำเนินการแล้ว ระบบจึงเปลี่ยนสถานะ Case เป็น "กำลังแก้ไข" อัตโนมัติ`,
+                oldValue: relatedCase.status,
+                newValue: "FIXING",
+                userId,
+              },
+            });
+          }
+        }
+      }
+
+      // ============================================
       // AUTO-CHECK: Should Case be marked as RESOLVED?
       // ============================================
       for (const relatedCase of currentOrder.cases) {
