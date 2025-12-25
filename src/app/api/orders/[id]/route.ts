@@ -32,7 +32,11 @@ export async function PATCH(
       where: { id },
       include: {
         cases: {
-          select: { id: true },
+          select: { 
+            id: true, 
+            caseNumber: true,
+            status: true,
+          },
         },
       },
     });
@@ -85,6 +89,43 @@ export async function PATCH(
       await prisma.caseActivity.createMany({
         data: activities,
       });
+
+      // ============================================
+      // AUTO-CHECK: Should Case be marked as RESOLVED?
+      // ============================================
+      for (const relatedCase of currentOrder.cases) {
+        // Only check cases that are NOT already resolved/closed
+        if (relatedCase.status !== "RESOLVED" && relatedCase.status !== "CLOSED") {
+          // Get ALL orders for this case
+          const allOrdersForCase = await prisma.order.findMany({
+            where: {
+              cases: {
+                some: { id: relatedCase.id },
+              },
+            },
+            select: { id: true, orderId: true, status: true },
+          });
+
+          // Check if ALL orders are in terminal state (COMPLETED, REFUNDED, CANCELLED, FAILED)
+          const terminalStatuses = ["COMPLETED", "REFUNDED", "CANCELLED", "FAILED"];
+          const allOrdersComplete = allOrdersForCase.every(order => 
+            terminalStatuses.includes(order.status)
+          );
+
+          if (allOrdersComplete) {
+            // Add a suggestion activity to the case
+            await prisma.caseActivity.create({
+              data: {
+                caseId: relatedCase.id,
+                type: "NOTE_ADDED",
+                title: "💡 แนะนำ: Order ทุกรายการเสร็จสิ้นแล้ว",
+                description: `Order ทั้งหมดในเคสนี้ (${allOrdersForCase.map(o => o.orderId).join(", ")}) ได้ดำเนินการเสร็จสิ้นแล้ว คุณสามารถเปลี่ยนสถานะ Case เป็น "แก้ไขแล้ว" (RESOLVED) หรือ "ปิดเคส" (CLOSED) ได้`,
+                userId,
+              },
+            });
+          }
+        }
+      }
     }
 
     return NextResponse.json(updatedOrder);
@@ -112,7 +153,15 @@ export async function GET(
           select: { id: true, name: true },
         },
         cases: {
-          select: { id: true, caseNumber: true, title: true, status: true },
+          select: {
+            id: true,
+            caseNumber: true,
+            title: true,
+            status: true,
+          },
+        },
+        transactions: {
+          orderBy: { createdAt: "desc" },
         },
       },
     });
@@ -130,5 +179,3 @@ export async function GET(
     );
   }
 }
-
-

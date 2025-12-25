@@ -66,9 +66,14 @@ export async function PATCH(
     const body = await request.json();
     const userId = session.user.id;
 
-    // Get current case
+    // Get current case with orders
     const currentCase = await prisma.case.findUnique({
       where: { id },
+      include: {
+        orders: {
+          select: { id: true, orderId: true, status: true },
+        },
+      },
     });
 
     if (!currentCase) {
@@ -168,6 +173,7 @@ export async function PATCH(
         caseType: true,
         owner: true,
         provider: true,
+        orders: true,
       },
     });
 
@@ -181,6 +187,52 @@ export async function PATCH(
       });
     }
 
+    // ============================================
+    // AUTO-UPDATE RELATED ORDERS (NEW FEATURE)
+    // ============================================
+    if (body.status && body.status !== currentCase.status && currentCase.orders.length > 0) {
+      const newOrderStatus = determineOrderStatus(body.status, body.resolution);
+      
+      if (newOrderStatus) {
+        // Update all orders that are not already in terminal state
+        const ordersToUpdate = currentCase.orders.filter(
+          order => !["COMPLETED", "REFUNDED", "CANCELLED"].includes(order.status)
+        );
+
+        if (ordersToUpdate.length > 0) {
+          // Batch update orders (cast to proper OrderStatus type)
+          await prisma.order.updateMany({
+            where: {
+              id: { in: ordersToUpdate.map(o => o.id) },
+            },
+            data: {
+              status: newOrderStatus as "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "REFUNDED" | "CANCELLED",
+            },
+          });
+
+          // Log order updates in case activity
+          activities.push({
+            caseId: id,
+            type: "NOTE_ADDED",
+            title: "🤖 อัพเดท Order อัตโนมัติ",
+            description: `เปลี่ยนสถานะ Order ${ordersToUpdate.map(o => o.orderId).join(", ")} เป็น "${getOrderStatusLabel(newOrderStatus)}" (เนื่องจาก Case เปลี่ยนเป็น ${getStatusLabel(body.status)})`,
+            userId,
+          });
+
+          // Create activity log for the automation
+          await prisma.caseActivity.create({
+            data: {
+              caseId: id,
+              type: "NOTE_ADDED",
+              title: "🤖 อัพเดท Order อัตโนมัติ",
+              description: `เปลี่ยนสถานะ Order ${ordersToUpdate.map(o => o.orderId).join(", ")} เป็น "${getOrderStatusLabel(newOrderStatus)}" (เนื่องจาก Case เปลี่ยนเป็น ${getStatusLabel(body.status)})`,
+              userId,
+            },
+          });
+        }
+      }
+    }
+
     return NextResponse.json(updatedCase);
   } catch (error) {
     console.error("Error updating case:", error);
@@ -191,7 +243,60 @@ export async function PATCH(
   }
 }
 
-// Helper functions
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+
+/**
+ * Determine Order status based on Case status and resolution
+ */
+function determineOrderStatus(caseStatus: string, resolution?: string): string | null {
+  // When case is RESOLVED, check resolution text
+  if (caseStatus === "RESOLVED") {
+    if (!resolution) return "COMPLETED"; // Default to completed
+
+    const resolutionLower = resolution.toLowerCase();
+    
+    // Check for refund keywords
+    if (
+      resolutionLower.includes("คืนเงิน") || 
+      resolutionLower.includes("refund") ||
+      resolutionLower.includes("ขอคืน")
+    ) {
+      return "REFUNDED";
+    }
+    
+    // Check for cancellation keywords
+    if (
+      resolutionLower.includes("ยกเลิก") ||
+      resolutionLower.includes("cancel")
+    ) {
+      return "CANCELLED";
+    }
+
+    // Check for failure keywords
+    if (
+      resolutionLower.includes("ไม่สำเร็จ") ||
+      resolutionLower.includes("failed") ||
+      resolutionLower.includes("ล้มเหลว")
+    ) {
+      return "FAILED";
+    }
+
+    // Default: mark as completed
+    return "COMPLETED";
+  }
+
+  // When case is CLOSED without proper resolution
+  if (caseStatus === "CLOSED") {
+    if (!resolution) return "CANCELLED"; // No resolution = cancelled
+    return determineOrderStatus("RESOLVED", resolution); // Use same logic as RESOLVED
+  }
+
+  // For other statuses, return null (no auto-update)
+  return null;
+}
+
 function getStatusLabel(status: string): string {
   const labels: Record<string, string> = {
     NEW: "ใหม่",
@@ -215,3 +320,14 @@ function getSeverityLabel(severity: string): string {
   return labels[severity] || severity;
 }
 
+function getOrderStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    PENDING: "รอดำเนินการ",
+    PROCESSING: "กำลังดำเนินการ",
+    COMPLETED: "สำเร็จ",
+    FAILED: "ไม่สำเร็จ",
+    REFUNDED: "คืนเงินแล้ว",
+    CANCELLED: "ยกเลิก",
+  };
+  return labels[status] || status;
+}
